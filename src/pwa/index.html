@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>GremblingEx MFD</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<style>
+  :root {
+    --bg-dark: #03050a; --panel-bg: rgba(8, 14, 26, 0.85); --panel-bg-solid: #080e1a;
+    --panel-border: rgba(0, 243, 255, 0.4); --panel-border-dim: rgba(0, 243, 255, 0.15);
+    --text-main: #e0f7fa; --text-dim: #548b9e;
+    --accent-cyan: #00e5ff; --accent-cyan-dim: rgba(0, 229, 255, 0.15); --accent-cyan-glow: rgba(0, 229, 255, 0.8);
+    --accent-red: #ff3300; --accent-red-dim: rgba(255, 51, 0, 0.2); --accent-red-glow: rgba(255, 51, 0, 0.8);
+    --font-hud: 'Consolas', 'SF Mono', 'Segoe UI', 'Courier New', monospace;
+    --header-bg: linear-gradient(180deg, rgba(3, 5, 10, 0.98), rgba(3, 5, 10, 0.85));
+    --body-bg-image: linear-gradient(rgba(0, 229, 255, 0.03) 50%, transparent 50%), linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px), radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.1) 0%, transparent 70%);
+  }
+  body.theme-light {
+    --bg-dark: #eef2f6; --panel-bg: rgba(255, 255, 255, 0.6); --panel-bg-solid: #ffffff;
+    --panel-border: rgba(15, 23, 42, 0.1); --panel-border-dim: rgba(15, 23, 42, 0.05);
+    --text-main: #0f172a; --text-dim: #64748b;
+    --accent-cyan: #0284c7; --accent-cyan-dim: rgba(2, 132, 199, 0.1); --accent-cyan-glow: rgba(2, 132, 199, 0.2);
+    --accent-red: #e11d48; --accent-red-dim: rgba(225, 29, 72, 0.1); --accent-red-glow: rgba(225, 29, 72, 0.2);
+    --header-bg: rgba(255, 255, 255, 0.85); --body-bg-image: radial-gradient(circle at 50% -20%, #ffffff 0%, transparent 100%);
+  }
+  body.theme-classic {
+    --bg-dark: #121212; --panel-bg: #1e1e1e; --panel-bg-solid: #1e1e1e;
+    --panel-border: #333333; --panel-border-dim: #222222;
+    --text-main: #ffb74d; --text-dim: #8d6e3f;
+    --accent-cyan: #ff9800; --accent-cyan-dim: rgba(255, 152, 0, 0.15); --accent-cyan-glow: rgba(255, 152, 0, 0.4);
+    --accent-red: #f44336; --accent-red-dim: rgba(244, 67, 54, 0.15); --accent-red-glow: rgba(244, 67, 54, 0.4);
+    --header-bg: #181818; --body-bg-image: none;
+  }
+  body.theme-radar {
+    --bg-dark: #020a04; --panel-bg: rgba(2, 20, 8, 0.85); --panel-bg-solid: #021408;
+    --panel-border: rgba(0, 255, 65, 0.4); --panel-border-dim: rgba(0, 255, 65, 0.15);
+    --text-main: #00ff41; --text-dim: #008f11;
+    --accent-cyan: #00ff41; --accent-cyan-dim: rgba(0, 255, 65, 0.15); --accent-cyan-glow: rgba(0, 255, 65, 0.7);
+    --accent-red: #ff003c; --accent-red-dim: rgba(255, 0, 60, 0.15); --accent-red-glow: rgba(255, 0, 60, 0.7);
+    --header-bg: linear-gradient(180deg, #020a04, #021408);
+    --body-bg-image: linear-gradient(rgba(0, 255, 65, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 65, 0.08) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: var(--bg-dark); color: var(--text-main);
+    font-family: var(--font-hud);
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    overflow-x: hidden; /* <--- Inyectar esto para bloquear scroll lateral */
+  }
+
+  body {
+    /* HUD grid-line backdrop + soft top glow - purely decorative "greeble",
+       theme-overridden (or disabled) via --body-bg-image per theme block. */
+    background-image: var(--body-bg-image);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.2s ease-out, color 0.2s ease-out;
+  }
+
+  /* --- Top Header (Tabs) --- */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--header-bg);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--accent-cyan-dim);
+    box-shadow: 0 1px 14px rgba(0, 243, 255, 0.12);
+    position: sticky; top: 0; z-index: 10;
+  }
+  /* Greeble: hazard-stripe accent under the header */
+  header::after {
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: -3px; height: 3px;
+    background: repeating-linear-gradient(135deg, var(--accent-cyan) 0 6px, transparent 6px 12px);
+    opacity: 0.35;
+  }
+
+  .tabs {
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    background: rgba(0, 243, 255, 0.04);
+    border: 1px solid var(--panel-border-dim);
+    color: var(--text-dim); padding: 7px 18px; border-radius: 0;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    cursor: pointer; transition: all 0.1s ease-out;
+  }
+  .tab-btn:active {
+    background: var(--accent-cyan); color: var(--bg-dark); border-color: var(--accent-cyan);
+    box-shadow: 0 0 16px var(--accent-cyan-glow);
+  }
+  .tab-btn.active {
+    background: var(--accent-cyan-dim);
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px var(--accent-cyan-dim), inset 0 0 10px rgba(0, 243, 255, 0.15);
+    text-shadow: 0 0 8px var(--accent-cyan-glow);
+  }
+
+  .header-controls {
+    display: flex; gap: 14px; align-items: center;
+  }
+
+  /* Greeble: FUI status readout, mirrors #statusDot's connected state via JS */
+  .sys-link {
+    font-size: 10px; letter-spacing: 1.5px; color: var(--text-dim); white-space: nowrap;
+  }
+  .sys-link-value { color: var(--accent-red); font-weight: 700; }
+  .sys-link-value.online { color: var(--accent-cyan); text-shadow: 0 0 6px var(--accent-cyan-glow); }
+
+  /* Greeble: decorative diagonal lines */
+  .hud-deco {
+    color: var(--accent-cyan); opacity: 0.35; font-size: 12px; letter-spacing: 2px;
+  }
+
+  .status-indicator {
+    width: 9px; height: 9px; background: var(--accent-red);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    box-shadow: 0 0 8px var(--accent-red);
+  }
+  .status-indicator.connected {
+    background: var(--accent-cyan);
+    box-shadow: 0 0 10px var(--accent-cyan);
+  }
+
+  .icon-btn {
+    background: rgba(0, 243, 255, 0.04); border: 1px solid var(--panel-border-dim);
+    color: var(--text-dim); width: 30px; height: 30px; border-radius: 0;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.1s ease-out;
+  }
+  .icon-btn:active {
+    background: var(--accent-cyan); color: var(--bg-dark); border-color: var(--accent-cyan);
+    box-shadow: 0 0 16px var(--accent-cyan-glow);
+  }
+  .icon-btn.active {
+    color: var(--accent-cyan); border-color: var(--accent-cyan);
+    background: var(--accent-cyan-dim);
+    box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.15), 0 0 10px var(--accent-cyan-dim);
+  }
+
+  /* --- Main Layout ---
+     Grid (not flex-basis guessing) so panels always fill the full
+     available width of the tablet/monitor: auto-fit computes however many
+     260px+ columns fit the viewport and stretches them evenly (1fr) to
+     use 100% of the row, instead of leaving space unused. */
+  main {
+    flex: 1; padding: 16px; width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-content: flex-start; gap: 16px;
+  }
+
+  /* --- Panels --- */
+  .panel {
+    /* Eliminamos background, border, clip-path y box-shadow de aqui para que no corte el titulo */
+    padding: 20px 14px 14px;
+    position: relative;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .panel-bg {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 243, 255, 0.03);
+    z-index: 0;
+  }
+  /* Greeble: HUD corner brackets */
+  .panel::before, .panel::after {
+    content: ''; position: absolute; width: 10px; height: 10px;
+    border: 1px solid var(--accent-cyan); opacity: 0.55; pointer-events: none;
+  }
+  .panel::before { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+  .panel::after { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+
+  .panel-title {
+    position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-dark); padding: 0 10px;
+    color: var(--accent-cyan); font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; border: 1px solid var(--accent-cyan-dim); border-radius: 0;
+    white-space: nowrap;
+    text-shadow: 0 0 6px var(--accent-cyan-glow);
+    z-index: 2;
+  }
+  body.edit-mode .panel-title { cursor: grab; }
+  body.edit-mode .panel-title:active { cursor: grabbing; }
+
+  /* --- Grid inside Panels --- */
+  .panel-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 52px;
+    gap: 10px;
+    position: relative; z-index: 1; /* Por encima del panel-bg */
+  }
+
+  /* --- Controls (Buttons / Toggles) --- */
+  .control {
+    background: rgba(0, 243, 255, 0.03);
+    border: 1px solid var(--panel-border);
+    border-radius: 0;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    color: var(--text-main); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    cursor: pointer; transition: all 0.1s ease-out;
+    touch-action: manipulation;
+    position: relative; overflow: hidden;
+    padding: 4px 10px;
+  }
+
+  /* Long labels (e.g. "TREN DE ATERRIZAJE") wrap instead of being clipped
+     by the clip-path chamfer, staying centered via the parent's flexbox. */
+  .control-label {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; line-height: 1.1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: center;
+    font-size: 0.9em;
+    padding: 0 4px;
+  }
+
+  .control::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: rgba(0, 243, 255, 0.2);
+  }
+
+  @keyframes tactical-press {
+    0% { transform: scale(1); filter: brightness(1); }
+    20% { transform: scale(0.96); filter: brightness(1.5); box-shadow: inset 0 0 20px #fff; }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+
+  @keyframes danger-glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 1px); filter: drop-shadow(-2px 0 var(--accent-cyan)); }
+    40% { transform: translate(2px, -1px); filter: drop-shadow(2px 0 var(--accent-red)); }
+    60% { transform: translate(-1px, 2px); }
+    80% { transform: translate(1px, -2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* Pressed state (JS-driven, momentary controls) - instant bright fill,
+     fast return-to-base transition (see .control's own 0.1s ease-out). */
+  .control.pressed {
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: var(--bg-dark);
+    box-shadow: 0 0 20px var(--accent-cyan-glow), inset 0 0 12px rgba(255, 255, 255, 0.25);
+    animation: tactical-press 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .control.pressed::before { background: var(--bg-dark); }
+
+  /* Red/alert theme for specific buttons */
+  .control[data-theme="red"].pressed {
+    background: var(--accent-red); border-color: var(--accent-red); color: var(--bg-dark);
+    box-shadow: 0 0 20px var(--accent-red-glow), inset 0 0 12px rgba(255, 255, 255, 0.25);
+  }
+  .control[data-theme="red"].pressed::before { background: var(--bg-dark); }
+
+  .control[data-theme="danger"] {
+    background: repeating-linear-gradient(45deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.15) 10px, transparent 10px, transparent 20px);
+    border-color: var(--accent-red); color: var(--accent-red);
+  }
+  .control[data-theme="danger"]::before { background: var(--accent-red); }
+  .control[data-theme="danger"].pressed {
+    background: var(--accent-red); color: var(--bg-dark);
+    box-shadow: 0 0 20px var(--accent-red-glow);
+    animation: danger-glitch 0.2s ease-in-out forwards;
+  }
+
+  .control.spacer { background: transparent !important; border: none !important; box-shadow: none !important; pointer-events: none; }
+  .control.spacer::before, .control.spacer .control-label { display: none; }
+  body.edit-mode .control.spacer { border: 1px dashed rgba(255, 255, 255, 0.1) !important; pointer-events: auto; }
+
+  /* Toggle Switch variant */
+  .control.toggle {
+    flex-direction: column; justify-content: flex-end; padding-bottom: 6px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .control.toggle .switch-track {
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 28px; height: 12px;
+    background: rgba(255, 255, 255, 0.08); border: 1px solid var(--panel-border-dim); border-radius: 0;
+    display: flex; align-items: center; padding: 2px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .control.toggle .switch-thumb {
+    width: 8px; height: 8px; background: var(--text-dim); border-radius: 0;
+    transition: transform 0.15s, background 0.15s;
+  }
+
+  .control.toggle.active .switch-track { background: var(--accent-cyan-dim); border-color: var(--accent-cyan); }
+  .control.toggle.active .switch-thumb { transform: translateX(14px); background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan); }
+  .control.toggle.active { color: var(--accent-cyan); border-color: rgba(0, 243, 255, 0.4); text-shadow: 0 0 6px var(--accent-cyan-glow); }
+
+  .control.toggle[data-theme="red"].active .switch-track { background: var(--accent-red-dim); border-color: var(--accent-red); }
+  .control.toggle[data-theme="red"].active .switch-thumb { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+  .control.toggle[data-theme="red"].active { color: var(--accent-red); border-color: rgba(255, 85, 0, 0.4); text-shadow: 0 0 6px var(--accent-red-glow); }
+
+  /* Layout Spans */
+  .span-1 { grid-column: span 1; }
+  .span-2 { grid-column: span 2; }
+  .span-3 { grid-column: span 3; }
+  .span-4 { grid-column: span 4; }
+  .span-5 { grid-column: span 5; }
+  .span-6 { grid-column: span 6; }
+  .span-7 { grid-column: span 7; }
+  .span-8 { grid-column: span 8; }
+  .span-9 { grid-column: span 9; }
+  .span-10 { grid-column: span 10; }
+  .span-11 { grid-column: span 11; }
+  .span-12 { grid-column: span 12; }
+
+  .row-span-1 { grid-row: span 1; }
+  .row-span-2 { grid-row: span 2; }
+  .row-span-3 { grid-row: span 3; }
+  .row-span-4 { grid-row: span 4; }
+
+  /* Indicator LED variant */
+  .control.indicator {
+    background: #000;
+    border: 1px solid var(--panel-border-dim);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 1);
+    color: var(--text-dim);
+    cursor: default;
+  }
+  .control.indicator::before { display: none; }
+  .control.indicator.active {
+    background: var(--accent-cyan);
+    color: var(--bg-dark);
+    box-shadow: 0 0 18px var(--accent-cyan-glow), inset 0 0 10px rgba(255, 255, 255, 0.6);
+    border-color: #fff;
+  }
+  .control.indicator[data-theme="red"].active {
+    background: var(--accent-red);
+    box-shadow: 0 0 18px var(--accent-red-glow), inset 0 0 10px rgba(255, 255, 255, 0.6);
+  }
+
+  /* Shapes (per-control override, still user-selectable in the editor) */
+  .control.shape-round {
+    border-radius: 50%;
+    clip-path: none;
+  }
+  .control.shape-beveled {
+    border-radius: 0;
+    clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  }
+  .control.shape-beveled::before {
+    /* Adjust top highlight for beveled so it doesn't spill out */
+    clip-path: inherit;
+  }
+  .control.shape-hexagon {
+    border-radius: 0;
+    clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+  }
+  .control.shape-hexagon::before {
+    clip-path: inherit;
+  }
+  .control.shape-trapezoid {
+    border-radius: 0;
+    clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%);
+  }
+  .control.shape-trapezoid::before {
+    clip-path: inherit;
+  }
+
+  /* --- Device Selector (Editor Mode) --- */
+  #deviceSelectorOverlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    backdrop-filter: blur(16px);
+    background: rgba(4, 6, 12, 0.85);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-cyan);
+  }
+  body.edit-mode #deviceSelectorOverlay.active { display: flex; }
+  .device-list {
+    background: var(--panel-bg-solid);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 0;
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7), 0 0 30px var(--accent-cyan-dim);
+    padding: 24px;
+    min-width: 300px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .device-list h3 {
+    margin: 0 0 6px; color: var(--accent-cyan); font-size: 13px;
+    text-transform: uppercase; letter-spacing: 2px;
+    text-shadow: 0 0 8px var(--accent-cyan-glow);
+  }
+  .device-btn {
+    background: rgba(0, 243, 255, 0.03); color: var(--text-main);
+    border: 1px solid var(--panel-border-dim); border-radius: 0;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    padding: 12px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.1s ease-out;
+  }
+  .device-btn:active {
+    background: var(--accent-cyan); color: var(--bg-dark);
+    box-shadow: 0 0 16px var(--accent-cyan-glow);
+  }
+  .device-btn:hover {
+    border-color: var(--accent-cyan); color: var(--accent-cyan);
+    background: var(--accent-cyan-dim);
+    box-shadow: 0 0 10px var(--accent-cyan-dim);
+  }
+  .device-icon { margin-right: 8px; }
+  .new-device-input {
+    background: rgba(0, 0, 0, 0.4); color: var(--text-main);
+    border: 1px solid var(--panel-border); border-radius: 0; padding: 10px; margin-top: 10px;
+    font-family: var(--font-hud); letter-spacing: 1px;
+  }
+
+  /* --- Edit Mode Overlays --- */
+  body.edit-mode .control { border-style: dashed; }
+  body.edit-mode .panel { border-style: dashed; border-color: var(--text-dim); }
+
+  /* Simulate Phone screen on desktop */
+  body.edit-mode main {
+    max-width: 420px; /* Fallback, overridden dynamically */
+    margin: 0 auto;
+    border: 2px dashed var(--panel-border-dim);
+    background: rgba(0, 0, 0, 0.3);
+    /* For high-density grids to fit exactly in dynamic width */
+    overflow-x: hidden;
+  }
+
+  .add-panel-btn {
+    display: none; border: 1px dashed var(--panel-border-dim); color: var(--text-dim);
+    align-items: center; justify-content: center; padding: 20px; border-radius: 0;
+    cursor: pointer; width: 100%; max-width: 420px; margin: 0 auto;
+    font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
+  }
+  body.edit-mode .add-panel-btn { display: flex; }
+
+  .add-control-btn {
+    display: none; background: rgba(0, 243, 255, 0.05); color: var(--text-dim);
+    align-items: center; justify-content: center; font-size: 18px; border-radius: 0;
+    border: 1px dashed var(--panel-border-dim);
+  }
+  body.edit-mode .add-control-btn { display: flex; }
+
+  /* --- Modal --- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(2, 4, 8, 0.85);
+    backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--panel-bg-solid);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--accent-cyan-dim);
+    border-radius: 0;
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+    padding: 24px; width: 300px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 243, 255, 0.08);
+  }
+  .modal h2 {
+    margin: 0 0 18px; font-size: 14px; color: var(--accent-cyan);
+    text-transform: uppercase; letter-spacing: 2px;
+    text-shadow: 0 0 8px var(--accent-cyan-glow);
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block; font-size: 10px; color: var(--text-dim); margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .form-group input, .form-group select {
+    width: 100%; padding: 9px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--panel-border);
+    color: var(--text-main); border-radius: 0; font-family: var(--font-hud); font-size: 12px;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+  .btn-base {
+    padding: 9px 18px; border: 1px solid var(--panel-border-dim); background: transparent;
+    color: var(--text-dim); border-radius: 0; font-size: 11px; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 1px; cursor: pointer; transition: all 0.1s ease-out;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+  .btn-base:active { filter: brightness(1.5); }
+  .btn-primary { border-color: var(--accent-cyan); color: var(--accent-cyan); background: var(--accent-cyan-dim); }
+  .btn-primary:active { background: var(--accent-cyan); color: var(--bg-dark); box-shadow: 0 0 16px var(--accent-cyan-glow); }
+  .btn-danger { border-color: var(--accent-red); color: var(--accent-red); background: var(--accent-red-dim); margin-right: auto; }
+  .btn-danger:active { background: var(--accent-red); color: var(--bg-dark); box-shadow: 0 0 16px var(--accent-red-glow); }
+
+  /* --- Mobile-first, scaling up nicely on a landscape tablet --- */
+  @media (min-width: 700px) and (orientation: landscape) {
+    .panel-grid { grid-auto-rows: 64px; gap: 12px; }
+    .control { font-size: 12px; letter-spacing: 1.5px; }
+    main { padding: 20px; gap: 20px; }
+  }
+
+  /* --- Mobile Layout (Responsividad para pantallas angostas) --- */
+  @media (max-width: 650px) {
+    /* Ocultar texto de conexión (el punto luminoso es suficiente) */
+    .sys-link:not(#deviceNameDisplay) {
+      display: none;
+    }
+    /* Ocultar rayas decorativas */
+    .hud-deco {
+      display: none;
+    }
+    /* Comprimir espaciados en la barra de controles */
+    .header-controls {
+      gap: 6px;
+    }
+    /* Comprimir el nombre del dispositivo si es muy largo */
+    #deviceNameDisplay {
+      display: inline-block; /* max-width/text-overflow no truncan en inline puro (span) */
+      font-size: 9px;
+      letter-spacing: 0.5px;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 4px !important;
+    }
+    /* Achicar un poco los márgenes de los Tabs */
+    .tab-btn {
+      padding: 7px 10px;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+    header {
+      padding: 8px 10px;
+    }
+  }
+
+</style>
+</head>
+<body>
+  <!-- Device Selector for Editor -->
+  <div id="deviceSelectorOverlay">
+    <div class="device-list">
+      <h3>Select Target Device</h3>
+      <div id="deviceListContainer"></div>
+      <input type="text" id="newDeviceName" class="new-device-input" placeholder="Or type new device name...">
+      <button class="device-btn" id="btnLoadNewDevice" style="border-color: var(--accent-red); color: var(--accent-red); margin-top: 5px;">Create / Load</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="tabs" id="tabsContainer">
+      <!-- Tabs will be rendered here -->
+    </div>
+    <div class="header-controls">
+      <span class="sys-link" id="deviceNameDisplay" style="cursor: pointer; margin-right: 8px; color: var(--accent-cyan);" title="Click para cambiar nombre">[ ID: <span class="sys-link-value" style="color: var(--text-main);" id="deviceNameValue"></span> ]</span>
+      <span class="sys-link">[ SYS_LINK: <span class="sys-link-value" id="sysLinkValue">OFFLINE</span> ]</span>
+      <span class="hud-deco">///</span>
+      <div class="status-indicator" id="statusDot"></div>
+      <button class="icon-btn" id="themeBtn" title="Cambiar Tema">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+      </button>
+      <button class="icon-btn" id="editBtn" title="Edit Mode">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="mainContainer">
+    <!-- Panels will be rendered here -->
+  </main>
+
+  <div style="padding: 0 16px 16px;">
+    <div class="add-panel-btn" id="addPanelBtn">+ ADD PANEL</div>
+  </div>
+
+  <!-- Control Editor Modal -->
+  <div class="modal-backdrop" id="controlModal">
+    <div class="modal">
+      <h2 id="modalTitle">Edit Control</h2>
+      <div class="form-group">
+        <label>Label</label>
+        <input type="text" id="ctrlLabel" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Theme</label>
+        <select id="ctrlTheme">
+          <option value="cyan">Cyan (Default)</option>
+          <option value="red">Red (Warning)</option>
+          <option value="danger">Danger (Hazard Stripes)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Shape</label>
+        <select id="ctrlShape">
+          <option value="rect">Rectangle</option>
+          <option value="beveled">Beveled (Sci-Fi)</option>
+          <option value="round">Round</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="trapezoid">Trapezoid</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="ctrlType">
+          <option value="button">Momentary Button</option>
+          <option value="toggle">Toggle Switch</option>
+          <option value="indicator">Indicator LED</option>
+          <option value="spacer">Spacer (Empty Slot)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Width (Cols 1-12)</label>
+        <select id="ctrlWidth">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12 (Full)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Height (Rows 1-4)</label>
+        <select id="ctrlHeight">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top: 16px;">
+        <label>Hardware Button ID (1-128)</label>
+        <input type="number" id="ctrlId" min="1" max="128">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-base btn-danger" id="ctrlDeleteBtn">Delete</button>
+        <button class="btn-base" id="ctrlCancelBtn">Cancel</button>
+        <button class="btn-base btn-primary" id="ctrlSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  // --- Default Layout Data ---
+  const DEFAULT_LAYOUT = {
+    pages: [
+      {
+        id: "page_1",
+        name: "COMBAT",
+        panels: [
+          {
+            id: "panel_1",
+            title: "TARGETING",
+            width: "300px", // Flex basis
+            controls: [
+              { id: 1, label: "AUTO TARGET", type: "button", theme: "cyan", shape: "beveled", w: 2, h: 1 },
+              { id: 2, label: "ZOOM", type: "toggle", theme: "cyan", shape: "rect", w: 2, h: 1 },
+              { id: 3, label: "PREV", type: "button", theme: "red", shape: "beveled", w: 1, h: 1 },
+              { id: 4, label: "CLOSEST", type: "button", theme: "red", shape: "beveled", w: 2, h: 1 },
+              { id: 5, label: "NEXT", type: "button", theme: "red", shape: "beveled", w: 1, h: 1 }
+            ]
+          },
+          {
+            id: "panel_2",
+            title: "OPERATOR MODES",
+            width: "250px",
+            controls: [
+              { id: 6, label: "MISSILE", type: "toggle", theme: "cyan", w: 2, h: 1 },
+              { id: 7, label: "TURRET", type: "toggle", theme: "cyan", w: 2, h: 1 },
+              { id: 8, label: "LAUNCH", type: "button", theme: "red", w: 4, h: 2 }
+            ]
+          },
+          {
+            id: "panel_3",
+            title: "SHIELDS",
+            width: "150px",
+            controls: [
+              { id: 9, label: "FWD", type: "button", theme: "cyan", shape: "rect", w: 4, h: 1 },
+              { id: 10, label: "LEFT", type: "button", theme: "cyan", shape: "rect", w: 2, h: 2 },
+              { id: 11, label: "RIGHT", type: "button", theme: "cyan", shape: "rect", w: 2, h: 2 },
+              { id: 12, label: "AFT", type: "button", theme: "cyan", shape: "rect", w: 4, h: 1 },
+              { id: 13, label: "ENGAGE QUANTUM", type: "button", theme: "cyan", shape: "round", w: 4, h: 2 }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  // --- State ---
+  let layoutData = JSON.parse(localStorage.getItem('mfd_layout')) || DEFAULT_LAYOUT;
+  let activePageIdx = 0;
+  let editMode = false;
+
+  // Track toggle states purely locally for now
+  const toggleStates = {};
+
+  // --- DOM Elements ---
+  const tabsContainer = document.getElementById('tabsContainer');
+  const mainContainer = document.getElementById('mainContainer');
+  const editBtn = document.getElementById('editBtn');
+  const themeBtn = document.getElementById('themeBtn');
+  const addPanelBtn = document.getElementById('addPanelBtn');
+
+  // --- Theme Switcher (persisted via localStorage) ---
+  const THEMES = ['theme-scifi', 'theme-light', 'theme-classic', 'theme-radar'];
+  function applyTheme(themeClass) {
+    THEMES.forEach(t => document.body.classList.remove(t));
+    if (themeClass !== 'theme-scifi') document.body.classList.add(themeClass);
+    localStorage.setItem('mfd_theme', themeClass);
+  }
+  applyTheme(localStorage.getItem('mfd_theme') || 'theme-scifi');
+  themeBtn.onclick = () => {
+    const current = THEMES.find(t => document.body.classList.contains(t)) || 'theme-scifi';
+    const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
+    applyTheme(next);
+  };
+
+  // --- Drag & Drop (panel reordering) ---
+  const sortable = new Sortable(mainContainer, {
+    animation: 150,
+    handle: '.panel-title',
+    filter: '.add-panel-btn',
+    disabled: true,
+    onEnd: function (evt) {
+      const page = layoutData.pages[activePageIdx];
+      const moved = page.panels.splice(evt.oldIndex, 1)[0];
+      page.panels.splice(evt.newIndex, 0, moved);
+      saveLayout();
+    }
+  });
+
+  // Modal Elements
+  const controlModal = document.getElementById('controlModal');
+  const ctrlLabel = document.getElementById('ctrlLabel');
+  const ctrlTheme = document.getElementById('ctrlTheme');
+  const ctrlShape = document.getElementById('ctrlShape');
+  const ctrlType = document.getElementById('ctrlType');
+  const ctrlWidth = document.getElementById('ctrlWidth');
+  const ctrlHeight = document.getElementById('ctrlHeight');
+  const ctrlId = document.getElementById('ctrlId');
+
+  let editingContext = null; // { panelIdx, controlIdx }
+
+  // --- Save & Render ---
+  function saveLayout() {
+    // Si estamos en la tablet, guardamos localmente por si falla la red,
+    // pero mandamos el nuevo layout al servidor para que lo guarde.
+    if (!isEditorMode) {
+      localStorage.setItem('mfd_layout', JSON.stringify(layoutData));
+    }
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        action: 'setLayout',
+        deviceId: deviceId, // Our id (tablet or editor)
+        deviceName: targetEditingDevice || deviceName, // The device we are saving FOR
+        layout: layoutData
+      }));
+    }
+  }
+
+  function renderTabs() {
+    tabsContainer.innerHTML = '';
+    layoutData.pages.forEach((page, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (idx === activePageIdx ? ' active' : '');
+      btn.textContent = page.name;
+      btn.onclick = () => { activePageIdx = idx; renderPanels(); renderTabs(); };
+
+      if (editMode) {
+        btn.oncontextmenu = (e) => {
+          e.preventDefault();
+          if (confirm(`Eliminar pestaña '${page.name}'?`)) {
+            layoutData.pages.splice(idx, 1);
+            if (activePageIdx >= layoutData.pages.length) activePageIdx = Math.max(0, layoutData.pages.length - 1);
+            saveLayout(); renderTabs(); renderPanels();
+          }
+        };
+        btn.ondblclick = () => {
+          const newName = prompt("Nuevo nombre para la pestaña:", page.name);
+          if (newName) { page.name = newName; saveLayout(); renderTabs(); }
+        };
+      }
+
+      tabsContainer.appendChild(btn);
+    });
+
+    if (editMode) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'tab-btn';
+      addBtn.textContent = '+';
+      addBtn.style.color = 'var(--accent-cyan)';
+      addBtn.onclick = () => {
+        layoutData.pages.push({ id: "page_" + Date.now(), name: "NUEVA PESTAÑA", panels: [] });
+        activePageIdx = layoutData.pages.length - 1;
+        saveLayout(); renderTabs(); renderPanels();
+      };
+      tabsContainer.appendChild(addBtn);
+    }
+  }
+
+  function renderPanels() {
+    mainContainer.innerHTML = '';
+    const page = layoutData.pages[activePageIdx];
+    if (!page) return;
+
+    page.panels.forEach((panel, pIdx) => {
+      const pDiv = document.createElement('div');
+      pDiv.className = 'panel';
+
+      // Inyectar el nuevo div de fondo
+      const pBg = document.createElement('div');
+      pBg.className = 'panel-bg';
+      pDiv.appendChild(pBg);
+
+      const title = document.createElement('div');
+      title.className = 'panel-title';
+      title.textContent = panel.title;
+
+      if (editMode) {
+        title.innerHTML = panel.title + ' <span style="opacity:0.6; font-size:12px; margin-left:6px;">✎</span>';
+        title.style.cursor = 'pointer';
+        title.title = "Click para renombrar o borrar panel";
+        // Cambiado a onclick (1 click) para que funcione bien en pantallas tactiles
+        title.onclick = (e) => {
+          e.stopPropagation();
+          const action = prompt(`Opciones para el panel '${panel.title}':\n\n- Escribe un nuevo nombre para RENOMBRARLO.\n- Escribe BORRAR para eliminarlo por completo.`, panel.title);
+          if (action !== null) {
+            if (action.trim().toUpperCase() === 'BORRAR') {
+                if (confirm(`¿Seguro que quieres borrar el panel '${panel.title}' y todos sus botones?`)) {
+                    page.panels.splice(pIdx, 1);
+                    saveLayout();
+                    renderPanels();
+                }
+            } else if (action.trim() !== "") {
+                panel.title = action.trim().toUpperCase();
+                saveLayout();
+                renderPanels();
+            }
+          }
+        };
+      }
+      pDiv.appendChild(title);
+
+      const grid = document.createElement('div');
+      grid.className = 'panel-grid';
+      grid.setAttribute('data-pidx', pIdx);
+
+      panel.controls.forEach((ctrl, cIdx) => {
+        const cDiv = document.createElement('div');
+        cDiv.className = `control span-${ctrl.w || 1} row-span-${ctrl.h || 1}`;
+        cDiv.setAttribute('data-id', ctrl.id);
+
+        if (ctrl.shape) cDiv.classList.add(`shape-${ctrl.shape}`);
+        if (ctrl.type === 'toggle') cDiv.classList.add('toggle');
+        if (ctrl.type === 'indicator') cDiv.classList.add('indicator');
+        if (ctrl.type === 'spacer') cDiv.classList.add('spacer');
+        if (ctrl.theme) cDiv.setAttribute('data-theme', ctrl.theme);
+
+        // Restore toggle state if active
+        if (ctrl.type === 'toggle' && toggleStates[ctrl.id]) {
+          cDiv.classList.add('active');
+        }
+
+        if (ctrl.type === 'toggle') {
+          cDiv.innerHTML = `<div class="switch-track"><div class="switch-thumb"></div></div><span class="control-label">${ctrl.label}</span>`;
+        } else {
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'control-label';
+          labelSpan.textContent = ctrl.label;
+          cDiv.appendChild(labelSpan);
+        }
+
+        // Interaction
+        if (editMode) {
+          cDiv.onclick = (e) => { e.preventDefault(); openControlModal(pIdx, cIdx); };
+        } else {
+          if (ctrl.type !== 'indicator') {
+            setupControlInteraction(cDiv, ctrl);
+          }
+        }
+
+        grid.appendChild(cDiv);
+      });
+
+      // Add Control Button (Edit Mode only)
+      const addBtn = document.createElement('div');
+      addBtn.className = 'add-control-btn span-1';
+      addBtn.textContent = '+';
+      addBtn.onclick = () => openControlModal(pIdx, -1); // -1 means new
+      grid.appendChild(addBtn);
+
+      pDiv.appendChild(grid);
+      mainContainer.appendChild(pDiv);
+
+      // Enable dragging for buttons inside this panel
+      new Sortable(grid, {
+        group: 'shared-controls', // Allows dragging between different panels
+        animation: 150,
+        filter: '.add-control-btn',
+        disabled: !editMode,
+        onEnd: function(evt) {
+          const oldPidx = parseInt(evt.from.getAttribute('data-pidx'), 10);
+          const newPidx = parseInt(evt.to.getAttribute('data-pidx'), 10);
+
+          const movedCtrl = page.panels[oldPidx].controls.splice(evt.oldIndex, 1)[0];
+          // Ensure it doesn't get placed after the add button if dragged to end
+          let safeNewIndex = evt.newIndex;
+          if (safeNewIndex > page.panels[newPidx].controls.length) {
+            safeNewIndex = page.panels[newPidx].controls.length;
+          }
+          page.panels[newPidx].controls.splice(safeNewIndex, 0, movedCtrl);
+
+          saveLayout();
+          renderPanels();
+        }
+      });
+    });
+  }
+
+  // --- Interaction (Websockets & Haptics) ---
+  function setupControlInteraction(el, ctrl) {
+    let longPressTimer = null;
+    let longPressFired = false;
+
+    const press = () => {
+      longPressFired = false;
+      if (navigator.vibrate) navigator.vibrate(15);
+
+      if (ctrl.type === 'toggle') {
+        // Toggle behavior
+        const isNowActive = !el.classList.contains('active');
+        el.classList.toggle('active', isNowActive);
+        toggleStates[ctrl.id] = isNowActive;
+        sendButton(ctrl.id, isNowActive);
+        if (navigator.vibrate && isNowActive) navigator.vibrate(25);
+      } else {
+        // Momentary behavior
+        el.classList.add('pressed');
+        sendButton(ctrl.id, true);
+      }
+    };
+
+    const release = () => {
+      if (ctrl.type !== 'toggle') {
+        el.classList.remove('pressed');
+        sendButton(ctrl.id, false);
+      }
+    };
+
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); press(); });
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave', release);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  // --- Edit Mode Logic ---
+  function toggleEditMode(force) {
+    editMode = force !== undefined ? force : !editMode;
+    editBtn.classList.toggle('active', editMode);
+    document.body.classList.toggle('edit-mode', editMode);
+    sortable.option('disabled', !editMode);
+    renderPanels();
+  }
+
+  editBtn.onclick = () => toggleEditMode();
+
+  addPanelBtn.onclick = () => {
+    const page = layoutData.pages[activePageIdx];
+    page.panels.push({
+      id: "panel_" + Date.now(),
+      title: "NEW PANEL",
+      width: "300px",
+      controls: []
+    });
+    saveLayout();
+    renderPanels();
+  };
+
+  function openControlModal(pIdx, cIdx) {
+    editingContext = { pIdx, cIdx };
+    const page = layoutData.pages[activePageIdx];
+    const panel = page.panels[pIdx];
+
+    if (cIdx >= 0) {
+      const ctrl = panel.controls[cIdx];
+      ctrlLabel.value = ctrl.label || '';
+      ctrlTheme.value = ctrl.theme || 'cyan';
+      ctrlShape.value = ctrl.shape || 'rect';
+      ctrlType.value = ctrl.type || 'button';
+      ctrlWidth.value = ctrl.w || 1;
+      ctrlHeight.value = ctrl.h || 1;
+      ctrlId.value = ctrl.id || 1;
+      document.getElementById('ctrlDeleteBtn').style.display = 'block';
+    } else {
+      // New control defaults
+      ctrlLabel.value = 'NEW';
+      ctrlTheme.value = 'cyan';
+      ctrlShape.value = 'rect';
+      ctrlType.value = 'button';
+      ctrlWidth.value = 1;
+      ctrlHeight.value = 1;
+      // Auto-assign next highest ID globally
+      let maxId = 0;
+      layoutData.pages.forEach(pg => pg.panels.forEach(pn => pn.controls.forEach(c => maxId = Math.max(maxId, c.id))));
+      ctrlId.value = maxId + 1;
+      document.getElementById('ctrlDeleteBtn').style.display = 'none';
+    }
+
+    controlModal.classList.add('open');
+  }
+
+  function closeControlModal() {
+    controlModal.classList.remove('open');
+    editingContext = null;
+  }
+
+  document.getElementById('ctrlCancelBtn').onclick = closeControlModal;
+
+  document.getElementById('ctrlSaveBtn').onclick = () => {
+    if (!editingContext) return;
+    const { pIdx, cIdx } = editingContext;
+    const panel = layoutData.pages[activePageIdx].panels[pIdx];
+
+    const newCtrl = {
+      id: parseInt(ctrlId.value, 10) || 1,
+      label: ctrlLabel.value.trim(),
+      theme: ctrlTheme.value,
+      shape: ctrlShape.value,
+      type: ctrlType.value,
+      w: parseInt(ctrlWidth.value, 10),
+      h: parseInt(ctrlHeight.value, 10)
+    };
+
+    if (cIdx >= 0) {
+      panel.controls[cIdx] = newCtrl;
+    } else {
+      panel.controls.push(newCtrl);
+    }
+
+    saveLayout();
+    renderPanels();
+    closeControlModal();
+  };
+
+  document.getElementById('ctrlDeleteBtn').onclick = () => {
+    if (!editingContext) return;
+    const { pIdx, cIdx } = editingContext;
+    if (cIdx >= 0) {
+      layoutData.pages[activePageIdx].panels[pIdx].controls.splice(cIdx, 1);
+      saveLayout();
+      renderPanels();
+    }
+    closeControlModal();
+  };
+
+  // --- WebSockets (Ported from original) ---
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token') || '';
+  const isEditorMode = params.get('mode') === 'editor';
+
+  let deviceId = localStorage.getItem('deviceId');
+  if (!deviceId) {
+    deviceId = 'web-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('deviceId', deviceId);
+  }
+  let deviceName = localStorage.getItem('deviceName');
+  if (!deviceName && !isEditorMode) {
+    deviceName = prompt("Ingresa un nombre para este dispositivo (ej. Tablet Izquierda):", "WebPad");
+    if (!deviceName || deviceName.trim() === "") {
+        deviceName = "WebPad_" + Math.floor(Math.random() * 1000);
+    }
+    localStorage.setItem('deviceName', deviceName);
+  } else if (!deviceName) {
+    deviceName = "WebPad";
+  }
+
+  // If we are in editor mode, we spoof our deviceName so the server knows we are editing
+  let targetEditingDevice = null;
+  let knownDevices = {}; // Stores { width, height } per device name
+  if (isEditorMode) {
+    deviceName = "DesktopEditor";
+    deviceId = "editor-" + Math.random().toString(36).slice(2);
+    toggleEditMode(true);
+    document.getElementById('deviceSelectorOverlay').classList.add('active');
+  }
+
+  const deviceNameValue = document.getElementById('deviceNameValue');
+  const deviceNameDisplay = document.getElementById('deviceNameDisplay');
+  if (deviceNameValue && !isEditorMode) {
+    deviceNameValue.textContent = deviceName.toUpperCase();
+    deviceNameDisplay.onclick = () => {
+        const newName = prompt("Cambiar nombre del dispositivo:", deviceName);
+        if (newName && newName.trim() !== "") {
+            deviceName = newName.trim();
+            localStorage.setItem('deviceName', deviceName);
+            deviceNameValue.textContent = deviceName.toUpperCase();
+            if (socket) socket.close(); // Forzar reconexión con el nuevo nombre
+        }
+    };
+  } else if (deviceNameDisplay && isEditorMode) {
+    deviceNameDisplay.style.display = 'none';
+  }
+
+  // Editor UI Logic
+  const devListContainer = document.getElementById('deviceListContainer');
+  document.getElementById('btnLoadNewDevice')?.addEventListener('click', () => {
+    const val = document.getElementById('newDeviceName').value.trim();
+    if (val) loadTargetDevice(val);
+  });
+
+  function loadTargetDevice(devName) {
+    targetEditingDevice = devName;
+    document.getElementById('deviceSelectorOverlay').style.display = 'none';
+
+    // Apply Dynamic Canvas dimensions if known
+    if (knownDevices[devName] && knownDevices[devName].width) {
+       mainContainer.style.maxWidth = knownDevices[devName].width + 'px';
+       mainContainer.style.minHeight = knownDevices[devName].height + 'px';
+       console.log(`Lienzo dinámico ajustado a: ${knownDevices[devName].width}x${knownDevices[devName].height}`);
+    } else {
+       mainContainer.style.maxWidth = '420px';
+       mainContainer.style.minHeight = 'auto';
+    }
+
+    // Request layout from server for this specific device
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ action: 'getLayout', targetDevice: devName }));
+    }
+  }
+
+  const statusDot = document.getElementById('statusDot');
+  const sysLinkValue = document.getElementById('sysLinkValue');
+  let socket = null;
+
+  function connect() {
+    socket = new WebSocket('ws://' + window.location.hostname + ':8080');
+    socket.onopen = () => {
+      socket.send(JSON.stringify({
+        action: 'auth',
+        token: token,
+        deviceId: deviceId,
+        deviceName: deviceName,
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight
+      }));
+
+      // In editor mode, we might want to ask the server for all devices,
+      // but for now let's just force edit the layout we have.
+      // (Advanced remote syncing requires targetDevice selection,
+      // but if we are on the same machine we can just edit).
+      if (isEditorMode) {
+         socket.send(JSON.stringify({ action: 'listDevices' }));
+      }
+    };
+    socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.action === 'authResult') {
+          statusDot.classList.toggle('connected', !!msg.success);
+          if (sysLinkValue) {
+            sysLinkValue.textContent = msg.success ? 'ONLINE' : 'OFFLINE';
+            sysLinkValue.classList.toggle('online', !!msg.success);
+          }
+        } else if (msg.action === 'layoutData' && msg.layout) {
+          layoutData = msg.layout;
+          if (!isEditorMode) {
+            localStorage.setItem('mfd_layout', JSON.stringify(layoutData));
+          }
+          renderTabs();
+          renderPanels();
+        } else if (msg.action === 'deviceList' && isEditorMode) {
+          devListContainer.innerHTML = '';
+          (msg.devices || []).forEach(d => {
+            const dName = typeof d === 'object' ? d.name : d;
+            if (typeof d === 'object') {
+              knownDevices[d.name] = { width: d.width, height: d.height };
+            }
+            if (dName === 'DesktopEditor') return;
+
+            const btn = document.createElement('button');
+            btn.className = 'device-btn';
+            const icon = document.createElement('span');
+            icon.className = 'device-icon';
+            icon.textContent = '📱';
+            btn.appendChild(icon);
+            btn.appendChild(document.createTextNode(dName + (typeof d === 'object' && d.width ? ` (${d.width}x${d.height})` : '')));
+            btn.onclick = () => loadTargetDevice(dName);
+            devListContainer.appendChild(btn);
+          });
+        } else if (msg.action === 'telemetry') {
+          // Backend notifies us that a physical button changed state
+          const cDiv = document.querySelector(`.control[data-id="${msg.button}"]`);
+          if (cDiv) {
+             cDiv.classList.toggle('active', !!msg.state);
+             if (cDiv.classList.contains('indicator') && msg.state && navigator.vibrate) {
+                navigator.vibrate(10); // Optional subtle haptic on telemetry receive
+             }
+          }
+        }
+      } catch (e) {}
+    };
+    socket.onclose = () => {
+      statusDot.classList.remove('connected');
+      if (sysLinkValue) {
+        sysLinkValue.textContent = 'OFFLINE';
+        sysLinkValue.classList.remove('online');
+      }
+      setTimeout(connect, 2000);
+    };
+    socket.onerror = () => socket.close();
+  }
+
+  function sendButton(button, pressed) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ action: 'buttonPress', deviceId: deviceId, button: button, state: pressed }));
+  }
+
+  // --- Wake Lock (Pantalla Siempre Encendida) ---
+  let wakeLock = null;
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => {
+          console.log('Wake Lock liberado');
+        });
+        console.log('Wake Lock activo: Pantalla encendida');
+      }
+    } catch (err) {
+      console.warn(`Wake Lock error: ${err.name}, ${err.message}`);
+    }
+  };
+
+  requestWakeLock();
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      requestWakeLock();
+    }
+  });
+
+  // --- Init ---
+  renderTabs();
+  renderPanels();
+  connect();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{
+    "formatRevision": 1,
+    "modules": [
+        {
+            "moduleFiles": [
+                {
+                    "entries": [
+                        {
+                            "codegenResult": 2,
+                            "column": 5,
+                            "durationMicroseconds": 0,
+                            "functionName": "currentPoint",
+                            "line": 26,
+                            "message": "Cannot access value for name curveEditorViewModel"
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 5,
+                            "durationMicroseconds": 0,
+                            "functionName": "sync",
+                            "line": 32,
+                            "message": "Cannot generate efficient code for LoadElement with non-list base type call to method currentPoint, returning QVariant"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 18,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 37,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 37,
+                            "durationMicroseconds": 4000,
+                            "functionName": "color",
+                            "line": 37,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 16,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 43,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 18,
+                            "durationMicroseconds": 0,
+                            "functionName": "enabled",
+                            "line": 46,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 21,
+                            "durationMicroseconds": 0,
+                            "functionName": "onAccepted",
+                            "line": 57,
+                            "message": "Cannot access value for name curveEditorViewModel"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 20,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 50,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 21,
+                            "durationMicroseconds": 0,
+                            "functionName": "radius",
+                            "line": 51,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 27,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 53,
+                            "message": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: conversion to QVariant -> QColor stored as QVariant"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 67,
+                            "durationMicroseconds": 0,
+                            "functionName": "duration",
+                            "line": 54,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 28,
+                            "durationMicroseconds": 0,
+                            "functionName": "onCompleted",
+                            "line": 76,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 17,
+                            "durationMicroseconds": 0,
+                            "functionName": "target",
+                            "line": 79,
+                            "message": "Cannot access value for name curveEditorViewModel"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 9,
+                            "durationMicroseconds": 0,
+                            "functionName": "onSelectedIndexChanged",
+                            "line": 80,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 9,
+                            "durationMicroseconds": 0,
+                            "functionName": "onPointsChanged",
+                            "line": 81,
+                            "message": ""
+                        }
+                    ],
+                    "filePath": "C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/PointCoordinateField.qml"
+                }
+            ],
+            "moduleId": "GremblingEx(GremblingEx)"
+        }
+    ]
+}

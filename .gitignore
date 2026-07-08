@@ -1,0 +1,50 @@
+# Build output (CMake/Ninja artifacts, copied Qt DLLs, generated qml cache).
+/build/
+/dist/
+/installer_output/
+
+# Editor/IDE cruft.
+.vs/
+.vscode/
+vscode_config/
+*.user
+*.user.*
+*.code-workspace
+
+# Archivos autogenerados de Qt
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# Archivos de SO
+.DS_Store
+Thumbs.db
+
+# Instaladores, binarios pesados y multimedia
+/redist/
+*.zip
+*.exe
+*.mp4
+
+# Imágenes de referencia y utilidades locales
+Animacion_FUI_Referencia.png
+Concepto_Visual.png
+Rediseño_GremblingEx.png
+tema_referencia.jpg
+preview_icons.html
+generar_mapa_arquitectura.py
+generate_ico.py
+
+# IA, prompts, notas de desarrollo y logs de error
+.agents/
+.clinerules
+CLAUDE.md
+agent.md
+@*.md
+Memory.md
+MasterPlan.md
+Roadmap_Manana.md
+intrucciones de compilado.md
+build_error.txt
+mapa_arquitectura.md

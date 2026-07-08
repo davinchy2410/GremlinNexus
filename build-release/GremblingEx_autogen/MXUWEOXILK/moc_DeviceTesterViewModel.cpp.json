@@ -1,0 +1,207 @@
+{
+    "classes": [
+        {
+            "className": "DeviceTesterViewModel",
+            "lineNumber": 25,
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 28,
+                    "name": "currentSystemPath",
+                    "notify": "currentSystemPathChanged",
+                    "override": false,
+                    "read": "currentSystemPath",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setCurrentSystemPath"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 29,
+                    "name": "axisValues",
+                    "notify": "axisValuesChanged",
+                    "override": false,
+                    "read": "axisValues",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 30,
+                    "name": "buttonStates",
+                    "notify": "buttonStatesChanged",
+                    "override": false,
+                    "read": "buttonStates",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 31,
+                    "name": "axisLogicalMin",
+                    "notify": "currentSystemPathChanged",
+                    "override": false,
+                    "read": "axisLogicalMin",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 32,
+                    "name": "axisLogicalMax",
+                    "notify": "currentSystemPathChanged",
+                    "override": false,
+                    "read": "axisLogicalMax",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 33,
+                    "name": "currentDeviceNumButtons",
+                    "notify": "currentSystemPathChanged",
+                    "override": false,
+                    "read": "currentDeviceNumButtons",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 6,
+                    "lineNumber": 34,
+                    "name": "currentDeviceNumHats",
+                    "notify": "currentSystemPathChanged",
+                    "override": false,
+                    "read": "currentDeviceNumHats",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "virtual": false
+                }
+            ],
+            "qualifiedClassName": "DeviceTesterViewModel",
+            "signals": [
+                {
+                    "access": "public",
+                    "index": 0,
+                    "lineNumber": 72,
+                    "name": "currentSystemPathChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "lineNumber": 73,
+                    "name": "axisValuesChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 74,
+                    "name": "buttonStatesChanged",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "axisIndex",
+                            "type": "int"
+                        },
+                        {
+                            "name": "value",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 80,
+                    "name": "onAxisMoved",
+                    "returnType": "void"
+                },
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "buttonIndex",
+                            "type": "int"
+                        },
+                        {
+                            "name": "pressed",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 84,
+                    "name": "onButtonPressed",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "DeviceTesterViewModel.h",
+    "outputRevision": 69
+}
