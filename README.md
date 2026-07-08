@@ -1,3 +1,5 @@
+<img width="982" height="587" alt="Animation 3" src="https://github.com/user-attachments/assets/0aaacf98-59c7-467b-8b57-c14a33ea6a3f" />
+<img width="982" height="587" alt="Animation 2" src="https://github.com/user-attachments/assets/b5114756-22a9-470a-8a87-979a23c033c9" />
 # Gremlin Nexus 🚀
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
