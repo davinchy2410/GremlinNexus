@@ -25,7 +25,7 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 
 ## 📸 Screenshots
 
-*(Replace these placeholders with actual screenshots of your polished UI)*
+
 
 * <img width="1915" height="1021" alt="profiles" src="https://github.com/user-attachments/assets/e68a07a1-a5db-46e3-ab04-cafd5f63d42a" />
 
@@ -36,7 +36,7 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 * <img width="435" height="375" alt="button bindings " src="https://github.com/user-attachments/assets/fbebd315-1453-498d-9a38-fcaed8a7d136" />
 * <img width="416" height="489" alt="macro editor" src="https://github.com/user-attachments/assets/e0010ea4-e37a-4c3d-8c2e-d8849d78ead2" />
 * <img width="1903" height="1022" alt="starcitizen " src="https://github.com/user-attachments/assets/f219b03a-d710-43cb-95dd-27006abcc9d3" />
-*![Uploading Animation.gif…]()
+
 
 
 
