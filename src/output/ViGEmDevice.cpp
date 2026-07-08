@@ -101,6 +101,17 @@ bool ViGEmDevice::acquire()
         return false;
     }
 
+    // Unlike VJoyDevice's own equivalent bugfix, this already IS the
+    // correctly-centered state, not just a reset: XusbReport's signed
+    // thumbstick fields (sThumbLX/LY/RX/RY, range [-32768, 32767]) have 0 as
+    // their true center, and its unsigned trigger fields (bLeftTrigger/
+    // bRightTrigger, range [0, 255]) have 0 as their correct "unpulled" rest
+    // position - both coincide with a plain value-initialized XusbReport{},
+    // unlike vJoy's own [0, 32767] unsigned axis range where 0 means the
+    // extreme minimum instead. Reassigned explicitly (rather than relying
+    // on the constructor's one-time initialization) so a re-acquire() after
+    // a prior relinquish() also starts from this same known-centered state,
+    // not whatever m_state was left holding beforehand.
     m_state = XusbReport{};
     m_acquired = true;
     return true;

@@ -77,7 +77,34 @@ bool VJoyDevice::acquire()
     }
 
     m_resetVJD(m_deviceId);
+
+    // Fase (bugfix): ResetVJD() only resets the DRIVER's own state, not
+    // m_state (this instance's in-memory report) - m_state's axis fields
+    // default to plain 0 (JoystickPositionV2's own in-class initializers),
+    // which vJoy's [0, 32767] unsigned axis range reads as the extreme
+    // minimum, not centered. Every freshly-acquired device therefore sat at
+    // one corner (top-left in most games/testers) until the user's first
+    // physical stick movement happened to overwrite it. Centering here
+    // (16383 - see TrimHandler.h's own "vJoy's own axis center" convention,
+    // kept consistent rather than introducing a second, off-by-one
+    // definition of "center") and pushing it immediately via update() below
+    // means a freshly-acquired device already reads centered before any
+    // physical input arrives - on both a first-ever acquire() and a
+    // re-acquire() after a prior relinquish() (m_state is never reset
+    // anywhere else, so a stale non-centered value would otherwise survive
+    // a relinquish/re-acquire cycle too).
+    static constexpr int32_t kVJoyAxisCenter = 16383;
+    m_state.wAxisX = kVJoyAxisCenter;
+    m_state.wAxisY = kVJoyAxisCenter;
+    m_state.wAxisZ = kVJoyAxisCenter;
+    m_state.wAxisXRot = kVJoyAxisCenter;
+    m_state.wAxisYRot = kVJoyAxisCenter;
+    m_state.wAxisZRot = kVJoyAxisCenter;
+    m_state.wSlider = kVJoyAxisCenter;
+    m_state.wDial = kVJoyAxisCenter;
+
     m_acquired = true;
+    update();
     return true;
 }
 
