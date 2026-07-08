@@ -35,9 +35,8 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 For regular users, there is no need to compile the source code. 
 
 1.  Download the latest pre-compiled `.zip` from the [Releases](../../releases) page.
-2.  Ensure you have [vJoy](https://sourceforge.net/projects/vjoystick/) and [HidHide](https://github.com/nefarius/HidHide) installed on your system.
-3.  Extract the archive and run `GremlinNexus.exe`.
-4.  Plug in your VKB/VIRPIL gear, create a new profile, and start routing!
+2.  Extract the archive and run `GremlinNexus.exe`.
+3.  Plug in your gear, create a new profile, and start routing!
 
 ## 💻 Building from Source
 
