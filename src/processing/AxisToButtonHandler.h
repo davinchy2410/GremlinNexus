@@ -27,6 +27,15 @@ public:
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
 
+    /// Rebuilds this handler's "AxisToButtonHandler" binding JSON, matching
+    /// ProfileManager::instantiateAxisToButtonHandler()'s "parameters.threshold"/
+    /// "invert" schema plus a top-level "wrappedAction" sibling of
+    /// "actionType" (same convention ToggleHandler/ConditionHandler's own
+    /// toJson() use) - NOT nested under "parameters". m_wasPressed (live
+    /// state, not configuration) is deliberately not serialized, same policy
+    /// as every other handler's own transient state.
+    QJsonObject toJson() const override;
+
 private:
     int m_threshold;
     bool m_invert;

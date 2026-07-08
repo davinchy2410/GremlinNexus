@@ -37,7 +37,8 @@
 #include "MacroHandler.h"
 #include "MergeAxisHandler.h"
 #include "ModeSwitchHandler.h"
-#include "MouseHandler.h"
+#include "MouseButtonHandler.h"
+#include "MouseRelativeAxisHandler.h"
 #include "SendInputKeyboardBackend.h"
 #include "SequenceHandler.h"
 #include "SplitAxisHandler.h"
@@ -421,8 +422,11 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateHandlerImpl(const QJs
     if (actionType == QLatin1String("TrimHandler")) {
         return instantiateTrimHandler(binding, router);
     }
-    if (actionType == QLatin1String("MouseHandler")) {
-        return instantiateMouseHandler(binding);
+    if (actionType == QLatin1String("MouseRelativeAxis")) {
+        return instantiateMouseRelativeAxisHandler(binding, router);
+    }
+    if (actionType == QLatin1String("MouseButton")) {
+        return instantiateMouseButtonHandler(binding);
     }
     if (actionType == QLatin1String("ConditionHandler")) {
         return instantiateConditionHandler(binding, router, depth);
@@ -685,33 +689,58 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateTrimHandler(const QJs
     return std::make_shared<TrimHandler>(device, targetAxis, stepValue, initialValue);
 }
 
-std::shared_ptr<IActionHandler> ProfileManager::instantiateMouseHandler(const QJsonObject &binding)
+std::shared_ptr<IActionHandler> ProfileManager::instantiateMouseRelativeAxisHandler(const QJsonObject &binding,
+                                                                                       EventRouter &router)
 {
     const QJsonObject parameters = binding.value(QLatin1String("parameters")).toObject();
-    if (!parameters.contains(QLatin1String("mouseAction"))) {
-        qWarning() << "ProfileManager: MouseHandler binding is missing \"parameters.mouseAction\" - skipping";
+    if (!parameters.contains(QLatin1String("targetMouseAxis"))) {
+        qWarning() << "ProfileManager: MouseRelativeAxis binding is missing \"parameters.targetMouseAxis\" - skipping";
         return nullptr;
     }
-    const QString mouseActionName = parameters.value(QLatin1String("mouseAction")).toString();
+    const QString axisName = parameters.value(QLatin1String("targetMouseAxis")).toString();
 
-    if (mouseActionName == QLatin1String("MoveX")) {
-        return std::make_shared<MouseHandler>(MouseAction::MoveX);
-    }
-    if (mouseActionName == QLatin1String("MoveY")) {
-        return std::make_shared<MouseHandler>(MouseAction::MoveY);
-    }
-    if (mouseActionName == QLatin1String("LeftClick")) {
-        return std::make_shared<MouseHandler>(MouseAction::LeftClick);
-    }
-    if (mouseActionName == QLatin1String("RightClick")) {
-        return std::make_shared<MouseHandler>(MouseAction::RightClick);
-    }
-    if (mouseActionName == QLatin1String("MiddleClick")) {
-        return std::make_shared<MouseHandler>(MouseAction::MiddleClick);
+    MouseAxis axis;
+    if (axisName == QLatin1String("X")) {
+        axis = MouseAxis::X;
+    } else if (axisName == QLatin1String("Y")) {
+        axis = MouseAxis::Y;
+    } else {
+        qWarning() << "ProfileManager: MouseRelativeAxis binding has unrecognized \"parameters.targetMouseAxis\""
+                    << axisName << "- skipping";
+        return nullptr;
     }
 
-    qWarning() << "ProfileManager: MouseHandler binding has unrecognized \"parameters.mouseAction\""
-                << mouseActionName << "- skipping";
+    const int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
+    const int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    const double sensitivity = parameters.value(QLatin1String("sensitivity")).toDouble(20.0);
+    const double deadzone = parameters.value(QLatin1String("deadzone")).toDouble(0.1);
+
+    // Shared by every MouseRelativeAxis binding this router applies - see
+    // EventRouter::mouseWorker()'s own docs on why it's router-owned rather
+    // than lazily created here the way keyboardBackend() is: its
+    // start()/stop() lifecycle must track the router's own, not "whenever
+    // the first Mouse Axis binding happens to load".
+    return std::make_shared<MouseRelativeAxisHandler>(router.mouseWorker(), axis, inputMin, inputMax, sensitivity,
+                                                        deadzone);
+}
+
+std::shared_ptr<IActionHandler> ProfileManager::instantiateMouseButtonHandler(const QJsonObject &binding)
+{
+    const QJsonObject parameters = binding.value(QLatin1String("parameters")).toObject();
+    if (!parameters.contains(QLatin1String("targetAction"))) {
+        qWarning() << "ProfileManager: MouseButton binding is missing \"parameters.targetAction\" - skipping";
+        return nullptr;
+    }
+    const QString targetAction = parameters.value(QLatin1String("targetAction")).toString();
+
+    if (targetAction == QLatin1String("Left") || targetAction == QLatin1String("Right") ||
+        targetAction == QLatin1String("Middle") || targetAction == QLatin1String("ScrollUp") ||
+        targetAction == QLatin1String("ScrollDown")) {
+        return std::make_shared<MouseButtonHandler>(targetAction);
+    }
+
+    qWarning() << "ProfileManager: MouseButton binding has unrecognized \"parameters.targetAction\""
+                << targetAction << "- skipping";
     return nullptr;
 }
 
@@ -941,6 +970,15 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateMacroHandler(const QJ
             } else if (type == QLatin1String("ReleaseKey")) {
                 step.type = MacroStep::Type::ReleaseKey;
                 step.scanCode = static_cast<uint16_t>(stepObject.value(QLatin1String("scanCode")).toInt());
+            } else if (type == QLatin1String("PressMouseButton")) {
+                step.type = MacroStep::Type::PressMouseButton;
+                step.mouseAction = stepObject.value(QLatin1String("targetAction")).toString();
+            } else if (type == QLatin1String("ReleaseMouseButton")) {
+                step.type = MacroStep::Type::ReleaseMouseButton;
+                step.mouseAction = stepObject.value(QLatin1String("targetAction")).toString();
+            } else if (type == QLatin1String("MouseScroll")) {
+                step.type = MacroStep::Type::MouseScroll;
+                step.mouseAction = stepObject.value(QLatin1String("targetAction")).toString();
             } else if (type == QLatin1String("Wait")) {
                 step.type = MacroStep::Type::Wait;
                 step.waitMs = stepObject.value(QLatin1String("waitMs")).toInt();

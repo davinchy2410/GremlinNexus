@@ -144,8 +144,14 @@ add_library(GremblingProcessing STATIC
     src/processing/TemporaryModeSwitchHandler.cpp
     src/processing/TrimHandler.h
     src/processing/TrimHandler.cpp
-    src/processing/MouseHandler.h
-    src/processing/MouseHandler.cpp
+    src/processing/Win32MouseInjector.h
+    src/processing/Win32MouseInjector.cpp
+    src/processing/MouseWorkerThread.h
+    src/processing/MouseWorkerThread.cpp
+    src/processing/MouseRelativeAxisHandler.h
+    src/processing/MouseRelativeAxisHandler.cpp
+    src/processing/MouseButtonHandler.h
+    src/processing/MouseButtonHandler.cpp
     src/processing/ConditionHandler.h
     src/processing/ConditionHandler.cpp
     src/processing/ToggleHandler.h

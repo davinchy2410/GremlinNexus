@@ -1,5 +1,6 @@
 #include "EventRouter.h"
 
+#include <chrono>
 #include <utility>
 
 #include <QDebug>
@@ -9,6 +10,7 @@
 
 #include "DeviceManager.h"
 #include "ModeSwitchHandler.h"
+#include "MouseWorkerThread.h"
 #include "TemporaryModeSwitchHandler.h"
 
 namespace {
@@ -19,6 +21,7 @@ const QString EventRouter::kGlobalMode = QStringLiteral("Global");
 
 EventRouter::EventRouter(QObject *parent)
     : QObject(parent)
+    , m_mouseWorker(std::make_shared<MouseWorkerThread>())
     , m_currentMode(kGlobalMode)
 {
 }
@@ -49,6 +52,8 @@ void EventRouter::start()
         connect(m_tickTimer, &QTimer::timeout, this, &EventRouter::tick);
     }
     m_tickTimer->start(kTickIntervalMs);
+
+    m_mouseWorker->start();
 }
 
 void EventRouter::stop()
@@ -65,11 +70,18 @@ void EventRouter::stop()
     if (m_tickTimer) {
         m_tickTimer->stop();
     }
+
+    m_mouseWorker->stop();
 }
 
 bool EventRouter::isRunning() const
 {
     return m_started;
+}
+
+MouseWorkerThread &EventRouter::mouseWorker() const
+{
+    return *m_mouseWorker;
 }
 
 void EventRouter::clearRoutes()
@@ -214,7 +226,21 @@ void EventRouter::onAxisMoved(const QString &systemPath, int axisIndex, int valu
     const QString activeMode = currentMode();
 
     if (const auto handler = resolveHandlerWithFallback(m_axisRoutesByMode, activeMode, systemPath, axisIndex)) {
+        // --- TEMPORARY DIAGNOSTIC (perf investigation - remove once done) ---
+        // Measures a single handler's processAxis() cost on the hot path -
+        // this runs once per axisMoved(), which DeviceManager already caps
+        // at 250 Hz (see DeviceMonitorWorker's own docs), so even a "slow"
+        // handler here is unlikely to be the UI-lag source by itself; this
+        // is to rule it in/out with real numbers rather than guessing.
+        const auto perfStart = std::chrono::high_resolution_clock::now();
         handler->processAxis(evt);
+        const auto perfEnd = std::chrono::high_resolution_clock::now();
+        const auto perfMicros = std::chrono::duration_cast<std::chrono::microseconds>(perfEnd - perfStart).count();
+        if (perfMicros > 500) {
+            qWarning() << "[EventRouter] processAxis for" << systemPath << "axis" << axisIndex
+                       << "took" << perfMicros << "us (>500us threshold)";
+        }
+        // --- END TEMPORARY DIAGNOSTIC ---
     }
 }
 

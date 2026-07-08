@@ -2,6 +2,9 @@
 
 #include <utility>
 
+#include <QJsonObject>
+#include <QLatin1String>
+
 #include "EventRouter.h"
 
 ConditionHandler::ConditionHandler(EventRouter &router, QString modSystemPath, int modButtonIndex,
@@ -31,4 +34,21 @@ void ConditionHandler::processButton(const ButtonEvent &evt)
     if (m_wrapped && conditionMet()) {
         m_wrapped->processButton(evt);
     }
+}
+
+QJsonObject ConditionHandler::toJson() const
+{
+    QJsonObject binding;
+    binding[QLatin1String("actionType")] = QStringLiteral("ConditionHandler");
+
+    QJsonObject parameters;
+    parameters[QLatin1String("modSystemPath")] = m_modSystemPath;
+    parameters[QLatin1String("modButtonIndex")] = m_modButtonIndex;
+    parameters[QLatin1String("requirePressed")] = m_requirePressed;
+    binding[QLatin1String("parameters")] = parameters;
+
+    if (m_wrapped) {
+        binding[QLatin1String("wrappedAction")] = m_wrapped->toJson();
+    }
+    return binding;
 }

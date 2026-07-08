@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <QVariantList>
 
 /**
@@ -92,13 +93,20 @@ signals:
 
 private slots:
     /// Relayed from DeviceManager::axisMoved; updates a single element of
-    /// m_axisValues (O(1)) and re-emits axisValuesChanged when the event's
-    /// systemPath matches currentSystemPath and axisIndex is in range.
+    /// m_axisValues (O(1)) and sets ONLY m_axesDirty for the next
+    /// m_uiThrottleTimer tick to notify - see that timer's own docs for why
+    /// this no longer emits axisValuesChanged() directly, and why axes and
+    /// buttons are tracked as two independent flags rather than one.
     void onAxisMoved(const QString &systemPath, int axisIndex, int value);
 
     /// Relayed from DeviceManager::buttonPressed; same O(1) single-element
-    /// update/notify shape as onAxisMoved().
+    /// update shape as onAxisMoved(), but sets ONLY m_buttonsDirty.
     void onButtonPressed(const QString &systemPath, int buttonIndex, bool pressed);
+
+    /// m_uiThrottleTimer's own slot (see its docs) - emits axisValuesChanged/
+    /// buttonStatesChanged at most once per tick, only for whichever array
+    /// actually changed since the last one.
+    void flushPendingUiUpdates();
 
 private:
     static constexpr int kNumAxes = 8;
@@ -111,4 +119,22 @@ private:
     QVariantList m_axisLogicalMax;
     int m_currentDeviceNumButtons = 0;
     int m_currentDeviceNumHats = 0;
+
+    /// Coalesces onAxisMoved()/onButtonPressed() into at most one
+    /// axisValuesChanged()/buttonStatesChanged() emission per tick (4 ms /
+    /// 250 Hz, matching DeviceMonitorWorker's own axisMoved() flush cadence
+    /// - see kAxisFlushIntervalMs's docs - so a 240 Hz+ monitor never sees a
+    /// visibly stepped radar dot) instead of one per relayed hardware
+    /// event. Buttons are deliberately unthrottled at the DeviceManager
+    /// layer (real transitions, not a flood) - but every relayed event
+    /// still made this ViewModel force the whole Tester UI (radar dot, axis
+    /// bars, 256-button grid) to re-read and re-render its full
+    /// QVariantList. m_axesDirty/m_buttonsDirty are tracked independently
+    /// (not one combined flag) specifically so moving the stick alone never
+    /// forces the O(256) button GridView to re-scan buttonStates, and
+    /// vice versa. This does not affect routing/output latency at all -
+    /// only how often the *Tester screen's own display* repaints.
+    QTimer *m_uiThrottleTimer = nullptr;
+    bool m_axesDirty = false;
+    bool m_buttonsDirty = false;
 };

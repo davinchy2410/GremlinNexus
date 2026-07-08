@@ -2,6 +2,9 @@
 
 #include <utility>
 
+#include <QJsonObject>
+#include <QLatin1String>
+
 AxisToButtonHandler::AxisToButtonHandler(int threshold, bool invert, std::shared_ptr<IActionHandler> wrapped)
     : m_threshold(threshold)
     , m_invert(invert)
@@ -28,4 +31,20 @@ void AxisToButtonHandler::processButton(const ButtonEvent & /*evt*/)
 {
     // This handler only ever produces button events from an axis; it does
     // not itself react to a real button event.
+}
+
+QJsonObject AxisToButtonHandler::toJson() const
+{
+    QJsonObject binding;
+    binding[QLatin1String("actionType")] = QStringLiteral("AxisToButtonHandler");
+
+    QJsonObject parameters;
+    parameters[QLatin1String("threshold")] = m_threshold;
+    parameters[QLatin1String("invert")] = m_invert;
+    binding[QLatin1String("parameters")] = parameters;
+
+    if (m_wrapped) {
+        binding[QLatin1String("wrappedAction")] = m_wrapped->toJson();
+    }
+    return binding;
 }

@@ -5,6 +5,11 @@
 #include <QTimer>
 
 #include "IKeyboardBackend.h"
+#include "Win32MouseInjector.h"
+
+namespace {
+constexpr int kMacroScrollDelta = 120; // Win32's own WHEEL_DELTA - one scroll notch, same as MouseButtonHandler's kWheelDelta.
+} // namespace
 
 MacroHandler::MacroHandler(std::shared_ptr<IVirtualOutputDevice> target,
                             std::shared_ptr<IKeyboardBackend> keyboardBackend, std::vector<MacroStep> steps,
@@ -67,6 +72,25 @@ void MacroHandler::executeStep()
                 m_keyboardBackend->sendKey(step.scanCode, false);
             }
             break;
+        case MacroStep::Type::PressMouseButton: {
+            Win32MouseInjector injector;
+            injector.sendMouseButton(step.mouseAction, true);
+            break;
+        }
+        case MacroStep::Type::ReleaseMouseButton: {
+            Win32MouseInjector injector;
+            injector.sendMouseButton(step.mouseAction, false);
+            break;
+        }
+        case MacroStep::Type::MouseScroll: {
+            // Fires once, like MouseButtonHandler's own ScrollUp/ScrollDown
+            // handling - a scroll wheel has no "release" of its own, so
+            // there is no matching Press/Release pair for this step.
+            Win32MouseInjector injector;
+            injector.sendMouseScroll(step.mouseAction == QLatin1String("ScrollUp") ? kMacroScrollDelta
+                                                                                    : -kMacroScrollDelta);
+            break;
+        }
         case MacroStep::Type::Wait:
             m_timer->start(step.waitMs);
             return; // Yield to the event loop; onTimerFired() resumes us.
@@ -110,6 +134,18 @@ QJsonObject MacroHandler::toJson() const
         case MacroStep::Type::ReleaseKey:
             stepObject[QLatin1String("type")] = QStringLiteral("ReleaseKey");
             stepObject[QLatin1String("scanCode")] = step.scanCode;
+            break;
+        case MacroStep::Type::PressMouseButton:
+            stepObject[QLatin1String("type")] = QStringLiteral("PressMouseButton");
+            stepObject[QLatin1String("targetAction")] = step.mouseAction;
+            break;
+        case MacroStep::Type::ReleaseMouseButton:
+            stepObject[QLatin1String("type")] = QStringLiteral("ReleaseMouseButton");
+            stepObject[QLatin1String("targetAction")] = step.mouseAction;
+            break;
+        case MacroStep::Type::MouseScroll:
+            stepObject[QLatin1String("type")] = QStringLiteral("MouseScroll");
+            stepObject[QLatin1String("targetAction")] = step.mouseAction;
             break;
         case MacroStep::Type::Wait:
             stepObject[QLatin1String("type")] = QStringLiteral("Wait");

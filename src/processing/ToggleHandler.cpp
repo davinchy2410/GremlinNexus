@@ -2,6 +2,9 @@
 
 #include <utility>
 
+#include <QJsonObject>
+#include <QLatin1String>
+
 ToggleHandler::ToggleHandler(std::shared_ptr<IActionHandler> wrapped)
     : m_wrapped(std::move(wrapped))
 {
@@ -25,4 +28,14 @@ void ToggleHandler::processButton(const ButtonEvent &evt)
         spoofed.pressed = m_toggled;
         m_wrapped->processButton(spoofed);
     }
+}
+
+QJsonObject ToggleHandler::toJson() const
+{
+    QJsonObject binding;
+    binding[QLatin1String("actionType")] = QStringLiteral("ToggleHandler");
+    if (m_wrapped) {
+        binding[QLatin1String("wrappedAction")] = m_wrapped->toJson();
+    }
+    return binding;
 }

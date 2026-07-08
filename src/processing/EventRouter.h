@@ -14,6 +14,7 @@
 #include "IVirtualOutputDevice.h"
 
 class QTimer;
+class MouseWorkerThread;
 
 /**
  * @brief Central event router: subscribes to DeviceManager's raw axis/
@@ -241,6 +242,15 @@ public:
     /// fromPath == toPath.
     void swapDeviceSystemPaths(const QString &fromPath, const QString &toPath);
 
+    /// The shared 100Hz relative-mouse-movement pump (see MouseWorkerThread's
+    /// own docs) - owned by this router, started in start() and stopped in
+    /// stop() alongside the rest of the live input pipeline. A
+    /// MouseRelativeAxisHandler X/Y pair is meant to share this single
+    /// instance (see ProfileManager::instantiateMouseRelativeAxisHandler());
+    /// callers must not outlive this EventRouter, same as any handler stored
+    /// in the routing table.
+    MouseWorkerThread &mouseWorker() const;
+
 public slots:
     /// Processes all button events in a single HID report frame, prioritizing mode switches
     void onButtonsChanged(const QVector<ButtonEvent> &events);
@@ -385,6 +395,13 @@ private:
 
     /// Every virtual output device this router owns/acquired, flushed once per tick.
     std::vector<std::shared_ptr<IVirtualOutputDevice>> m_outputDevices;
+
+    /// See mouseWorker()'s own docs - constructed once in the constructor
+    /// (not lazily, unlike ProfileManager's keyboardBackend()) since its
+    /// start()/stop() lifecycle needs to track this router's own start()/
+    /// stop() exactly, not "whenever the first Mouse Axis binding is
+    /// instantiated".
+    std::shared_ptr<MouseWorkerThread> m_mouseWorker;
 
     /// Physical press/release state per (systemPath, buttonIndex), updated
     /// in onButtonPressed() before any dispatch - see isButtonPressed().

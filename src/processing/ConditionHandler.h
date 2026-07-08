@@ -33,6 +33,13 @@ public:
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
 
+    /// Rebuilds this handler's "ConditionHandler" binding JSON, matching
+    /// ProfileManager::instantiateConditionHandler()'s schema exactly:
+    /// "parameters.modSystemPath"/"modButtonIndex"/"requirePressed" plus a
+    /// top-level "wrappedAction" sibling of "actionType" (same convention
+    /// ToggleHandler's own toJson() uses) - NOT nested under "parameters".
+    QJsonObject toJson() const override;
+
 private:
     bool conditionMet() const;
 

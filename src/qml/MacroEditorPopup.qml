@@ -10,19 +10,37 @@ import GremblingNexus
 // input via the C++ macroRecorder (MacroRecorderViewModel installs an
 // application-wide event filter while recording - see its class docs for
 // why a plain QML Keys.onPressed isn't enough here), edit delays inline,
-// delete steps, then Apply.
+// delete/reorder/manually-insert steps, then Apply.
 //
 // Two ways this gets used (Sprint 6 added the second):
 //  - Standalone (openFor(), embeddedMode false): Apply calls
 //    profileEditorViewModel.bindAction() directly and closes itself - the
 //    original Fase 10.9 flow, still what ActionPickerPopup's top-level
-//    "Macro" tab uses.
+//    "Macro" tab uses. openFor() now also restores whatever MacroHandler
+//    steps are already bound at (devicePath, inputName) via
+//    profileEditorViewModel.getActionDataJson() - the same read-side call
+//    ActionPickerPopup itself uses to re-populate its own fields - instead
+//    of always starting from a blank sequence.
 //  - Embedded (openEmbedded(), embeddedMode true): there is no single
 //    physical input to bind here - this popup is being used to record/edit
 //    one step inside a TempoHandler's own shortActions/longActions cascade
 //    (see ActionPickerPopup's "Macro" category on a Tempo row). Apply
 //    instead emits macroReady(json) with the built actionType JSON and
 //    closes; the opener (a Tempo row) is responsible for storing it.
+//
+// Step storage (UI overhaul): steps live in stepsModel, a real ListModel,
+// not a plain JS array - ListModel.move() relocates an existing delegate
+// instance in place (preserving its in-flight state), where reassigning a
+// plain JS array to a ListView's model destroys and recreates every
+// delegate on every edit. That distinction is what makes live
+// click-and-drag reordering (see the delegate's DragHandler below) actually
+// work: swapping the dragged row into a new slot mid-gesture would kill the
+// drag itself if the delegate were destroyed and rebuilt in the process.
+// Every row always carries the same five roles - type/scanCode/waitMs/
+// targetAction/label - regardless of which of the six MacroStep kinds it
+// represents (unused roles for a given kind just sit at their placeholder
+// default), because ListModel fixes its role set from the very first
+// append() and silently drops any key not present in that first row.
 Popup {
     id: root
 
@@ -42,10 +60,39 @@ Popup {
     /// set by openFor()/openEmbedded(), read only by the Apply button below.
     property bool embeddedMode: false
 
-    /// Draft step list - plain JS objects {type, scanCode, waitMs, label},
-    /// same shape macroRecorder.stepRecorded() reports and what
-    /// buildActionData() below turns into the final actionType JSON.
-    property var steps: []
+    /// Fixed delegate height - both the ListView delegate itself and the
+    /// drag-reorder threshold math below key off this same constant, so a
+    /// drag swaps rows exactly when the dragged item crosses a neighbor's
+    /// boundary, never early or late.
+    readonly property int rowHeight: 36
+
+    /// Qt::Key -> PS/2 Set 1 hardware scan code (see KeyboardHandler /
+    /// IKeyboardBackend - a *hardware* scan code, not a virtual-key code).
+    /// Copied from ActionPickerPopup.qml's own table (same rationale: this
+    /// popup is self-contained, like every other popup in this codebase -
+    /// see the file-level comment). Backs the "+ Key" manual-insert capture
+    /// below - a one-shot Keys.onPressed capture, deliberately NOT the
+    /// macroRecorder (see insertKeyPopup's own docs for why).
+    readonly property var keyScanCodes: ({
+        [Qt.Key_A]: 0x1E, [Qt.Key_B]: 0x30, [Qt.Key_C]: 0x2E, [Qt.Key_D]: 0x20,
+        [Qt.Key_E]: 0x12, [Qt.Key_F]: 0x21, [Qt.Key_G]: 0x22, [Qt.Key_H]: 0x23,
+        [Qt.Key_I]: 0x17, [Qt.Key_J]: 0x24, [Qt.Key_K]: 0x25, [Qt.Key_L]: 0x26,
+        [Qt.Key_M]: 0x32, [Qt.Key_N]: 0x31, [Qt.Key_O]: 0x18, [Qt.Key_P]: 0x19,
+        [Qt.Key_Q]: 0x10, [Qt.Key_R]: 0x13, [Qt.Key_S]: 0x1F, [Qt.Key_T]: 0x14,
+        [Qt.Key_U]: 0x16, [Qt.Key_V]: 0x2F, [Qt.Key_W]: 0x11, [Qt.Key_X]: 0x2D,
+        [Qt.Key_Y]: 0x15, [Qt.Key_Z]: 0x2C,
+        [Qt.Key_0]: 0x0B, [Qt.Key_1]: 0x02, [Qt.Key_2]: 0x03, [Qt.Key_3]: 0x04,
+        [Qt.Key_4]: 0x05, [Qt.Key_5]: 0x06, [Qt.Key_6]: 0x07, [Qt.Key_7]: 0x08,
+        [Qt.Key_8]: 0x09, [Qt.Key_9]: 0x0A,
+        [Qt.Key_F1]: 0x3B, [Qt.Key_F2]: 0x3C, [Qt.Key_F3]: 0x3D, [Qt.Key_F4]: 0x3E,
+        [Qt.Key_F5]: 0x3F, [Qt.Key_F6]: 0x40, [Qt.Key_F7]: 0x41, [Qt.Key_F8]: 0x42,
+        [Qt.Key_F9]: 0x43, [Qt.Key_F10]: 0x44, [Qt.Key_F11]: 0x57, [Qt.Key_F12]: 0x58,
+        [Qt.Key_Space]: 0x39, [Qt.Key_Return]: 0x1C, [Qt.Key_Enter]: 0x1C,
+        [Qt.Key_Escape]: 0x01, [Qt.Key_Tab]: 0x0F, [Qt.Key_Backspace]: 0x0E,
+        [Qt.Key_Shift]: 0x2A, [Qt.Key_Control]: 0x1D, [Qt.Key_Alt]: 0x38,
+        [Qt.Key_Up]: 0x48, [Qt.Key_Down]: 0x50, [Qt.Key_Left]: 0x4B, [Qt.Key_Right]: 0x4D,
+        [Qt.Key_CapsLock]: 0x3A,
+    })
 
     /// Fires after a successful bindAction() + self-close - lets
     /// ActionPickerPopup close itself too, the same "opener reacts to
@@ -60,49 +107,130 @@ Popup {
     /// it (there's no devicePath/inputName to bindAction() against here).
     signal macroReady(string actionDataJson)
 
+    /// Converts one MacroHandler::toJson() "parameters.steps" wire array
+    /// (whatever shape a round-tripped profile, or a Tempo cascade row's own
+    /// stored macroSteps, actually carries) into stepsModel's five-role
+    /// display shape - synthesizing a human-readable "label" for whichever
+    /// steps don't carry one on the wire (every step except a freshly
+    /// live-recorded key, which is never what this function is fed).
+    function stepsFromWireArray(rawSteps) {
+        return (rawSteps || []).map((s) => {
+            if (s.type === "Wait") {
+                return { type: "Wait", scanCode: 0, waitMs: s.waitMs || 0, targetAction: "", label: "" };
+            }
+            if (s.type === "PressKey" || s.type === "ReleaseKey") {
+                const scanCode = s.scanCode || 0;
+                return { type: s.type, scanCode: scanCode, waitMs: 0, targetAction: "",
+                    label: "Key 0x" + scanCode.toString(16) };
+            }
+            if (s.type === "PressMouseButton" || s.type === "ReleaseMouseButton" || s.type === "MouseScroll") {
+                const action = s.targetAction || "Left";
+                return { type: s.type, scanCode: 0, waitMs: 0, targetAction: action, label: action };
+            }
+            return null; // Unrecognized step type - dropped rather than crashing the popup open.
+        }).filter((s) => s !== null);
+    }
+
+    /// Replaces stepsModel's entire contents with list (already in
+    /// stepsModel's five-role shape - see stepsFromWireArray()).
+    function loadStepsIntoModel(list) {
+        stepsModel.clear();
+        for (let i = 0; i < list.length; i++) {
+            stepsModel.append(list[i]);
+        }
+    }
+
+    /// The inverse of stepsFromWireArray() - rebuilds the actual
+    /// MacroHandler::toJson()-shaped "steps" array (Apply/macroReady's own
+    /// payload) from stepsModel's live state, dropping the display-only
+    /// "label" role and whichever of scanCode/waitMs/targetAction doesn't
+    /// apply to a given step's type.
+    function wireStepsFromModel() {
+        const result = [];
+        for (let i = 0; i < stepsModel.count; i++) {
+            const s = stepsModel.get(i);
+            if (s.type === "Wait") {
+                result.push({ type: "Wait", waitMs: s.waitMs });
+            } else if (s.type === "PressKey" || s.type === "ReleaseKey") {
+                result.push({ type: s.type, scanCode: s.scanCode });
+            } else {
+                result.push({ type: s.type, targetAction: s.targetAction });
+            }
+        }
+        return result;
+    }
+
+    /// Delegate display text for one row - the "Key Down: G" / "Mouse Up:
+    /// Left" / "Scroll Up" labeling the old inline code used to build
+    /// straight in the delegate, now shared so every append site (recorder,
+    /// restore, manual insert) only has to store a bare label/targetAction.
+    function stepDisplayText(type, label, targetAction) {
+        switch (type) {
+        case "PressKey": return qsTr("Key Down: ") + label;
+        case "ReleaseKey": return qsTr("Key Up: ") + label;
+        case "PressMouseButton": return qsTr("Mouse Down: ") + label;
+        case "ReleaseMouseButton": return qsTr("Mouse Up: ") + label;
+        case "MouseScroll": return targetAction === "ScrollUp" ? qsTr("Scroll Up") : qsTr("Scroll Down");
+        default: return label;
+        }
+    }
+
     function openFor(devicePath_, inputName_) {
         root.devicePath = devicePath_;
         root.inputName = inputName_;
         root.embeddedMode = false;
-        root.steps = [];
         macroRecorder.stopRecording();
+
+        // Fase (UI overhaul): re-populate from whatever MacroHandler is
+        // already bound here, instead of always starting blank - the same
+        // getActionDataJson() read-side call ActionPickerPopup.qml's own
+        // openFor() uses for every other action type (Fase 20.17).
+        let restored = [];
+        const existingJsonStr = profileEditorViewModel.getActionDataJson(
+            devicePath_, inputName_, profileEditorViewModel.currentMode);
+        if (existingJsonStr !== "") {
+            try {
+                const actionData = JSON.parse(existingJsonStr);
+                if (actionData.actionType === "MacroHandler" && actionData.parameters) {
+                    restored = stepsFromWireArray(actionData.parameters.steps);
+                }
+            } catch (e) {
+                restored = []; // Malformed JSON - same tolerant fallback as every other restore path.
+            }
+        }
+        loadStepsIntoModel(restored);
         root.open();
     }
 
     /// Sprint 6: opened from a "Macro" category row inside ActionPickerPopup's
     /// Tempo (Short/Long Press) cascade editor instead of the top-level
     /// "Macro" action tab. existingSteps is that row's own previously-saved
-    /// macroSteps (the same {type, scanCode}/{type:"Wait", waitMs} shape
-    /// MacroHandler::toJson() writes - see extractTempoActions() - not the
-    /// live-recording {type, scanCode, waitMs, label} shape), so re-opening
-    /// an already-recorded row shows what's there instead of starting blank;
-    /// a missing "label" (every step restored this way has none - only a
-    /// step just recorded live carries one) is synthesized from scanCode the
-    /// same way ActionPickerPopup's own KeyboardHandler restore does for a
-    /// plain top-level Keyboard binding.
+    /// macroSteps (the same wire shape MacroHandler::toJson() writes - see
+    /// extractTempoActions() - not the live-recording shape), so re-opening
+    /// an already-recorded row shows what's there instead of starting blank.
     function openEmbedded(existingSteps) {
         root.devicePath = "";
         root.inputName = qsTr("Tempo cascade step");
         root.embeddedMode = true;
-        root.steps = (existingSteps || []).map((s) => {
-            if (s.type === "Wait") {
-                return { type: "Wait", scanCode: 0, waitMs: s.waitMs || 0, label: "" };
-            }
-            return { type: s.type, scanCode: s.scanCode, waitMs: 0,
-                label: "Key 0x" + (s.scanCode || 0).toString(16) };
-        });
+        loadStepsIntoModel(stepsFromWireArray(existingSteps || []));
         macroRecorder.stopRecording();
         root.open();
     }
 
     onClosed: macroRecorder.stopRecording()
 
+    ListModel {
+        id: stepsModel
+    }
+
     Connections {
         target: macroRecorder
         function onStepRecorded(kind, scanCode, waitMs, label) {
-            const arr = root.steps.slice();
-            arr.push({type: kind, scanCode: scanCode, waitMs: waitMs, label: label});
-            root.steps = arr;
+            if (kind === "Wait") {
+                stepsModel.append({ type: "Wait", scanCode: 0, waitMs: waitMs, targetAction: "", label: "" });
+            } else {
+                stepsModel.append({ type: kind, scanCode: scanCode, waitMs: 0, targetAction: "", label: label });
+            }
         }
     }
 
@@ -209,7 +337,7 @@ Popup {
 
             Text {
                 anchors.centerIn: parent
-                visible: root.steps.length === 0
+                visible: stepsModel.count === 0
                 text: qsTr("No steps recorded yet")
                 color: Theme.overlay0
                 font.pixelSize: 12
@@ -217,47 +345,116 @@ Popup {
             }
 
             ListView {
+                id: stepsListView
                 anchors.fill: parent
                 anchors.margins: Theme.spacingXs
                 clip: true
                 spacing: 2
-                model: root.steps
+                model: stepsModel
 
                 delegate: Rectangle {
-                    width: ListView.view.width
-                    height: 30
+                    id: stepRow
+
+                    required property int index
+                    required property string type
+                    required property int scanCode
+                    required property int waitMs
+                    required property string targetAction
+                    required property string label
+
+                    width: stepsListView.width
+                    height: root.rowHeight
                     radius: Theme.radiusSmall
-                    color: "transparent"
+                    color: dragHandler.active ? Theme.surface2 : "transparent"
+                    z: dragHandler.active ? 10 : 1
+
+                    // Only a cosmetic offset moves during a drag - stepRow's
+                    // real y stays under ListView's own control throughout,
+                    // so stepsModel.move() (which relocates this exact
+                    // delegate instance rather than destroying/recreating
+                    // it) is what actually reorders the list; this Translate
+                    // just tracks the sub-row leftover distance between
+                    // swaps so the drag still feels continuous instead of
+                    // snapping row-by-row.
+                    transform: Translate { id: dragTranslate; y: 0 }
+
+                    Item {
+                        id: gripHandle
+                        width: 22
+                        height: parent.height
+                        anchors.left: parent.left
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "⠿"
+                            color: Theme.overlay0
+                            font.pixelSize: 14
+                        }
+
+                        DragHandler {
+                            id: dragHandler
+                            target: null
+                            xAxis.enabled: false
+                            property real consumedTranslation: 0
+
+                            onActiveChanged: {
+                                consumedTranslation = 0;
+                                if (!active) {
+                                    dragTranslate.y = 0;
+                                }
+                            }
+
+                            onTranslationChanged: {
+                                if (!active) {
+                                    return;
+                                }
+                                const rawOffset = translation.y - consumedTranslation;
+                                dragTranslate.y = rawOffset;
+                                const shift = Math.round(rawOffset / root.rowHeight);
+                                if (shift === 0) {
+                                    return;
+                                }
+                                const from = stepRow.index;
+                                const to = Math.max(0, Math.min(stepsModel.count - 1, from + shift));
+                                if (to !== from) {
+                                    stepsModel.move(from, to, 1);
+                                    consumedTranslation += (to - from) * root.rowHeight;
+                                    dragTranslate.y = translation.y - consumedTranslation;
+                                }
+                            }
+                        }
+                    }
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: Theme.spacingSm
+                        anchors.leftMargin: gripHandle.width + Theme.spacingXs
                         anchors.rightMargin: Theme.spacingXs
                         spacing: Theme.spacingSm
 
                         Text {
-                            text: index + 1 + "."
+                            text: stepRow.index + 1 + "."
                             color: Theme.overlay0
                             font.pixelSize: 11
                             Layout.preferredWidth: 18
                         }
 
                         Text {
-                            visible: modelData.type !== "Wait"
-                            text: (modelData.type === "PressKey" ? qsTr("Key Down: ") : qsTr("Key Up: ")) + modelData.label
+                            visible: stepRow.type !== "Wait"
+                            text: root.stepDisplayText(stepRow.type, stepRow.label, stepRow.targetAction)
                             color: Theme.text
                             font.pixelSize: 12
                             Layout.fillWidth: true
+                            elide: Text.ElideRight
                         }
 
                         RowLayout {
-                            visible: modelData.type === "Wait"
+                            visible: stepRow.type === "Wait"
                             Layout.fillWidth: true
                             spacing: 4
 
                             Text { text: qsTr("Delay:"); color: Theme.subtext0; font.pixelSize: 12 }
                             TextField {
-                                text: modelData.waitMs
+                                text: stepRow.waitMs
                                 Layout.preferredWidth: 56
                                 implicitHeight: 24
                                 color: Theme.text
@@ -269,11 +466,7 @@ Popup {
                                     border.width: 1
                                     border.color: Qt.rgba(1, 1, 1, 0.08)
                                 }
-                                onEditingFinished: {
-                                    const arr = root.steps.slice();
-                                    arr[index] = Object.assign({}, arr[index], {waitMs: parseInt(text) || 0});
-                                    root.steps = arr;
-                                }
+                                onEditingFinished: stepsModel.setProperty(stepRow.index, "waitMs", parseInt(text) || 0)
                             }
                             Text { text: qsTr("ms"); color: Theme.subtext0; font.pixelSize: 12 }
                         }
@@ -281,14 +474,33 @@ Popup {
                         ToolButton {
                             label: qsTr("×")
                             Layout.preferredWidth: 24
-                            onClicked: {
-                                const arr = root.steps.slice();
-                                arr.splice(index, 1);
-                                root.steps = arr;
-                            }
+                            onClicked: stepsModel.remove(stepRow.index)
                         }
                     }
                 }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: Theme.spacingLg
+            Layout.rightMargin: Theme.spacingLg
+            spacing: Theme.spacingSm
+
+            ToolButton {
+                label: qsTr("+ Wait")
+                Layout.fillWidth: true
+                onClicked: stepsModel.append({ type: "Wait", scanCode: 0, waitMs: 100, targetAction: "", label: "" })
+            }
+            ToolButton {
+                label: qsTr("+ Key")
+                Layout.fillWidth: true
+                onClicked: insertKeyPopup.open()
+            }
+            ToolButton {
+                label: qsTr("+ Mouse")
+                Layout.fillWidth: true
+                onClicked: insertMousePopup.open()
             }
         }
 
@@ -316,15 +528,10 @@ Popup {
             }
             ToolButton {
                 label: qsTr("Apply")
-                enabled: root.steps.length > 0
+                enabled: stepsModel.count > 0
                 opacity: enabled ? 1.0 : 0.5
                 onClicked: {
-                    const jsonSteps = root.steps.map((s) => {
-                        return s.type === "Wait"
-                            ? {type: "Wait", waitMs: s.waitMs}
-                            : {type: s.type, scanCode: s.scanCode};
-                    });
-                    const actionData = {actionType: "MacroHandler", parameters: {steps: jsonSteps}};
+                    const actionData = {actionType: "MacroHandler", parameters: {steps: root.wireStepsFromModel()}};
 
                     if (root.embeddedMode) {
                         // No physical input to bindAction() against - hand
@@ -342,6 +549,180 @@ Popup {
                         root.applied();
                     }
                 }
+            }
+        }
+    }
+
+    /// Manual "+ Key" insertion (feature request: "without needing the live
+    /// recorder"): a one-shot Keys.onPressed capture using root's own
+    /// keyScanCodes lookup table, deliberately NOT macroRecorder - the
+    /// recorder's whole reason for existing is capturing REAL press/release
+    /// timing for a live performance (see MacroRecorderViewModel's own
+    /// docs), which is the opposite of what a single manually-picked key
+    /// needs here. Captures one key, then inserts a Press+Release pair (a
+    /// "tap") at the end of the sequence - if the caller wants the release
+    /// to happen somewhere other than immediately after the press, the
+    /// drag-and-drop reordering above moves either half wherever it needs
+    /// to go.
+    Popup {
+        id: insertKeyPopup
+        modal: true
+        focus: true
+        parent: Overlay.overlay
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        width: 260
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property int capturedScanCode: -1
+        property string capturedLabel: ""
+
+        onOpened: {
+            insertKeyPopup.capturedScanCode = -1;
+            insertKeyPopup.capturedLabel = "";
+            keyCaptureTarget.forceActiveFocus();
+        }
+
+        background: Rectangle {
+            color: Theme.surface0
+            radius: Theme.radiusMedium
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.08)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Theme.spacingSm
+
+            Text {
+                text: qsTr("Insert Keyboard Key")
+                color: Theme.text
+                font.pixelSize: 14
+                font.weight: Font.DemiBold
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 40
+                radius: Theme.radiusSmall
+                color: Theme.surface1
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.08)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: insertKeyPopup.capturedLabel !== "" ? insertKeyPopup.capturedLabel : qsTr("Press a key…")
+                    color: insertKeyPopup.capturedLabel !== "" ? Theme.text : Theme.overlay0
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                }
+
+                Item {
+                    id: keyCaptureTarget
+                    anchors.fill: parent
+                    focus: true
+                    Keys.onPressed: (event) => {
+                        const code = root.keyScanCodes[event.key];
+                        if (code !== undefined) {
+                            insertKeyPopup.capturedScanCode = code;
+                            insertKeyPopup.capturedLabel = (event.text && event.text.trim().length > 0)
+                                ? event.text.toUpperCase()
+                                : ("Key 0x" + event.key.toString(16));
+                        } else {
+                            insertKeyPopup.capturedScanCode = -1;
+                            insertKeyPopup.capturedLabel = qsTr("Unsupported key");
+                        }
+                        event.accepted = true;
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingSm
+                Item { Layout.fillWidth: true }
+                ToolButton { label: qsTr("Cancel"); onClicked: insertKeyPopup.close() }
+                ToolButton {
+                    label: qsTr("Add")
+                    enabled: insertKeyPopup.capturedScanCode >= 0
+                    opacity: enabled ? 1.0 : 0.5
+                    onClicked: {
+                        const scanCode = insertKeyPopup.capturedScanCode;
+                        const lbl = insertKeyPopup.capturedLabel;
+                        stepsModel.append({ type: "PressKey", scanCode: scanCode, waitMs: 0, targetAction: "", label: lbl });
+                        stepsModel.append({ type: "ReleaseKey", scanCode: scanCode, waitMs: 0, targetAction: "", label: lbl });
+                        insertKeyPopup.close();
+                    }
+                }
+            }
+        }
+    }
+
+    /// Manual "+ Mouse" insertion: a plain pick-list, unlike "+ Key" above,
+    /// since there are only 5 possible targets (no capture needed - see
+    /// Win32MouseInjector::sendMouseButton()/sendMouseScroll()). A click
+    /// target inserts a Press+Release pair (a "tap", same convention as "+
+    /// Key"); a scroll target inserts a single MouseScroll step - it has no
+    /// release counterpart, matching MacroHandler::executeStep()'s own
+    /// handling of a real scroll wheel tick.
+    Popup {
+        id: insertMousePopup
+        modal: true
+        focus: true
+        parent: Overlay.overlay
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        width: 220
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: Theme.surface0
+            radius: Theme.radiusMedium
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.08)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Theme.spacingXs
+
+            Text {
+                text: qsTr("Insert Mouse Action")
+                color: Theme.text
+                font.pixelSize: 14
+                font.weight: Font.DemiBold
+                Layout.bottomMargin: Theme.spacingXs
+            }
+
+            Repeater {
+                model: [
+                    { label: qsTr("Left Click"), action: "Left", scroll: false },
+                    { label: qsTr("Right Click"), action: "Right", scroll: false },
+                    { label: qsTr("Middle Click"), action: "Middle", scroll: false },
+                    { label: qsTr("Scroll Up"), action: "ScrollUp", scroll: true },
+                    { label: qsTr("Scroll Down"), action: "ScrollDown", scroll: true },
+                ]
+                delegate: ToolButton {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    label: modelData.label
+                    onClicked: {
+                        if (modelData.scroll) {
+                            stepsModel.append({ type: "MouseScroll", scanCode: 0, waitMs: 0,
+                                targetAction: modelData.action, label: modelData.action });
+                        } else {
+                            stepsModel.append({ type: "PressMouseButton", scanCode: 0, waitMs: 0,
+                                targetAction: modelData.action, label: modelData.action });
+                            stepsModel.append({ type: "ReleaseMouseButton", scanCode: 0, waitMs: 0,
+                                targetAction: modelData.action, label: modelData.action });
+                        }
+                        insertMousePopup.close();
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ToolButton { label: qsTr("Cancel"); onClicked: insertMousePopup.close() }
             }
         }
     }

@@ -71,6 +71,69 @@ Popup {
     // always resetting to its two hardcoded default steps.
     property var existingSequenceSteps: null
 
+    /// Toggle / Latching Switch draft wrapped-action - a single object, not
+    /// a list (ToggleHandler wraps exactly one action - see its own class
+    /// docs), but the same "category picks which fields apply" shape
+    /// SequencePopup.qml's own per-row objects use, restricted to the three
+    /// categories that actually have real press/release semantics
+    /// (ButtonRemapHandler/KeyboardHandler/MouseButton's click targets all
+    /// forward evt.pressed straight through - see toggleActionToWire()'s own
+    /// docs on why Macro/ModeSwitch/Audio/TTS/Delay/Scroll are deliberately
+    /// NOT offered here).
+    property var toggleWrappedAction: ({ category: "device", targetDeviceType: "vjoy", targetOutputId: 1,
+        targetButton: 0, scanCode: 0, keyLabel: "", mouseAction: "Left" })
+
+    /// Toggle's inverse pair to SequencePopup.qml's own stepFromWireAction()/
+    /// stepToWireAction() - same idea, restricted to this popup's own three
+    /// supported categories.
+    function toggleActionFromWire(action) {
+        const type = action.actionType;
+        const params = action.parameters || {};
+        const base = { category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
+            scanCode: 0, keyLabel: "", mouseAction: "Left" };
+        if (type === "KeyboardHandler") {
+            const scanCode = params.scanCode || 0;
+            return Object.assign({}, base, { category: "keyboard", scanCode: scanCode,
+                keyLabel: "Key 0x" + scanCode.toString(16) });
+        }
+        if (type === "MouseButton") {
+            return Object.assign({}, base, { category: "mouse", mouseAction: params.targetAction || "Left" });
+        }
+        // ButtonRemapHandler, or anything this popup doesn't offer a category
+        // for (e.g. a hand-authored profile wrapping something else) - falls
+        // back to "device" with whatever target* fields are actually present,
+        // the same tolerant policy SequencePopup's own restore path uses.
+        return Object.assign({}, base, { category: "device",
+            targetDeviceType: action.targetDeviceType || "vjoy",
+            targetOutputId: action.targetOutputId || 1,
+            targetButton: action.targetButton || 0 });
+    }
+
+    /// Only ButtonRemapHandler/KeyboardHandler/a mouse CLICK genuinely have
+    /// press/release semantics that a toggle's alternating held/released
+    /// state maps onto correctly - every other handler kind in this
+    /// codebase's own processButton() only acts "if (evt.pressed)" and
+    /// silently no-ops on the release-shaped call ToggleHandler forwards on
+    /// every SECOND physical press (MacroHandler, ModeSwitchHandler,
+    /// DelayAction, AudioAction, TTSAction, and MouseButtonHandler's own
+    /// ScrollUp/ScrollDown branch all follow this same "fires once, ignores
+    /// the pair's other half" shape - see their own processButton() bodies).
+    /// Wrapping any of those in a Toggle would silently do nothing on every
+    /// other press, so this popup deliberately does not offer them as a
+    /// category here at all (same reasoning SequencePopup.qml's own file
+    /// comment gives for leaving "vJoy Axis" out of ITS category list).
+    function toggleActionToWire(a) {
+        const category = a.category || "device";
+        if (category === "keyboard") {
+            return { actionType: "KeyboardHandler", parameters: { scanCode: a.scanCode || 0 } };
+        }
+        if (category === "mouse") {
+            return { actionType: "MouseButton", parameters: { targetAction: a.mouseAction || "Left" } };
+        }
+        return { actionType: "ButtonRemapHandler", targetDeviceType: a.targetDeviceType || "vjoy",
+            targetOutputId: a.targetOutputId || 1, targetButton: a.targetButton || 0 };
+    }
+
     /// Tempo (Short/Long Press) draft action lists - plain JS objects
     /// {targetDeviceType, targetOutputId, targetButton}, one per cascaded
     /// ButtonRemapHandler action. Mirrors SequencePopup's own "steps" list
@@ -108,10 +171,11 @@ Popup {
     // Action types offered depend on inputKind - see the file-level comment
     // above for why Keyboard/Macro only make sense for a button input.
     readonly property var actionTypesForAxis: ["vJoy Remap", "Axis-to-Button", "Split Axis", "Merge Axis",
-        "Condition / Modifier Check"]
+        "Condition / Modifier Check", "Mouse X Axis", "Mouse Y Axis"]
     readonly property var actionTypesForButton: ["vJoy Remap", "vJoy Hat Remap", "Keyboard", "Macro",
-        "Tempo (Short/Long Press)", "Sequence / Rotary", "Shift / Modifier", "Mode Toggle (Sticky)",
-        "Condition / Modifier Check", "Delay (Pause)", "Play Audio", "Text-to-Speech"]
+        "Tempo (Short/Long Press)", "Sequence / Rotary", "Toggle / Latching Switch", "Shift / Modifier",
+        "Mode Toggle (Sticky)", "Condition / Modifier Check", "Delay (Pause)", "Play Audio", "Text-to-Speech",
+        "Mouse Left Click", "Mouse Right Click", "Mouse Middle Click", "Mouse Scroll Up", "Mouse Scroll Down"]
     readonly property var hatDirectionNames: ["Up", "Right", "Down", "Left"]
 
     // Qt::Key -> PS/2 Set 1 hardware scan code (see KeyboardHandler /
@@ -289,6 +353,9 @@ Popup {
         root.capturedKeyLabel = "";
         keyCapturing = false;
         root.existingSequenceSteps = null;
+        root.toggleWrappedAction = { category: "device", targetDeviceType: "vjoy", targetOutputId: 1,
+            targetButton: 0, scanCode: 0, keyLabel: "", mouseAction: "Left" };
+        toggleDeviceCombo.setFromTarget(root.toggleWrappedAction);
         tempoThresholdMs.value = 300;
         tempoPulseMs.value = 50;
         root.tempoShortActions = [{category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
@@ -415,6 +482,12 @@ Popup {
                         root.existingSequenceSteps = parsedSteps;
                     }
                     restoredExisting = true;
+                } else if (actionType === "ToggleHandler") {
+                    actionTypeCombo.currentIndex =
+                        Math.max(0, root.actionTypesForButton.indexOf("Toggle / Latching Switch"));
+                    root.toggleWrappedAction = root.toggleActionFromWire(actionData.wrappedAction || {});
+                    toggleDeviceCombo.setFromTarget(root.toggleWrappedAction);
+                    restoredExisting = true;
                 } else if (actionType === "ConditionHandler") {
                     actionTypeCombo.currentIndex =
                         Math.max(0, root.actionTypesForButton.indexOf("Condition / Modifier Check"));
@@ -494,6 +567,29 @@ Popup {
                     if (actionData.parameters && actionData.parameters.text !== undefined) {
                         ttsTextField.text = actionData.parameters.text;
                     }
+                    restoredExisting = true;
+                } else if (actionType === "MouseRelativeAxis") {
+                    const p = actionData.parameters || {};
+                    actionTypeCombo.currentIndex = Math.max(0, root.actionTypesForAxis.indexOf(
+                        p.targetMouseAxis === "Y" ? "Mouse Y Axis" : "Mouse X Axis"));
+                    if (p.sensitivity !== undefined) {
+                        mouseSensitivitySlider.value = p.sensitivity;
+                    }
+                    if (p.deadzone !== undefined) {
+                        mouseDeadzoneSlider.value = p.deadzone;
+                    }
+                    restoredExisting = true;
+                } else if (actionType === "MouseButton") {
+                    const mouseButtonLabels = {
+                        "Left": "Mouse Left Click",
+                        "Right": "Mouse Right Click",
+                        "Middle": "Mouse Middle Click",
+                        "ScrollUp": "Mouse Scroll Up",
+                        "ScrollDown": "Mouse Scroll Down"
+                    };
+                    const targetAction = (actionData.parameters && actionData.parameters.targetAction) || "Left";
+                    actionTypeCombo.currentIndex = Math.max(0, root.actionTypesForButton.indexOf(
+                        mouseButtonLabels[targetAction] || "Mouse Left Click"));
                     restoredExisting = true;
                 }
             } catch (e) {
@@ -765,6 +861,48 @@ Popup {
                     Text { text: qsTr("Combine Mode"); color: Theme.subtext0; font.pixelSize: 11 }
                     AppComboBox { id: mergeModeCombo; Layout.fillWidth: true; model: [qsTr("Additive (average)"), qsTr("Differential (centered)")] }
                 }
+            }
+        }
+
+        // --- Mouse X/Y Axis (relative cursor movement) ------------------
+        // Drives the OS cursor directly through the shared MouseWorkerThread
+        // (see MouseRelativeAxisHandler's own docs) - no vJoy output at all,
+        // so unlike vJoy Remap above this has no OutputDeviceCombo/target
+        // axis picker of its own.
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: Theme.spacingLg
+            Layout.rightMargin: Theme.spacingLg
+            spacing: Theme.spacingSm
+            visible: actionTypeCombo.currentText === "Mouse X Axis" || actionTypeCombo.currentText === "Mouse Y Axis"
+
+            Text {
+                text: qsTr("Drives the OS mouse cursor directly, relative to its current position - no vJoy output involved. Bind the other screen axis to a second physical axis for full 2D cursor control.")
+                color: Theme.overlay0
+                font.pixelSize: 11
+                font.italic: true
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            ValueSlider {
+                id: mouseSensitivitySlider
+                Layout.fillWidth: true
+                label: qsTr("Sensitivity")
+                from: 1.0
+                to: 100.0
+                value: 20.0
+                onMoved: (v) => mouseSensitivitySlider.value = v
+            }
+
+            ValueSlider {
+                id: mouseDeadzoneSlider
+                Layout.fillWidth: true
+                label: qsTr("Deadzone")
+                from: 0.0
+                to: 0.9
+                value: 0.1
+                onMoved: (v) => mouseDeadzoneSlider.value = v
             }
         }
 
@@ -1671,6 +1809,155 @@ Popup {
             }
         }
 
+        // --- Toggle / Latching Switch ---------------------------------------
+        // Category list deliberately limited to vJoy Button / Keyboard Key /
+        // Mouse Click - see toggleActionToWire()'s own docs above for why
+        // every other action kind in this codebase would silently do
+        // nothing on every other press if wrapped here.
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: Theme.spacingLg
+            Layout.rightMargin: Theme.spacingLg
+            spacing: Theme.spacingSm
+            visible: actionTypeCombo.currentText === "Toggle / Latching Switch"
+
+            Text {
+                text: qsTr("Converts a latching physical switch into a proper hold: the first press holds the target action down, the second press releases it.")
+                color: Theme.overlay0
+                font.pixelSize: 11
+                font.italic: true
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+                Text { text: qsTr("Target Action"); color: Theme.subtext0; font.pixelSize: 11 }
+                AppComboBox {
+                    id: toggleCategoryCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("vJoy Button"), qsTr("Keyboard Key"), qsTr("Mouse Click")]
+                    currentIndex: Math.max(0, ["device", "keyboard", "mouse"]
+                        .indexOf(root.toggleWrappedAction.category || "device"))
+                    onActivated: (categoryIndex) => {
+                        const categories = ["device", "keyboard", "mouse"];
+                        root.toggleWrappedAction =
+                            Object.assign({}, root.toggleWrappedAction, {category: categories[categoryIndex]});
+                    }
+                }
+            }
+
+            // --- vJoy Button fields ---
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingXs
+                visible: (root.toggleWrappedAction.category || "device") === "device"
+
+                OutputDeviceCombo {
+                    id: toggleDeviceCombo
+                    onChanged: {
+                        root.toggleWrappedAction = Object.assign({}, root.toggleWrappedAction, {
+                            targetDeviceType: toggleDeviceCombo.targetDeviceType,
+                            targetOutputId: toggleDeviceCombo.targetOutputId
+                        });
+                    }
+                }
+
+                Text { text: qsTr("Button"); color: Theme.subtext0; font.pixelSize: 11 }
+                TextField {
+                    text: (root.toggleWrappedAction.targetButton || 0) + 1
+                    Layout.preferredWidth: 40
+                    implicitHeight: 28
+                    color: Theme.text
+                    font.pixelSize: 12
+                    validator: IntValidator { bottom: 1; top: 128 }
+                    background: Rectangle {
+                        color: Theme.surface1; radius: Theme.radiusSmall
+                        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08)
+                    }
+                    onEditingFinished: {
+                        root.toggleWrappedAction =
+                            Object.assign({}, root.toggleWrappedAction, {targetButton: (parseInt(text) || 1) - 1});
+                    }
+                }
+            }
+
+            // --- Keyboard Key fields ---
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingXs
+                visible: (root.toggleWrappedAction.category || "device") === "keyboard"
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 32
+                    radius: Theme.radiusSmall
+                    color: toggleKeyCaptureItem.activeFocus ? Theme.accent : Theme.surface1
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: toggleKeyCaptureItem.activeFocus
+                            ? qsTr("Press a key…")
+                            : (root.toggleWrappedAction.keyLabel || qsTr("Click to set key"))
+                        color: toggleKeyCaptureItem.activeFocus ? Theme.crust : Theme.text
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+
+                    Item {
+                        id: toggleKeyCaptureItem
+                        anchors.fill: parent
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: toggleKeyCaptureItem.forceActiveFocus()
+                        }
+
+                        Keys.onPressed: (event) => {
+                            const code = root.keyScanCodes[event.key];
+                            if (code !== undefined) {
+                                const lbl = (event.text && event.text.trim().length > 0)
+                                    ? event.text.toUpperCase() : ("Key 0x" + event.key.toString(16));
+                                root.toggleWrappedAction =
+                                    Object.assign({}, root.toggleWrappedAction, {scanCode: code, keyLabel: lbl});
+                            } else {
+                                root.toggleWrappedAction = Object.assign({}, root.toggleWrappedAction,
+                                    {scanCode: -1, keyLabel: qsTr("Unsupported key")});
+                            }
+                            event.accepted = true;
+                        }
+                    }
+                }
+            }
+
+            // --- Mouse Click fields --- (Left/Right/Middle only - see this
+            // section's own file comment on why Scroll isn't offered here)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingXs
+                visible: (root.toggleWrappedAction.category || "device") === "mouse"
+
+                Text { text: qsTr("Button"); color: Theme.subtext0; font.pixelSize: 11 }
+                AppComboBox {
+                    id: toggleMouseActionCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("Left"), qsTr("Right"), qsTr("Middle")]
+                    currentIndex: Math.max(0, ["Left", "Right", "Middle"]
+                        .indexOf(root.toggleWrappedAction.mouseAction || "Left"))
+                    onActivated: (comboIndex) => {
+                        const actions = ["Left", "Right", "Middle"];
+                        root.toggleWrappedAction =
+                            Object.assign({}, root.toggleWrappedAction, {mouseAction: actions[comboIndex]});
+                    }
+                }
+            }
+        }
+
         // --- Shift / Modifier --------------------------------------------
         ColumnLayout {
             Layout.fillWidth: true
@@ -1968,6 +2255,9 @@ Popup {
                             && root.tempoActionsValid(root.tempoLongActions)))
                     && (actionTypeCombo.currentText !== "Play Audio" || audioFilePathField.text.trim().length > 0)
                     && (actionTypeCombo.currentText !== "Text-to-Speech" || ttsTextField.text.trim().length > 0)
+                    && (actionTypeCombo.currentText !== "Toggle / Latching Switch"
+                        || root.toggleWrappedAction.category !== "keyboard"
+                        || root.toggleWrappedAction.scanCode > 0)
                 opacity: enabled ? 1.0 : 0.5
                 onClicked: {
                     let actionData;
@@ -2063,6 +2353,15 @@ Popup {
                                         targetOutputId: hatDeviceCombo.targetOutputId,
                                         targetHat: hatTargetCombo.currentIndex,
                                         targetDirection: hatDirectionCombo.currentIndex };
+                    } else if (actionTypeCombo.currentText === "Toggle / Latching Switch") {
+                        // "wrappedAction" is a top-level sibling of "actionType",
+                        // NOT nested under "parameters" - matches ProfileManager::
+                        // instantiateToggleHandler()'s actual schema (same
+                        // convention ConditionHandler's own wrappedAction uses
+                        // above), not the shape a "parameters"-nested reading of
+                        // the schema might suggest.
+                        actionData = { actionType: "ToggleHandler",
+                                        wrappedAction: root.toggleActionToWire(root.toggleWrappedAction) };
                     } else if (actionTypeCombo.currentText === "Shift / Modifier") {
                         actionData = { actionType: "TemporaryModeSwitch",
                                         parameters: { targetMode: shiftModeCombo.currentText } };
@@ -2091,6 +2390,16 @@ Popup {
                                 isSubtraction: mergeModeCombo.currentIndex === 1
                             }
                         };
+                    } else if (actionTypeCombo.currentText === "Mouse X Axis" ||
+                               actionTypeCombo.currentText === "Mouse Y Axis") {
+                        actionData = {
+                            actionType: "MouseRelativeAxis",
+                            parameters: {
+                                targetMouseAxis: actionTypeCombo.currentText === "Mouse Y Axis" ? "Y" : "X",
+                                sensitivity: mouseSensitivitySlider.value,
+                                deadzone: mouseDeadzoneSlider.value
+                            }
+                        };
                     } else if (actionTypeCombo.currentText === "Delay (Pause)") {
                         actionData = { actionType: "DelayAction",
                                         parameters: { delayMs: delayMsStepper.value } };
@@ -2100,6 +2409,16 @@ Popup {
                     } else if (actionTypeCombo.currentText === "Text-to-Speech") {
                         actionData = { actionType: "TTSAction",
                                         parameters: { text: ttsTextField.text.trim() } };
+                    } else if (actionTypeCombo.currentText === "Mouse Left Click") {
+                        actionData = { actionType: "MouseButton", parameters: { targetAction: "Left" } };
+                    } else if (actionTypeCombo.currentText === "Mouse Right Click") {
+                        actionData = { actionType: "MouseButton", parameters: { targetAction: "Right" } };
+                    } else if (actionTypeCombo.currentText === "Mouse Middle Click") {
+                        actionData = { actionType: "MouseButton", parameters: { targetAction: "Middle" } };
+                    } else if (actionTypeCombo.currentText === "Mouse Scroll Up") {
+                        actionData = { actionType: "MouseButton", parameters: { targetAction: "ScrollUp" } };
+                    } else if (actionTypeCombo.currentText === "Mouse Scroll Down") {
+                        actionData = { actionType: "MouseButton", parameters: { targetAction: "ScrollDown" } };
                     } else {
                         actionData = { actionType: "ModeSwitch",
                                         parameters: { targetMode: toggleModeCombo.currentText } };

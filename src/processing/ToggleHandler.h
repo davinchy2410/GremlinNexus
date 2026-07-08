@@ -23,6 +23,15 @@ public:
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
 
+    /// Rebuilds this handler's "ToggleHandler" binding JSON, matching
+    /// ProfileManager::instantiateToggleHandler()'s "wrappedAction" schema -
+    /// a top-level sibling of "actionType", not nested under "parameters"
+    /// (same convention ConditionHandler/AxisToButtonHandler's own schema
+    /// docs already use). m_toggled (live state, not configuration) is
+    /// deliberately not serialized and always restarts untoggled on reload,
+    /// same policy as SequenceHandler's own m_currentIndex.
+    QJsonObject toJson() const override;
+
 private:
     std::shared_ptr<IActionHandler> m_wrapped;
     bool m_toggled = false;

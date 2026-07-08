@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <QObject>
+#include <QString>
 
 #include "IActionHandler.h"
 #include "IVirtualOutputDevice.h"
@@ -16,15 +17,21 @@ class IKeyboardBackend;
 /**
  * @brief One step of a MacroHandler sequence.
  *
- * Two independent domains share this one step vocabulary: PressButton/
+ * Three independent domains share this one step vocabulary: PressButton/
  * ReleaseButton drive a vJoy button via IVirtualOutputDevice (the original
  * Phase 7 macro concept - "press this virtual button, wait, release it"),
- * while PressKey/ReleaseKey (Fase 10.9's Macro Editor) drive a real keyboard
- * key via IKeyboardBackend instead - "Key Down: G" / "Key Up: G" as
- * recorded live from the user's own keyboard. A single MacroHandler/
- * MacroStep sequence may freely mix both kinds of step; whichever
- * target/backend a given step needs is simply left unused if this instance
- * wasn't constructed with one (see MacroHandler's own class docs).
+ * PressKey/ReleaseKey (Fase 10.9's Macro Editor) drive a real keyboard key
+ * via IKeyboardBackend instead - "Key Down: G" / "Key Up: G" as recorded
+ * live from the user's own keyboard - and PressMouseButton/
+ * ReleaseMouseButton/MouseScroll drive the OS cursor's buttons/wheel via a
+ * stateless Win32MouseInjector, the same primitive MouseButtonHandler
+ * itself uses (see executeStep()'s own docs on why MacroHandler calls
+ * Win32MouseInjector directly instead of holding a MouseButtonHandler
+ * instance per step). A single MacroHandler/MacroStep sequence may freely
+ * mix all three kinds of step; whichever target/backend a given step needs
+ * is simply left unused if this instance wasn't constructed with one (see
+ * MacroHandler's own class docs) - Win32MouseInjector needs no such
+ * collaborator at all, since it is stateless and safe to construct ad hoc.
  */
 struct MacroStep
 {
@@ -35,12 +42,21 @@ struct MacroStep
         Wait,
         PressKey,
         ReleaseKey,
+        PressMouseButton,
+        ReleaseMouseButton,
+        MouseScroll,
     };
 
     Type type = Type::Wait;
     int buttonIndex = 0;      ///< Meaningful for PressButton/ReleaseButton.
     int waitMs = 0;           ///< Meaningful for Wait.
     uint16_t scanCode = 0;    ///< Meaningful for PressKey/ReleaseKey - see IKeyboardBackend::sendKey().
+
+    /// Meaningful for PressMouseButton/ReleaseMouseButton ("Left"/"Right"/
+    /// "Middle" - see Win32MouseInjector::sendMouseButton()) and MouseScroll
+    /// ("ScrollUp"/"ScrollDown" - see Win32MouseInjector::sendMouseScroll()),
+    /// matching MouseButtonHandler's own "targetAction" vocabulary exactly.
+    QString mouseAction;
 };
 
 /**

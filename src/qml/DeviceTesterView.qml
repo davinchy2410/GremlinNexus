@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import QtQuick.Effects
 import QtQuick.Window
 import GremblingNexus
 
@@ -304,6 +303,39 @@ Item {
                                 // math-Cartesian to screen coordinates) would
                                 // be the actual bug here: it would raise the
                                 // dot for a *positive* value instead.
+                                // Lightweight glow "halo" behind the dot -
+                                // flat, pre-shaped, alpha-blended circles
+                                // instead of MultiEffect's real-time
+                                // Gaussian blur. MultiEffect recaptured
+                                // `dot` into a ShaderEffectSource and reran
+                                // a full blur convolution on every single
+                                // reposition (up to 250/sec at the tester's
+                                // new refresh rate) for what's visually
+                                // just a soft halo around a small solid
+                                // dot - measurably the most expensive item
+                                // on this screen. These two plain
+                                // Rectangles cost the GPU nothing beyond an
+                                // ordinary opaque fill (no texture capture,
+                                // no shader pass), and anchors.centerIn
+                                // tracks the dot's position for free - no
+                                // extra binding math, and no dependency on
+                                // QtQuick.Effects at all for this element.
+                                Rectangle {
+                                    anchors.centerIn: dot
+                                    width: dot.width + 18
+                                    height: width
+                                    radius: width / 2
+                                    color: Theme.danger
+                                    opacity: 0.15
+                                }
+                                Rectangle {
+                                    anchors.centerIn: dot
+                                    width: dot.width + 8
+                                    height: width
+                                    radius: width / 2
+                                    color: Theme.danger
+                                    opacity: 0.30
+                                }
                                 Rectangle {
                                     id: dot
                                     width: 16
@@ -312,14 +344,6 @@ Item {
                                     color: Theme.danger
                                     x: (radar.bipolarX + 1) / 2 * (radar.width - width)
                                     y: (radar.bipolarY + 1) / 2 * (radar.height - height)
-                                }
-                                MultiEffect {
-                                    source: dot
-                                    anchors.fill: dot
-                                    shadowEnabled: true
-                                    shadowColor: Theme.danger
-                                    shadowBlur: 1.0
-                                    blurMax: 24
                                 }
                             }
 

@@ -100,17 +100,28 @@ class IVirtualOutputDevice;
  *     {
  *       // Timed button-press sequence (Fase 10.8's Action Picker "Macro" option
  *       // authors the two-step press/wait/release shorthand below; "steps" also
- *       // accepts an arbitrary hand-authored sequence of the same three types).
+ *       // accepts an arbitrary hand-authored sequence of any of the six step
+ *       // types - vJoy button, keyboard key, mouse click/scroll, or a Wait -
+ *       // freely mixed in one sequence).
  *       "sourceDevice": "",
  *       "sourceButton": 13,
  *       "actionType": "MacroHandler",
  *       "mode": "Global",
- *       "targetOutputId": 1,          // vJoy device id, [1, 16]
+ *       "targetOutputId": 1,          // vJoy device id, [1, 16]; omit entirely for a macro
+ *                                     // that never touches PressButton/ReleaseButton steps
  *       "parameters": {
  *         "steps": [
  *           { "type": "PressButton", "buttonIndex": 4 },
  *           { "type": "Wait", "waitMs": 100 },
- *           { "type": "ReleaseButton", "buttonIndex": 4 }
+ *           { "type": "ReleaseButton", "buttonIndex": 4 },
+ *           { "type": "PressKey", "scanCode": 30 },
+ *           { "type": "ReleaseKey", "scanCode": 30 },
+ *           { "type": "PressMouseButton", "targetAction": "Left" },     // "Left"/"Right"/"Middle"
+ *           { "type": "ReleaseMouseButton", "targetAction": "Left" },   // - same vocabulary as
+ *           { "type": "MouseScroll", "targetAction": "ScrollUp" }       // MouseButtonHandler's own
+ *                                                                       // "targetAction" ("ScrollUp"/
+ *                                                                       // "ScrollDown" here - fires
+ *                                                                       // once, no matching release)
  *         ]
  *       }
  *     },
@@ -138,10 +149,24 @@ class IVirtualOutputDevice;
  *     {
  *       "sourceDevice": "",
  *       "sourceAxis": 0,
- *       "actionType": "MouseHandler",
+ *       "actionType": "MouseRelativeAxis",
  *       "mode": "Global",
  *       "parameters": {
- *         "mouseAction": "MoveX"      // "MoveX"/"MoveY" (needs "sourceAxis") or "LeftClick"/"RightClick"/"MiddleClick" (needs "sourceButton")
+ *         "targetMouseAxis": "X",     // "X" or "Y" - which screen axis this instance drives
+ *         "sensitivity": 20.0,        // pixels per 10ms tick at full deflection - see MouseRelativeAxisHandler
+ *         "deadzone": 0.1,            // fraction of the bipolar [-1, 1] range around center treated as zero
+ *         "inputMin": 0,              // optional; defaults to 0
+ *         "inputMax": 65535           // optional; defaults to 65535
+ *       }
+ *     },
+ *     {
+ *       "sourceDevice": "",
+ *       "sourceButton": 3,
+ *       "actionType": "MouseButton",
+ *       "mode": "Global",
+ *       "parameters": {
+ *         "targetAction": "Left"      // "Left"/"Right"/"Middle" (click, fires on press+release) or
+ *                                     // "ScrollUp"/"ScrollDown" (one wheel tick, fires on press only)
  *       }
  *     },
  *     {
@@ -555,7 +580,8 @@ private:
     std::shared_ptr<IActionHandler> instantiateTemporaryModeSwitchHandler(const QJsonObject &binding,
                                                                             EventRouter &router);
     std::shared_ptr<IActionHandler> instantiateTrimHandler(const QJsonObject &binding, EventRouter &router);
-    std::shared_ptr<IActionHandler> instantiateMouseHandler(const QJsonObject &binding);
+    std::shared_ptr<IActionHandler> instantiateMouseRelativeAxisHandler(const QJsonObject &binding, EventRouter &router);
+    std::shared_ptr<IActionHandler> instantiateMouseButtonHandler(const QJsonObject &binding);
     std::shared_ptr<IActionHandler> instantiateConditionHandler(const QJsonObject &binding, EventRouter &router, int depth);
     std::shared_ptr<IActionHandler> instantiateToggleHandler(const QJsonObject &binding, EventRouter &router, int depth);
     std::shared_ptr<IActionHandler> instantiateTempoHandler(const QJsonObject &binding, EventRouter &router, int depth);

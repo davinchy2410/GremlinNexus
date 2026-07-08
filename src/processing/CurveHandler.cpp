@@ -4,6 +4,8 @@
 #include <cmath>
 #include <utility>
 
+#include <QDebug>
+#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QLatin1String>
 
@@ -42,8 +44,19 @@ CurveHandler::CurveHandler(std::shared_ptr<IVirtualOutputDevice> target,
     , m_firstEvent(true)
     , m_curvePoints(curvePoints)
     , m_invert(invert)
-    , m_lut(curvePoints.empty() ? buildBezierLut(x1, y1, x2, y2) : buildSplineLut(curvePoints))
 {
+    // --- TEMPORARY DIAGNOSTIC (perf investigation - remove once done) ---
+    // Measures the one-time LUT bake this constructor does - moved out of
+    // the member-initializer list (where m_lut used to be built directly)
+    // purely so it can be wrapped in a timer; m_lut's own declared type/
+    // position is unchanged.
+    QElapsedTimer lutTimer;
+    lutTimer.start();
+    m_lut = curvePoints.empty() ? buildBezierLut(x1, y1, x2, y2) : buildSplineLut(curvePoints);
+    const qint64 lutMicros = lutTimer.nsecsElapsed() / 1000;
+    qDebug() << "[CurveHandler] LUT build (" << (curvePoints.empty() ? "Bezier" : "Spline")
+             << ") for axis" << targetAxis << "took" << lutMicros << "us";
+    // --- END TEMPORARY DIAGNOSTIC ---
 }
 
 std::vector<double> CurveHandler::buildBezierLut(double x1, double y1, double x2, double y2)

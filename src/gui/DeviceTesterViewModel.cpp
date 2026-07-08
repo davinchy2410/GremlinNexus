@@ -26,6 +26,11 @@ DeviceTesterViewModel::DeviceTesterViewModel(QObject *parent)
 
     connect(&DeviceManager::instance(), &DeviceManager::axisMoved, this, &DeviceTesterViewModel::onAxisMoved);
     connect(&DeviceManager::instance(), &DeviceManager::buttonPressed, this, &DeviceTesterViewModel::onButtonPressed);
+
+    m_uiThrottleTimer = new QTimer(this);
+    m_uiThrottleTimer->setInterval(4); // 250 Hz - see the member's own docs.
+    connect(m_uiThrottleTimer, &QTimer::timeout, this, &DeviceTesterViewModel::flushPendingUiUpdates);
+    m_uiThrottleTimer->start();
 }
 
 QString DeviceTesterViewModel::currentSystemPath() const
@@ -133,7 +138,7 @@ void DeviceTesterViewModel::onAxisMoved(const QString &systemPath, int axisIndex
         return;
     }
     m_axisValues[axisIndex] = std::clamp(value, 0, 65535);
-    emit axisValuesChanged();
+    m_axesDirty = true;
 }
 
 void DeviceTesterViewModel::onButtonPressed(const QString &systemPath, int buttonIndex, bool pressed)
@@ -142,5 +147,21 @@ void DeviceTesterViewModel::onButtonPressed(const QString &systemPath, int butto
         return;
     }
     m_buttonStates[buttonIndex] = pressed;
-    emit buttonStatesChanged();
+    m_buttonsDirty = true;
+}
+
+void DeviceTesterViewModel::flushPendingUiUpdates()
+{
+    // Independent checks are the whole point: moving the stick sets only
+    // m_axesDirty, so a stick-only frame never touches buttonStatesChanged()
+    // - and therefore never makes QML's 256-delegate button GridView
+    // re-scan buttonStates - and vice versa for a button-only frame.
+    if (m_axesDirty) {
+        m_axesDirty = false;
+        emit axisValuesChanged();
+    }
+    if (m_buttonsDirty) {
+        m_buttonsDirty = false;
+        emit buttonStatesChanged();
+    }
 }
