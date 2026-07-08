@@ -1,0 +1,741 @@
+# ninja log v6
+5218	5282	8048876981266757	libGremblingCore.a	4f8f10fe356f31d2
+1817	2012	8048946587827128	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+28	77	8048946568507728	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+43	162	8048836364384642	GremblingOutput_autogen/mocs_compilation.cpp	77b2f37ad027032a
+54	88	8048257066610948	.qt/GremblingEx_res.txt	45f7507a690a5f8a
+12192	12364	8047548581727771	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SidebarButton_qml.cpp	c5767ee4d00885c6
+578	2472	8048570131674990	CMakeFiles/GremblingProcessing.dir/src/processing/ConditionHandler.cpp.obj	97f9de339fb3abd5
+1407	1535	8048946582982980	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+54	88	8048257066610948	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_res.txt	45f7507a690a5f8a
+1489	1933	8048946586895929	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+33	582	8048946573524094	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+28	77	8048946568507728	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+59	146	8048257067199387	.qt/.qmlls.build.ini	96ae92c7acb6b97f
+59	146	8048257067199387	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/.qmlls.build.ini	96ae92c7acb6b97f
+43	162	8048836364384642	GremblingOutput_autogen/timestamp	77b2f37ad027032a
+43	162	8048836364384642	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingOutput_autogen/timestamp	77b2f37ad027032a
+1496	1997	8048946587606866	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+34	877	8048876929428876	GremblingCore_autogen/mocs_compilation.cpp	cf3a80fcebb0af27
+43	162	8048836364384642	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingOutput_autogen/mocs_compilation.cpp	77b2f37ad027032a
+167	1616	8048425008920899	CMakeFiles/GremblingOutput.dir/src/output/VJoyDevice.cpp.obj	e35d2e09f5ac3b8
+188	229	8048257974720110	CMakeFiles/GremblingOutput.dir/GremblingOutput_autogen/mocs_compilation.cpp.obj	21a8d9e6790efd1e
+201	2624	8048927069917189	CMakeFiles/GremblingProcessing.dir/src/processing/LegacyProfileImporter.cpp.obj	e539e5eda7117f63
+2278	5121	8048300967966901	CMakeFiles/GremblingProcessing.dir/src/processing/CurveHandler.cpp.obj	9e8ab9fe9bd6aa82
+33	582	8048946573524094	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+13685	13713	8048258109932227	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0_extra_qmldirs.cpp	ba464d891c6ec01a
+2029	2100	8048836384260141	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_qmake_GremblingEx.cpp.obj	b365c0e00e334f01
+34	877	8048876929428876	GremblingCore_autogen/timestamp	cf3a80fcebb0af27
+34	877	8048876929428876	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingCore_autogen/timestamp	cf3a80fcebb0af27
+1862	2086	8048946588547767	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+34	877	8048876929428876	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingCore_autogen/mocs_compilation.cpp	cf3a80fcebb0af27
+583	1244	8048946579449563	GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+1053	3981	8048257983282384	CMakeFiles/GremblingCore.dir/src/core/HidHideManager.cpp.obj	29f1161e43747a73
+204	1950	8048576167527221	CMakeFiles/GremblingProcessing.dir/src/processing/ModeSwitchHandler.cpp.obj	23e65e694d97742a
+1475	1874	8048946586171752	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+1817	2012	8048946587827128	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+796	3058	8048531312565892	CMakeFiles/GremblingCore.dir/GremblingCore_autogen/mocs_compilation.cpp.obj	5f05525705ec2ce0
+1412	1657	8048946584148485	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+149	1579	8048377147713199	CMakeFiles/GremblingOutput.dir/src/output/VirtualOutputManager.cpp.obj	c9b8370ba2ead51c
+148	1632	8048300946669844	CMakeFiles/GremblingOutput.dir/src/output/ViGEmDevice.cpp.obj	f35bb0511ab61062
+1616	1785	8048425023409727	libGremblingOutput.a	bb40134b6fc79feb
+5712	10125	8048258029932932	CMakeFiles/GremblingProcessing.dir/src/processing/SendInputKeyboardBackend.cpp.obj	a8558334de110aff
+534	561	8048275162080438	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_pwa_resources.cpp	e8cfea945c77c457
+1789	2085	8048946588523503	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1657	1955	8048946587151360	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+878	5218	8048876937862590	CMakeFiles/GremblingCore.dir/src/core/DeviceManager.cpp.obj	b9180b48367b3f79
+1535	1957	8048946587198779	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+30	200	8048927068206555	GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+1245	1274	8048946580450444	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+30	200	8048927068206555	GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+30	200	8048927068206555	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+13679	13709	8048258109882249	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_res_0.cpp	c10b4e424e6b8c40
+1427	1598	8048946583553384	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+30	200	8048927068206555	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+1503	1936	8048946586977525	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+5715	8380	8048258029974077	CMakeFiles/GremblingProcessing.dir/src/processing/KernelKeyboardBackend.cpp.obj	1616639f1ec2fe6a
+2303	4865	8048300968218169	CMakeFiles/GremblingProcessing.dir/src/processing/TrimHandler.cpp.obj	40d85f6801384cc7
+2095	5448	8048946588731835	CMakeFiles/GremblingEx.dir/gremblingex_qmltyperegistrations.cpp.obj	c5f6c662c993f3e1
+2282	4923	8048300968002023	CMakeFiles/GremblingProcessing.dir/src/processing/ButtonRemapHandler.cpp.obj	c1fc8fedb9aef1b4
+5719	8566	8048258030016585	CMakeFiles/GremblingProcessing.dir/src/processing/KeyboardHandler.cpp.obj	89e6f60d43b21253
+6744	11112	8048946635207884	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.obj	415c1e3dfa2effd2
+5748	8566	8048258030314437	CMakeFiles/GremblingProcessing.dir/src/processing/ToggleHandler.cpp.obj	af8f0ec770aca44b
+208	1945	8048576167569212	CMakeFiles/GremblingProcessing.dir/src/processing/TemporaryModeSwitchHandler.cpp.obj	3765108ba027ab35
+2138	7956	8048946589163918	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.obj	245df07bfe22abce
+581	3322	8048864674908370	CMakeFiles/GremblingProcessing.dir/GremblingProcessing_autogen/mocs_compilation.cpp.obj	5a364c6a3183e0f5
+1249	1289	8048946580643280	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+2288	4933	8048300968068129	CMakeFiles/GremblingProcessing.dir/src/processing/AxisSplitterHandler.cpp.obj	3404de57a5a52551
+2292	5001	8048300968098209	CMakeFiles/GremblingProcessing.dir/src/processing/MacroHandler.cpp.obj	7a9b87da1dfdbc18
+5756	9222	8048258030390549	CMakeFiles/GremblingProcessing.dir/src/processing/AxisToButtonHandler.cpp.obj	a3eef3eaac8de3e2
+591	2350	8048466325108771	CMakeFiles/GremblingProcessing.dir/src/processing/TempoHandler.cpp.obj	a984dc4203c796dd
+1789	2085	8048946588523503	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1245	1274	8048946580450444	meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+205	1936	8048519540357696	CMakeFiles/GremblingProcessing.dir/src/processing/SequenceHandler.cpp.obj	8a8c7cc5d63e820b
+1245	1274	8048946580450444	meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+2822	4993	8048799995527810	CMakeFiles/GremblingProcessing.dir/src/processing/MergeAxisHandler.cpp.obj	f4bc00e3f1f2dbc4
+1503	1936	8048946586977525	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+5739	10247	8048258030220295	CMakeFiles/GremblingProcessing.dir/src/processing/MouseHandler.cpp.obj	676f78655b4b2a42
+8380	10576	8048258056619735	CMakeFiles/GremblingProcessing.dir/src/processing/SmoothingHandler.cpp.obj	5836ca55dbac8d84
+210	3297	8048576167590853	CMakeFiles/GremblingProcessing.dir/src/processing/EventRouter.cpp.obj	4c44f0b84d858d12
+601	4335	8048814097490361	CMakeFiles/GremblingProcessing.dir/src/processing/ProfileManager.cpp.obj	dd634498c8699ace
+13685	13713	8048258109932227	.qt/rcc/qrc_GremblingEx_raw_qml_0_extra_qmldirs.cpp	ba464d891c6ec01a
+2624	2711	8048927094165528	libGremblingProcessing.a	33c0cebfc456a256
+583	1244	8048946579449563	GremblingEx_autogen/timestamp	e3d98b2ce544460d
+583	1244	8048946579449563	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/timestamp	e3d98b2ce544460d
+583	1244	8048946579449563	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+1245	1274	8048946580450444	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+1180	1213	8048836375963797	.qt/rcc/qrc_qmake_GremblingEx.cpp	6f0783b8a57bcd45
+1185	1220	8048836376137696	.rcc/qmlcache/GremblingEx_qmlcache_loader.cpp	62b0f7b0eed0822c
+2110	7120	8048946588878992	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.obj	5116a1948954ec39
+14556	18310	8048258118387648	CMakeFiles/GremblingEx.dir/src/gui/CurveEditorViewModel.cpp.obj	67b8eb8d5b187bc5
+1180	1213	8048836375963797	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_qmake_GremblingEx.cpp	6f0783b8a57bcd45
+1185	1220	8048836376137696	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_qmlcache_loader.cpp	62b0f7b0eed0822c
+2099	6680	8048946588773395	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.obj	e0f72f876022114a
+1249	1289	8048946580643280	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+1274	1311	8048946580817545	meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+1460	1885	8048946586363441	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+1427	1598	8048946583553384	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+1274	1311	8048946580817545	meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+5381	6958	8048814145296564	CMakeFiles/GremblingEx.dir/src/gui/CalibrationViewModel.cpp.obj	6c243c100b431d66
+1274	1311	8048946580817545	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+1274	1311	8048946580817545	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+1311	1402	8048946581471607	gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+1311	1402	8048946581471607	GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+1684	1941	8048946587068738	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1311	1402	8048946581471607	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+1311	1402	8048946581471607	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+1407	1535	8048946582982980	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+1407	1535	8048946582982980	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+1535	1957	8048946587198779	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+1407	1535	8048946582982980	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+1427	1598	8048946583553384	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+1417	1590	8048946583393124	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+1427	1598	8048946583553384	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+12192	12364	8047548581727771	.rcc/qmlcache/GremblingEx_src/qml/SidebarButton_qml.cpp	c5767ee4d00885c6
+12192	12364	8047548581727771	.rcc/qmlcache/GremblingEx_src/qml/SidebarButton_qml.cpp.aotstats	c5767ee4d00885c6
+12192	12364	8047548581727771	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SidebarButton_qml.cpp.aotstats	c5767ee4d00885c6
+12187	12373	8047548581897751	.rcc/qmlcache/GremblingEx_src/qml/Sidebar_qml.cpp	f42ca8f658ec52b4
+7120	11434	8048946638975955	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.obj	53a81fe0dfd7833f
+12187	12373	8047548581897751	.rcc/qmlcache/GremblingEx_src/qml/Sidebar_qml.cpp.aotstats	f42ca8f658ec52b4
+1467	1684	8048946584453708	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+12187	12373	8047548581897751	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Sidebar_qml.cpp	f42ca8f658ec52b4
+12187	12373	8047548581897751	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Sidebar_qml.cpp.aotstats	f42ca8f658ec52b4
+1453	1627	8048946583841337	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+1510	1953	8048946587126306	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+1453	1627	8048946583841337	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+1453	1627	8048946583841337	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+1817	2012	8048946587827128	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1453	1627	8048946583841337	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+1446	1636	8048946583841337	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+1636	1932	8048946586855820	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1446	1636	8048946583841337	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+5449	10176	8048946622269433	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.obj	e42fc17884ea5401
+1446	1636	8048946583841337	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+1446	1636	8048946583841337	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+1467	1684	8048946584453708	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+1467	1684	8048946584453708	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+1467	1684	8048946584453708	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+1482	1789	8048946585458861	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+1598	1926	8048946586718897	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1482	1789	8048946585458861	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+1482	1789	8048946585458861	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+1482	1789	8048946585458861	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+1684	1941	8048946587068738	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+6984	11842	8048946637628625	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.obj	32cc9d77b5dc49bc
+1684	1941	8048946587068738	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1684	1941	8048946587068738	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+1439	1816	8048946585514100	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+1439	1816	8048946585514100	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+1439	1816	8048946585514100	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+1439	1816	8048946585514100	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+1657	1955	8048946587151360	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1657	1955	8048946587151360	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+1657	1955	8048946587151360	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1496	1997	8048946587606866	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+1817	2012	8048946587827128	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1475	1874	8048946586171752	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+1475	1874	8048946586171752	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+1475	1874	8048946586171752	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+1460	1885	8048946586363441	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+1460	1885	8048946586363441	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+1460	1885	8048946586363441	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+1432	1925	8048946586799127	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+1432	1925	8048946586799127	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+1432	1925	8048946586799127	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+1092	5700	8047552230376420	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SidebarButton_qml.cpp.obj	725c1eaee0c26be
+1510	1953	8048946587126306	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+1432	1925	8048946586799127	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+1402	1978	8048946587408862	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+1402	1978	8048946587408862	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+1402	1978	8048946587408862	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+1402	1978	8048946587408862	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+1503	1936	8048946586977525	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+1503	1936	8048946586977525	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+1535	1957	8048946587198779	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+1535	1957	8048946587198779	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+1510	1953	8048946587126306	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+1417	1590	8048946583393124	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+1510	1953	8048946587126306	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+1862	2086	8048946588547767	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+1862	2086	8048946588547767	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+1862	2086	8048946588547767	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+1789	2085	8048946588523503	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1789	2085	8048946588523503	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1496	1997	8048946587606866	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+6631	11096	8048946634080330	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.obj	4eabbf142879b69a
+6112	10595	8048946628900088	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.obj	536ac67050012823
+1496	1997	8048946587606866	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+2021	4770	8048836384118205	CMakeFiles/GremblingEx.dir/src/gui/MainViewModel.cpp.obj	74845aa9822afe05
+5531	8514	8048576220802658	CMakeFiles/GremblingEx.dir/src/gui/LogModel.cpp.obj	5a8817b3cea0a4bd
+1874	2050	8048946588198436	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+4608	6323	8048570171921405	CMakeFiles/GremblingEx.dir/src/gui/EngineViewModel.cpp.obj	de128cd687c0f6b5
+9606	11435	8048531400666018	CMakeFiles/GremblingEx.dir/src/gui/DeviceTesterViewModel.cpp.obj	2d7e94193c264cbd
+2102	5526	8048946588800273	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.obj	4b161d6c7f2c119e
+14569	17985	8048258118529600	CMakeFiles/GremblingEx.dir/src/gui/MacroRecorderViewModel.cpp.obj	507f48c3a8e90051
+2118	5998	8048946588959112	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.obj	c1a75968171d39d
+2032	5793	8048836384280184	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_qmlcache_loader.cpp.obj	12a79136ed04f450
+1606	1862	8048946585995611	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+2086	8939	8048946588640097	CMakeFiles/GremblingEx.dir/GremblingEx_autogen/mocs_compilation.cpp.obj	83e3a364bde5ffd9
+1088	5635	8047552230331299	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Sidebar_qml.cpp.obj	b3d9e1f550250508
+2090	9626	8048946588679308	CMakeFiles/GremblingEx.dir/src/main.cpp.obj	f7d37c99c6205952
+2126	6984	8048946589044540	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+1628	1930	8048946586718897	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+9592	10054	8048946663700492	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+2093	9592	8048946588702109	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+5526	13317	8048946623045816	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.obj	47acddab18fb4889
+23545	23849	8048258208271517	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0_extra_qmldirs.cpp.obj	1fc700ba26057530
+2134	6631	8048946589120030	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.obj	34fce66bdef8d416
+2130	7247	8048946589074534	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.obj	3d33545b65bccd79
+1874	2050	8048946588198436	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+2142	6032	8048946589201093	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.obj	3d6293bf92ae8867
+2122	8595	8048946589002420	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.obj	45041d9844cc5ebd
+2151	6112	8048946589291803	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.obj	dd0ecf58aedb4271
+20	54	8048256999666262	CMakeFiles/clean.additional	321391b2684b2653
+2147	8759	8048946589253035	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.obj	9ca6a84a6fedf6c1
+7247	11556	8048946640254924	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.obj	f105dccd2ff36832
+5998	10856	8048946627770329	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.obj	5301cec1ceafc31
+8595	11755	8048946653725665	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.obj	d5273a0245ffb0ae
+1598	1926	8048946586718897	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1412	1657	8048946584148485	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+6033	10861	8048946628092199	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.obj	18d62899ff99b7b2
+1628	1930	8048946586718897	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+8759	12105	8048946655357441	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.obj	b680b9a92d351c1a
+7956	12375	8048946647331653	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.obj	f3067f6f3afcf3db
+13317	14669	8048946700950713	GremblingEx.exe	6a0684f984d4787c
+32	7792	8048836363687621	build.ninja	e501d28e9420f3c7
+43	124	8048257973261451	CMakeFiles/GremblingCore_resources_1.dir/build-release/.qt/rcc/qrc_pwa_resources_init.cpp.obj	c889d806c19c5dfe
+534	561	8048275162080438	.qt/rcc/qrc_pwa_resources.cpp	e8cfea945c77c457
+1628	1930	8048946586718897	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+567	619	8048275162194327	CMakeFiles/GremblingCore.dir/build-release/.qt/rcc/qrc_pwa_resources.cpp.obj	d5d15dec9801fbcb
+564	3375	8048275162160832	CMakeFiles/GremblingCore.dir/src/network/PwaServer.cpp.obj	f6db8b09be135554
+13679	13709	8048258109882249	.qt/rcc/qrc_GremblingEx_raw_res_0.cpp	c10b4e424e6b8c40
+1417	1590	8048946583393124	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+1417	1590	8048946583393124	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+1412	1657	8048946584148485	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+1412	1657	8048946584148485	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+1628	1930	8048946586718897	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+14583	17769	8048258118658826	CMakeFiles/GremblingEx.dir/src/vendor/qrcodegen/qrcodegen.cpp.obj	9ff6529cdd933b3b
+14578	18874	8048258118616750	CMakeFiles/GremblingEx.dir/src/gui/QrCodeItem.cpp.obj	a8a49ae1df54871c
+2106	6743	8048946588843546	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.obj	846befb652656a40
+23210	23545	8048258204927504	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_res_0.cpp.obj	95a310255aad4778
+1056	4104	8048257983381591	CMakeFiles/GremblingCore.dir/src/core/AutoSwitchManager.cpp.obj	d3b078259d6f4617
+1636	1932	8048946586855820	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1636	1932	8048946586855820	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1636	1932	8048946586855820	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1874	2050	8048946588198436	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1874	2050	8048946588198436	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1422	1606	8048946583573424	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+8940	12459	8048946657179168	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.obj	4591b2ee20f7faf5
+1598	1926	8048946586718897	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1598	1926	8048946586718897	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1590	1930	8048946586799127	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1590	1930	8048946586799127	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+1590	1930	8048946586799127	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1590	1930	8048946586799127	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+6681	11172	8048946634585146	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.obj	9953a954f3270236
+1422	1606	8048946583573424	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+1422	1606	8048946583573424	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+1422	1606	8048946583573424	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+2113	6721	8048946588916108	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.obj	5b065b8ed7be6b63
+14552	17999	8048258118354949	CMakeFiles/GremblingEx.dir/src/gui/SettingsViewModel.cpp.obj	f74c03359cd3a43d
+203	1854	8048927069953630	CMakeFiles/GremblingProcessing.dir/src/processing/LegacyMigrator.cpp.obj	40a9e8105d1293fb
+1606	1862	8048946585995611	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+1606	1862	8048946585995611	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+1606	1862	8048946585995611	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+6721	10158	8048946634987547	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.obj	704836fd54d5217d
+54	89	8048257000014755	clean	577b940aee94fbd7
+2285	4883	8048300968032027	CMakeFiles/GremblingProcessing.dir/src/processing/HatRemapHandler.cpp.obj	2e0ff58b2f83b7bf
+598	2281	8048814097470354	CMakeFiles/GremblingProcessing.dir/src/processing/SplitAxisHandler.cpp.obj	c32846a263df9753
+585	3789	8048864674954704	CMakeFiles/GremblingProcessing.dir/src/processing/SCIntegrationManager.cpp.obj	d043a89f4ea57c8d
+1489	1933	8048946586895929	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+1489	1933	8048946586895929	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+1489	1933	8048946586895929	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+33	222	8048952843535262	GremblingEx_autogen/timestamp	e3d98b2ce544460d
+33	222	8048952843535262	GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+33	222	8048952843535262	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/timestamp	e3d98b2ce544460d
+33	222	8048952843535262	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+223	252	8048952845432677	meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+223	252	8048952845432677	meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+223	252	8048952845432677	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+223	252	8048952845432677	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+252	4390	8048952845729916	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+4390	5753	8048952887111829	GremblingEx.exe	6a0684f984d4787c
+27	685	8048960026743519	GremblingEx_autogen/timestamp	e3d98b2ce544460d
+27	685	8048960026743519	GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+27	685	8048960026743519	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/timestamp	e3d98b2ce544460d
+27	685	8048960026743519	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+686	717	8048960027809005	meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+686	717	8048960027809005	meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+686	717	8048960027809005	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+686	717	8048960027809005	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+717	755	8048960028171702	meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+717	755	8048960028171702	meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+717	755	8048960028171702	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+717	755	8048960028171702	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+755	841	8048960028764030	gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+755	841	8048960028764030	GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+755	841	8048960028764030	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+755	841	8048960028764030	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+846	978	8048960030279203	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+846	978	8048960030279203	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+846	978	8048960030279203	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+846	978	8048960030279203	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+856	1031	8048960030705836	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+856	1031	8048960030705836	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+856	1031	8048960030705836	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+856	1031	8048960030705836	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+861	1039	8048960030817292	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+861	1039	8048960030817292	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+861	1039	8048960030817292	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+861	1039	8048960030817292	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+866	1047	8048960030923025	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+866	1047	8048960030923025	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+866	1047	8048960030923025	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+866	1047	8048960030923025	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+892	1064	8048960031138364	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+892	1064	8048960031138364	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+892	1064	8048960031138364	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+892	1064	8048960031138364	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+885	1072	8048960031138364	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+885	1072	8048960031138364	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+885	1072	8048960031138364	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+885	1072	8048960031138364	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+851	1097	8048960031406235	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+851	1097	8048960031406235	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+851	1097	8048960031406235	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+851	1097	8048960031406235	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+907	1147	8048960031775764	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+907	1147	8048960031775764	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+907	1147	8048960031775764	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+907	1147	8048960031775764	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+879	1259	8048960032778567	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+879	1259	8048960032778567	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+879	1259	8048960032778567	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+879	1259	8048960032778567	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+922	1267	8048960032955159	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+922	1267	8048960032955159	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+922	1267	8048960032955159	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+922	1267	8048960032955159	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+914	1317	8048960033518555	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+914	1317	8048960033518555	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+914	1317	8048960033518555	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+914	1317	8048960033518555	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+1047	1340	8048960033698812	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+1047	1340	8048960033698812	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+1047	1340	8048960033698812	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+1047	1340	8048960033698812	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+899	1348	8048960033778996	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+899	1348	8048960033778996	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+899	1348	8048960033778996	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+899	1348	8048960033778996	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+944	1349	8048960033835068	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+944	1349	8048960033835068	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+944	1349	8048960033835068	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+944	1349	8048960033835068	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+1031	1351	8048960033916559	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1031	1351	8048960033916559	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+1031	1351	8048960033916559	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1031	1351	8048960033916559	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+951	1358	8048960033991858	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+951	1358	8048960033991858	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+951	1358	8048960033991858	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+951	1358	8048960033991858	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+929	1374	8048960034184374	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+929	1374	8048960034184374	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+929	1374	8048960034184374	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+929	1374	8048960034184374	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+1064	1383	8048960034244523	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+1064	1383	8048960034244523	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+1064	1383	8048960034244523	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+1064	1383	8048960034244523	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+978	1384	8048960034261882	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+978	1384	8048960034261882	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+978	1384	8048960034261882	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+978	1384	8048960034261882	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+872	1386	8048960034301988	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+872	1386	8048960034301988	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+872	1386	8048960034301988	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+872	1386	8048960034301988	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+1072	1389	8048960034383404	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1072	1389	8048960034383404	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1072	1389	8048960034383404	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1072	1389	8048960034383404	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1039	1390	8048960034403453	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1039	1390	8048960034403453	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1039	1390	8048960034403453	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1039	1390	8048960034403453	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1147	1401	8048960034560126	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1147	1401	8048960034560126	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+1147	1401	8048960034560126	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1147	1401	8048960034560126	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+1097	1429	8048960034832907	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1097	1429	8048960034832907	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+1097	1429	8048960034832907	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1097	1429	8048960034832907	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+841	1429	8048960034774090	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+841	1429	8048960034774090	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+841	1429	8048960034774090	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+841	1429	8048960034774090	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+1267	1456	8048960035110267	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1267	1456	8048960035110267	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+1267	1456	8048960035110267	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1267	1456	8048960035110267	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+937	1458	8048960035076687	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+937	1458	8048960035076687	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+937	1458	8048960035076687	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+937	1458	8048960035076687	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+1340	1499	8048960035552288	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+1340	1499	8048960035552288	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1340	1499	8048960035552288	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+1340	1499	8048960035552288	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1260	1536	8048960035923488	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1260	1536	8048960035923488	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1260	1536	8048960035923488	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1260	1536	8048960035923488	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1317	1543	8048960035953122	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+1317	1543	8048960035953122	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+1317	1543	8048960035953122	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+1317	1543	8048960035953122	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+1559	4753	8048960036186139	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.obj	4b161d6c7f2c119e
+1552	4789	8048960036168689	CMakeFiles/GremblingEx.dir/gremblingex_qmltyperegistrations.cpp.obj	c5f6c662c993f3e1
+1596	4918	8048960036604697	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.obj	34fce66bdef8d416
+1581	5528	8048960036452515	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.obj	c1a75968171d39d
+1592	5628	8048960036533149	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.obj	3d33545b65bccd79
+1556	6086	8048960036186139	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.obj	e0f72f876022114a
+1577	6118	8048960036432471	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.obj	5b065b8ed7be6b63
+1612	6369	8048960036757394	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.obj	dd0ecf58aedb4271
+1563	6378	8048960036284066	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.obj	846befb652656a40
+1604	6430	8048960036701091	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.obj	3d6293bf92ae8867
+1588	6461	8048960036533149	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+1566	6559	8048960036318041	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.obj	5116a1948954ec39
+1600	7263	8048960036660988	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.obj	245df07bfe22abce
+1585	8148	8048960036503718	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.obj	45041d9844cc5ebd
+1543	8247	8048960036041199	CMakeFiles/GremblingEx.dir/GremblingEx_autogen/mocs_compilation.cpp.obj	83e3a364bde5ffd9
+1608	8614	8048960036741186	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.obj	9ca6a84a6fedf6c1
+1546	9496	8048960036128366	CMakeFiles/GremblingEx.dir/src/main.cpp.obj	f7d37c99c6205952
+1549	9598	8048960036155508	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+4754	9641	8048960068200285	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.obj	e42fc17884ea5401
+4918	10018	8048960069828373	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.obj	5301cec1ceafc31
+5628	10054	8048960076937122	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.obj	536ac67050012823
+6370	10178	8048960084357269	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.obj	704836fd54d5217d
+5528	10577	8048960075934431	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.obj	18d62899ff99b7b2
+6086	10678	8048960081523134	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.obj	4eabbf142879b69a
+6461	10695	8048960085270602	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.obj	53a81fe0dfd7833f
+6118	10703	8048960081830779	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.obj	9953a954f3270236
+6378	10738	8048960084428745	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.obj	415c1e3dfa2effd2
+6559	10845	8048960086254228	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.obj	f105dccd2ff36832
+8148	11460	8048960102138742	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.obj	d5273a0245ffb0ae
+6431	11620	8048960084970469	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.obj	32cc9d77b5dc49bc
+8247	11717	8048960103129090	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.obj	b680b9a92d351c1a
+7263	11905	8048960093286620	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.obj	f3067f6f3afcf3db
+8614	12099	8048960106803691	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.obj	4591b2ee20f7faf5
+4789	12844	8048960068558629	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.obj	47acddab18fb4889
+12844	14178	8048960149037277	GremblingEx.exe	6a0684f984d4787c
+28	76	8048964828818316	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+28	76	8048964828818316	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+33	574	8048964833770288	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+33	574	8048964833770288	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+574	1220	8048964839553293	GremblingEx_autogen/timestamp	e3d98b2ce544460d
+574	1220	8048964839553293	GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+574	1220	8048964839553293	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/timestamp	e3d98b2ce544460d
+574	1220	8048964839553293	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+1220	1250	8048964840569691	meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+1220	1250	8048964840569691	meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+1220	1250	8048964840569691	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+1220	1250	8048964840569691	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+1225	1265	8048964840704746	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+1225	1265	8048964840704746	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+1250	1286	8048964840925144	meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+1250	1286	8048964840925144	meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+1250	1286	8048964840925144	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+1250	1286	8048964840925144	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+1286	1370	8048964841451637	gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+1286	1370	8048964841451637	GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+1286	1370	8048964841451637	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/gremblingex_qmltyperegistrations.cpp	e80c2818a28c90f
+1286	1370	8048964841451637	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx/GremblingEx.qmltypes	e80c2818a28c90f
+1375	1510	8048964843022260	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+1375	1510	8048964843022260	.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+1375	1510	8048964843022260	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp	2fd419ece1b30f90
+1375	1510	8048964843022260	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.aotstats	2fd419ece1b30f90
+1385	1562	8048964843424935	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+1385	1562	8048964843424935	.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+1385	1562	8048964843424935	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp	5acc30cdab3ffc5d
+1385	1562	8048964843424935	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.aotstats	5acc30cdab3ffc5d
+1396	1570	8048964843549551	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+1396	1570	8048964843549551	.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+1396	1570	8048964843549551	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp	8a637414dd8f72bf
+1396	1570	8048964843549551	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.aotstats	8a637414dd8f72bf
+1389	1577	8048964843626514	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+1389	1577	8048964843626514	.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+1389	1577	8048964843626514	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp	76b2e1d8c8f2d1dd
+1389	1577	8048964843626514	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.aotstats	76b2e1d8c8f2d1dd
+1421	1612	8048964843973783	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+1421	1612	8048964843973783	.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+1421	1612	8048964843973783	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp	bb779a43cb809476
+1421	1612	8048964843973783	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.aotstats	bb779a43cb809476
+1414	1621	8048964844055237	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+1414	1621	8048964844055237	.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+1414	1621	8048964844055237	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp	5dce497aca46a68a
+1414	1621	8048964844055237	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.aotstats	5dce497aca46a68a
+1380	1629	8048964844055237	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+1380	1629	8048964844055237	.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+1380	1629	8048964844055237	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp	454de1ba0041f5e0
+1380	1629	8048964844055237	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.aotstats	454de1ba0041f5e0
+1435	1654	8048964844478465	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+1435	1654	8048964844478465	.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+1435	1654	8048964844478465	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp	36696c6dd3c97cea
+1435	1654	8048964844478465	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.aotstats	36696c6dd3c97cea
+1450	1760	8048964845325588	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+1450	1760	8048964845325588	.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+1450	1760	8048964845325588	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp	1bb0d73f5b942b25
+1450	1760	8048964845325588	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.aotstats	1bb0d73f5b942b25
+1408	1792	8048964845515927	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+1408	1792	8048964845515927	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+1408	1792	8048964845515927	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+1408	1792	8048964845515927	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+1578	1892	8048964846722906	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+1578	1892	8048964846722906	.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+1578	1892	8048964846722906	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp	56c334db6b18c259
+1578	1892	8048964846722906	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.aotstats	56c334db6b18c259
+1428	1902	8048964846732969	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+1428	1902	8048964846732969	.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+1428	1902	8048964846732969	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp	b6c2357d9d9fc6da
+1428	1902	8048964846732969	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.aotstats	b6c2357d9d9fc6da
+1401	1909	8048964846752971	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+1401	1909	8048964846752971	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+1401	1909	8048964846752971	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+1401	1909	8048964846752971	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+1563	1910	8048964846853586	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1563	1910	8048964846853586	.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+1563	1910	8048964846853586	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp	7661b714f6303486
+1563	1910	8048964846853586	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.aotstats	7661b714f6303486
+1654	1910	8048964846883582	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1654	1910	8048964846883582	.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+1654	1910	8048964846883582	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp	6731d11e29150ac2
+1654	1910	8048964846883582	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.aotstats	6731d11e29150ac2
+1457	1910	8048964846853586	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+1457	1910	8048964846853586	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+1457	1910	8048964846853586	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+1457	1910	8048964846853586	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+1442	1911	8048964846960213	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+1442	1911	8048964846960213	.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+1442	1911	8048964846960213	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp	2f363b952c2bba19
+1442	1911	8048964846960213	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.aotstats	2f363b952c2bba19
+1473	1911	8048964846940161	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+1473	1911	8048964846940161	.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+1473	1911	8048964846940161	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp	1a9993d561d1b1f7
+1473	1911	8048964846940161	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.aotstats	1a9993d561d1b1f7
+1570	1912	8048964847001504	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1570	1912	8048964847001504	.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1570	1912	8048964847001504	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp	ba36af36ecd73a5
+1570	1912	8048964847001504	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.aotstats	ba36af36ecd73a5
+1480	1912	8048964847021551	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+1480	1912	8048964847021551	.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+1480	1912	8048964847021551	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp	e3afeb61fb90816c
+1480	1912	8048964847021551	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.aotstats	e3afeb61fb90816c
+1629	1923	8048964847175628	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1629	1923	8048964847175628	.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+1629	1923	8048964847175628	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp	7f284e969767e00c
+1629	1923	8048964847175628	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.aotstats	7f284e969767e00c
+1613	1929	8048964847217197	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+1613	1929	8048964847217197	.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+1613	1929	8048964847217197	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp	2e3a44939bae7fc4
+1613	1929	8048964847217197	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.aotstats	2e3a44939bae7fc4
+1621	1936	8048964847312835	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1621	1936	8048964847312835	.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1621	1936	8048964847312835	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp	8683ac8d6c19bd58
+1621	1936	8048964847312835	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.aotstats	8683ac8d6c19bd58
+1510	1937	8048964847334092	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+1510	1937	8048964847334092	.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+1510	1937	8048964847334092	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp	38b20075b594a3ac
+1510	1937	8048964847334092	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.aotstats	38b20075b594a3ac
+1370	1967	8048964847546156	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+1370	1967	8048964847546156	.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+1370	1967	8048964847546156	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp	f12a2154b1a2557
+1370	1967	8048964847546156	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.aotstats	f12a2154b1a2557
+1792	1993	8048964847892909	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1792	1993	8048964847892909	.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+1792	1993	8048964847892909	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp	6bd72d2a38468e37
+1792	1993	8048964847892909	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.aotstats	6bd72d2a38468e37
+1465	2009	8048964848049835	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+1465	2009	8048964848049835	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+1465	2009	8048964848049835	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+1465	2009	8048964848049835	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+1902	2049	8048964848502682	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+1902	2049	8048964848502682	.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1902	2049	8048964848502682	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp	cf55a8dbf075f042
+1902	2049	8048964848502682	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.aotstats	cf55a8dbf075f042
+1760	2071	8048964848703354	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1760	2071	8048964848703354	.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1760	2071	8048964848703354	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp	94e0dbb2a0058817
+1760	2071	8048964848703354	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.aotstats	94e0dbb2a0058817
+1893	2083	8048964848819260	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+1893	2083	8048964848819260	.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+1893	2083	8048964848819260	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp	80e732405c31a764
+1893	2083	8048964848819260	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.aotstats	80e732405c31a764
+2099	5133	8048964849099121	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Theme_qml.cpp.obj	4b161d6c7f2c119e
+2092	5230	8048964849003355	CMakeFiles/GremblingEx.dir/gremblingex_qmltyperegistrations.cpp.obj	c5f6c662c993f3e1
+2129	5388	8048964849382812	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/Badge_qml.cpp.obj	34fce66bdef8d416
+2146	6258	8048964849560292	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/LogConsoleView_qml.cpp.obj	dd0ecf58aedb4271
+2113	6495	8048964849163210	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ScreenPlaceholder_qml.cpp.obj	c1a75968171d39d
+2103	6637	8048964849131909	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeader_qml.cpp.obj	846befb652656a40
+2096	6642	8048964849047991	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/main_qml.cpp.obj	e0f72f876022114a
+2133	6709	8048964849420230	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveEditorView_qml.cpp.obj	245df07bfe22abce
+2106	6935	8048964849163210	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/TopHeaderButton_qml.cpp.obj	5116a1948954ec39
+2121	7066	8048964849315535	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+2137	7196	8048964849471313	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CurveHandle_qml.cpp.obj	3d6293bf92ae8867
+2125	7228	8048964849345687	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/InputRow_qml.cpp.obj	3d33545b65bccd79
+2109	7401	8048964849163210	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/WindowControls_qml.cpp.obj	5b065b8ed7be6b63
+2141	8351	8048964849516653	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceTesterView_qml.cpp.obj	9ca6a84a6fedf6c1
+2117	8403	8048964849262839	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.obj	45041d9844cc5ebd
+2083	8727	8048964848933798	CMakeFiles/GremblingEx.dir/GremblingEx_autogen/mocs_compilation.cpp.obj	83e3a364bde5ffd9
+2086	9605	8048964848950062	CMakeFiles/GremblingEx.dir/src/main.cpp.obj	f7d37c99c6205952
+5133	10059	8048964879434390	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.obj	e42fc17884ea5401
+9605	10095	8048964924149006	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+6709	10131	8048964895194091	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GlassPanel_qml.cpp.obj	704836fd54d5217d
+2089	10148	8048964848950062	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+5389	10356	8048964881987970	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/MacroEditorPopup_qml.cpp.obj	5301cec1ceafc31
+6495	10869	8048964893051104	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SequencePopup_qml.cpp.obj	536ac67050012823
+6258	11078	8048964890672054	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AxisSplitterPopup_qml.cpp.obj	18d62899ff99b7b2
+7229	11248	8048964900382534	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToolButton_qml.cpp.obj	f105dccd2ff36832
+7196	11276	8048964900060945	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ValueSlider_qml.cpp.obj	53a81fe0dfd7833f
+6637	11345	8048964894464927	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/SettingsView_qml.cpp.obj	4eabbf142879b69a
+6936	11527	8048964897459986	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/RemoteControlPopup_qml.cpp.obj	415c1e3dfa2effd2
+6642	11532	8048964894523268	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/CalibrationWizardPopup_qml.cpp.obj	9953a954f3270236
+8351	11688	8048964911609924	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ToggleSwitch_qml.cpp.obj	d5273a0245ffb0ae
+8404	12029	8048964912135354	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/PointCoordinateField_qml.cpp.obj	b680b9a92d351c1a
+7066	12039	8048964898754456	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AutoSwitchPopup_qml.cpp.obj	32cc9d77b5dc49bc
+7401	12260	8048964902114532	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/AppComboBox_qml.cpp.obj	f3067f6f3afcf3db
+8728	12501	8048964915379671	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/GremblingButton_qml.cpp.obj	4591b2ee20f7faf5
+5230	13186	8048964880390212	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.obj	47acddab18fb4889
+13186	14533	8048964959962127	GremblingEx.exe	6a0684f984d4787c
+27	65	8048965951287148	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+27	65	8048965951287148	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+33	575	8048965956331739	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+33	575	8048965956331739	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+580	621	8048965956843556	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+580	621	8048965956843556	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+575	774	8048965958313283	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+575	774	8048965958313283	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+575	774	8048965958313283	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+575	774	8048965958313283	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+778	894	8048965958448804	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+775	3383	8048965958416143	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+3383	4716	8048965984504357	GremblingEx.exe	6a0684f984d4787c
+33	74	8048971315205169	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+33	74	8048971315205169	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+39	608	8048971320500260	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+39	608	8048971320500260	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+619	663	8048971321103685	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+619	663	8048971321103685	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+614	819	8048971322590277	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+614	819	8048971322590277	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+614	819	8048971322590277	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+614	819	8048971322590277	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+609	883	8048971323215430	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+609	883	8048971323215430	.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+609	883	8048971323215430	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp	cef89597142ec50c
+609	883	8048971323215430	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.aotstats	cef89597142ec50c
+889	1013	8048971323402922	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+886	3995	8048971323373358	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+883	4013	8048971323343114	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ProfileEditorView_qml.cpp.obj	45041d9844cc5ebd
+4013	5367	8048971354631910	GremblingEx.exe	6a0684f984d4787c
+54	225	8048976991819075	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+54	225	8048976991819075	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+60	2961	8048977019143888	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+60	2961	8048977019143888	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+2967	3007	8048977019654281	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+2967	3007	8048977019654281	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+2962	3239	8048977021893492	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+2962	3239	8048977021893492	.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+2962	3239	8048977021893492	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp	bf188cc9d38e4950
+2962	3239	8048977021893492	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.aotstats	bf188cc9d38e4950
+3243	3435	8048977022009441	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+3239	8007	8048977021948527	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/DeviceCard_qml.cpp.obj	43a1c2014fd2c7b6
+8007	9690	8048977069638845	GremblingEx.exe	6a0684f984d4787c
+43	3213	8049061211297912	GremblingCore_autogen/timestamp	cf3a80fcebb0af27
+43	3213	8049061211297912	GremblingCore_autogen/mocs_compilation.cpp	cf3a80fcebb0af27
+43	3213	8049061211297912	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingCore_autogen/timestamp	cf3a80fcebb0af27
+43	3213	8049061211297912	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingCore_autogen/mocs_compilation.cpp	cf3a80fcebb0af27
+3214	7350	8049061242975325	CMakeFiles/GremblingCore.dir/src/core/DeviceManager.cpp.obj	b9180b48367b3f79
+7350	7526	8049061284360750	libGremblingCore.a	4f8f10fe356f31d2
+7526	9235	8049061286122319	GremblingEx.exe	6a0684f984d4787c
+71	312	8049081255321584	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+71	312	8049081255321584	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+53	1006	8049081261054021	GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+53	1006	8049081261054021	GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+53	1006	8049081261054021	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+53	1006	8049081261054021	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+85	3847	8049081290629197	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+85	3847	8049081290629197	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+1019	4396	8049081262460007	CMakeFiles/GremblingProcessing.dir/src/processing/CurveHandler.cpp.obj	9e8ab9fe9bd6aa82
+1006	5783	8049081262328620	CMakeFiles/GremblingProcessing.dir/GremblingProcessing_autogen/mocs_compilation.cpp.obj	5a364c6a3183e0f5
+1031	7577	8049081262583094	CMakeFiles/GremblingProcessing.dir/src/processing/ProfileManager.cpp.obj	dd634498c8699ace
+7578	7867	8049081328040599	libGremblingProcessing.a	33c0cebfc456a256
+7867	8993	8049081340820361	GremblingEx_autogen/timestamp	e3d98b2ce544460d
+7867	8993	8049081340820361	GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+7867	8993	8049081340820361	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/timestamp	e3d98b2ce544460d
+7867	8993	8049081340820361	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingEx_autogen/mocs_compilation.cpp	e3d98b2ce544460d
+8994	9058	8049081342791290	meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+8994	9058	8049081342791290	meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+8994	9058	8049081342791290	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt	508a34b975d9fac5
+8994	9058	8049081342791290	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/GremblingEx_json_file_list.txt.timestamp	508a34b975d9fac5
+9008	9081	8049081343019565	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+9008	9081	8049081343019565	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+9058	9164	8049081342852548	meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+9058	9164	8049081342852548	meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+9058	9164	8049081342852548	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json.gen	852c481d7416e3f5
+9058	9164	8049081342852548	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/meta_types/qt6gremblingex_metatypes.json	852c481d7416e3f5
+9164	9701	8049081349085416	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+9164	9701	8049081349085416	.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+9164	9701	8049081349085416	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp	d0bd106c817994b2
+9164	9701	8049081349085416	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.aotstats	d0bd106c817994b2
+9774	10023	8049081350005151	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+9740	12560	8049081349669576	CMakeFiles/GremblingEx.dir/src/gui/CalibrationViewModel.cpp.obj	6c243c100b431d66
+9701	15689	8049081349281156	CMakeFiles/GremblingEx.dir/GremblingEx_autogen/mocs_compilation.cpp.obj	83e3a364bde5ffd9
+9713	16484	8049081349399726	CMakeFiles/GremblingEx.dir/src/main.cpp.obj	f7d37c99c6205952
+9724	17336	8049081349504276	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+9757	18746	8049081349839847	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/ActionPickerPopup_qml.cpp.obj	47acddab18fb4889
+18747	20629	8049081439734896	GremblingEx.exe	6a0684f984d4787c
+35	76	8049100629359118	.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+35	76	8049100629359118	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/GremblingEx_qml.txt	fe96b3f5a310a1b3
+39	597	8049100634533289	.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+39	597	8049100634533289	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/qml_imports/GremblingEx_build.cmake	bcab1ebe7672c38
+29	610	8049100633959135	GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+29	610	8049100633959135	GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+29	610	8049100633959135	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/timestamp	3c11d9b17a98c957
+29	610	8049100633959135	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/GremblingProcessing_autogen/mocs_compilation.cpp	3c11d9b17a98c957
+611	3297	8049100634738412	CMakeFiles/GremblingProcessing.dir/GremblingProcessing_autogen/mocs_compilation.cpp.obj	5a364c6a3183e0f5
+613	3934	8049100634769143	CMakeFiles/GremblingProcessing.dir/src/processing/SCIntegrationManager.cpp.obj	d043a89f4ea57c8d
+3935	4021	8049100667982259	libGremblingProcessing.a	33c0cebfc456a256
+4026	4068	8049100669289063	.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+4026	4068	8049100669289063	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp	dd22295834de5644
+4021	4219	8049100670723783	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+4021	4219	8049100670723783	.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+4021	4219	8049100670723783	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp	50267d88ebc83c69
+4021	4219	8049100670723783	C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.aotstats	50267d88ebc83c69
+4227	4346	8049100670912556	CMakeFiles/GremblingEx.dir/build-release/.qt/rcc/qrc_GremblingEx_raw_qml_0.cpp.obj	280053c71f003f98
+4225	6875	8049100670876366	CMakeFiles/GremblingEx.dir/build-release/.rcc/qmlcache/GremblingEx_src/qml/StarCitizenView_qml.cpp.obj	e42fc17884ea5401
+4219	7710	8049100670830721	CMakeFiles/GremblingEx.dir/src/main.cpp.obj	f7d37c99c6205952
+4222	8577	8049100670861335	CMakeFiles/GremblingEx.dir/src/gui/ProfileEditorViewModel.cpp.obj	c6bf64765517e5d2
+8577	9957	8049100714407270	GremblingEx.exe	6a0684f984d4787c

@@ -1,0 +1,236 @@
+{
+    "classes": [
+        {
+            "className": "CurveEditorViewModel",
+            "lineNumber": 38,
+            "methods": [
+                {
+                    "access": "public",
+                    "index": 6,
+                    "isConst": true,
+                    "lineNumber": 74,
+                    "name": "points",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "index",
+                            "type": "int"
+                        },
+                        {
+                            "name": "x",
+                            "type": "double"
+                        },
+                        {
+                            "name": "y",
+                            "type": "double"
+                        }
+                    ],
+                    "index": 7,
+                    "lineNumber": 104,
+                    "name": "updatePoint",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "x",
+                            "type": "double"
+                        },
+                        {
+                            "name": "y",
+                            "type": "double"
+                        }
+                    ],
+                    "index": 8,
+                    "lineNumber": 113,
+                    "name": "addPoint",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "index",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 9,
+                    "lineNumber": 118,
+                    "name": "removePoint",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 10,
+                    "lineNumber": 126,
+                    "name": "applyPresetLinear",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 11,
+                    "lineNumber": 127,
+                    "name": "applyPresetSCurve",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 12,
+                    "lineNumber": 128,
+                    "name": "invertCurve",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 41,
+                    "name": "deadzone",
+                    "notify": "deadzoneChanged",
+                    "override": false,
+                    "read": "deadzone",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "double",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setDeadzone"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 42,
+                    "name": "sensitivity",
+                    "notify": "sensitivityChanged",
+                    "override": false,
+                    "read": "sensitivity",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "double",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setSensitivity"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 43,
+                    "name": "smoothingFactor",
+                    "notify": "smoothingFactorChanged",
+                    "override": false,
+                    "read": "smoothingFactor",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "double",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setSmoothingFactor"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 44,
+                    "name": "selectedIndex",
+                    "notify": "selectedIndexChanged",
+                    "override": false,
+                    "read": "selectedIndex",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setSelectedIndex"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 45,
+                    "name": "diagonalSymmetry",
+                    "notify": "diagonalSymmetryChanged",
+                    "override": false,
+                    "read": "diagonalSymmetry",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setDiagonalSymmetry"
+                }
+            ],
+            "qualifiedClassName": "CurveEditorViewModel",
+            "signals": [
+                {
+                    "access": "public",
+                    "index": 0,
+                    "lineNumber": 131,
+                    "name": "deadzoneChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "lineNumber": 132,
+                    "name": "sensitivityChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 133,
+                    "name": "smoothingFactorChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 138,
+                    "name": "pointsChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 139,
+                    "name": "selectedIndexChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 5,
+                    "lineNumber": 140,
+                    "name": "diagonalSymmetryChanged",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QAbstractListModel"
+                }
+            ]
+        }
+    ],
+    "inputFile": "CurveEditorViewModel.h",
+    "outputRevision": 69
+}

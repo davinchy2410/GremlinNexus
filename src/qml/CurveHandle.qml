@@ -5,7 +5,7 @@ import GremblingNexus
 // in Part 6 with selection/delete).
 //
 // Position is a single, permanently-active binding to pointX/pointY
-// (normalized [0,1], sourced from CurveEditorViewModel.points) - there is
+// (bipolar [-1,1], sourced from CurveEditorViewModel.points) - there is
 // no drag.target and nothing ever writes to root.x/y directly. Dragging
 // works by mapping the mouse's position into the graph's own coordinate
 // space (mapToItem) and calling updatePoint() with the resulting
@@ -30,10 +30,28 @@ Item {
 
     readonly property real radius: 7
 
+    // pointX lives in the *post-deadzone* domain CurveHandler actually
+    // evaluates the spline over (see CurveEditorViewModel's own class
+    // docs) - the drawn curve in CurveEditorView.qml's Canvas is sampled
+    // in the *raw* input domain and pushed through deadzoneAdjust() before
+    // evaluating that same spline, so for deadzone > 0 a point drawn at
+    // its own raw pointX would sit visibly off the curve. physicalX
+    // reverses deadzoneAdjust() - stretching pointX back out by the
+    // deadzone gap - so the handle always renders exactly on top of the
+    // curve, at the raw stick position that actually produces this point.
+    property real dz: curveEditorViewModel.deadzone
+    property real physicalX: pointX > 0.0
+        ? pointX * (1.0 - dz) + dz
+        : (pointX < 0.0 ? pointX * (1.0 - dz) - dz : 0.0)
+
     width: radius * 2
     height: radius * 2
-    x: pointX * graphWidth - radius
-    y: (1.0 - pointY) * graphHeight - radius
+    // Maps bipolar [-1,1] physicalX/pointY into [0, graphWidth/Height]
+    // pixel space - x=-1 sits at the left edge, x=1 at the right, x=0
+    // dead-center (and mirrored, flipped, for y, since pixel Y grows
+    // downward while pointY grows upward).
+    x: ((physicalX + 1.0) / 2.0) * graphWidth - radius
+    y: (1.0 - pointY) * 0.5 * graphHeight - radius
 
     Rectangle {
         id: dot
@@ -89,9 +107,24 @@ Item {
             // measured in - mapping through it gives graph-space pixels
             // regardless of where root itself currently sits.
             const graphPos = mouseArea.mapToItem(root.parent, mouse.x, mouse.y);
-            const nx = graphPos.x / root.graphWidth;
-            const ny = 1.0 - graphPos.y / root.graphHeight;
-            curveEditorViewModel.updatePoint(root.pointIndex, nx, ny);
+            const nx = (graphPos.x / root.graphWidth) * 2.0 - 1.0;
+            const ny = (1.0 - graphPos.y / root.graphHeight) * 2.0 - 1.0;
+
+            // Reverse physicalX's own math: the dragged pixel gives the raw
+            // stick position (nx), but m_points/updatePoint() store the
+            // post-deadzone spline-domain x - the same compression
+            // CurveHandler::processAxis() and the canvas's own
+            // deadzoneAdjust() apply, so dragging the dot back over the
+            // deadzone's flat region collapses it to exactly 0 instead of
+            // creeping past the endpoint clamp toward whatever's nearest.
+            let adjX = 0.0;
+            if (nx > root.dz) {
+                adjX = (nx - root.dz) / (1.0 - root.dz);
+            } else if (nx < -root.dz) {
+                adjX = (nx + root.dz) / (1.0 - root.dz);
+            }
+
+            curveEditorViewModel.updatePoint(root.pointIndex, adjX, ny);
         }
     }
 }

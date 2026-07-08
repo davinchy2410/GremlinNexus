@@ -66,29 +66,37 @@ std::vector<double> CurveHandler::buildBezierLut(double x1, double y1, double x2
     }
 
     // Re-bucket the dense (t-indexed) samples into a LUT uniformly indexed
-    // by X, via linear interpolation between the bracketing samples. This
-    // assumes sampleX is monotonically non-decreasing in t, which holds
-    // for any well-formed response curve (control points that keep the
-    // curve from folding back on itself in X); if a caller supplies
-    // control points that violate that, later samples simply overwrite
-    // earlier LUT entries as the scan advances — a graceful degradation
-    // (a slightly wrong-looking curve) rather than a crash or NaN.
+    // over the bipolar domain [-1, 1]. The default control points describe
+    // a magnitude-only response (P0=(0,0), P3=(1,1)); mirroring it as an
+    // odd function (f(-x) = -f(x)) is what makes a joystick pushed forward
+    // or back respond identically by default, absent any curvePoints
+    // telling the LUT otherwise. Because magnitude runs from 1 down to 0
+    // and back up to 1 as j sweeps the full [-1, 1] domain (not monotonic
+    // the way it was over plain [0, 1]), each entry looks its own bracket
+    // up via binary search instead of the previous incremental scan - this
+    // only runs once, in the constructor, so the extra log(n) is free.
     std::vector<double> lut(CurveHandler::kLutSize);
-    int sampleIndex = 0;
     for (int j = 0; j < CurveHandler::kLutSize; ++j) {
-        const double targetX = static_cast<double>(j) / static_cast<double>(CurveHandler::kLutSize - 1);
-        while (sampleIndex < kBezierSampleCount - 2 && sampleX[sampleIndex + 1] < targetX) {
-            ++sampleIndex;
-        }
+        const double targetX = -1.0 + 2.0 * static_cast<double>(j) / static_cast<double>(CurveHandler::kLutSize - 1);
+        const double sign = targetX < 0.0 ? -1.0 : 1.0;
+        const double magnitude = std::abs(targetX);
 
-        const double bracketX0 = sampleX[sampleIndex];
-        const double bracketX1 = sampleX[sampleIndex + 1];
-        const double bracketY0 = sampleY[sampleIndex];
-        const double bracketY1 = sampleY[sampleIndex + 1];
+        const auto upper = std::lower_bound(sampleX.begin(), sampleX.end(), magnitude);
+        int hi = static_cast<int>(std::min<std::ptrdiff_t>(upper - sampleX.begin(), kBezierSampleCount - 1));
+        if (hi == 0) {
+            hi = 1;
+        }
+        const int lo = hi - 1;
+
+        const double bracketX0 = sampleX[lo];
+        const double bracketX1 = sampleX[hi];
+        const double bracketY0 = sampleY[lo];
+        const double bracketY1 = sampleY[hi];
 
         const double span = bracketX1 - bracketX0;
-        const double frac = (span > 1e-12) ? (targetX - bracketX0) / span : 0.0;
-        lut[j] = bracketY0 + frac * (bracketY1 - bracketY0);
+        const double frac = (span > 1e-12) ? (magnitude - bracketX0) / span : 0.0;
+        const double magnitudeY = bracketY0 + frac * (bracketY1 - bracketY0);
+        lut[j] = sign * magnitudeY;
     }
 
     return lut;
@@ -148,7 +156,7 @@ std::vector<double> CurveHandler::buildSplineLut(std::vector<QPointF> points)
 
     std::size_t segment = 0;
     for (int j = 0; j < CurveHandler::kLutSize; ++j) {
-        const double targetX = static_cast<double>(j) / static_cast<double>(CurveHandler::kLutSize - 1);
+        const double targetX = -1.0 + 2.0 * static_cast<double>(j) / static_cast<double>(CurveHandler::kLutSize - 1);
 
         // Flat extrapolation outside the caller-supplied points' own X range.
         if (targetX <= points.front().x()) {
@@ -187,8 +195,8 @@ std::vector<double> CurveHandler::buildSplineLut(std::vector<QPointF> points)
 
 double CurveHandler::evaluateCurve(double x) const
 {
-    const double clampedX = std::clamp(x, 0.0, 1.0);
-    const double idx = clampedX * static_cast<double>(m_lut.size() - 1);
+    const double clampedX = std::clamp(x, -1.0, 1.0);
+    const double idx = (clampedX + 1.0) * 0.5 * static_cast<double>(m_lut.size() - 1);
 
     const int i0 = static_cast<int>(idx);
     const int i1 = std::min(i0 + 1, static_cast<int>(m_lut.size()) - 1);
@@ -228,27 +236,29 @@ void CurveHandler::processAxis(const AxisEvent &evt)
     // Normalize to bipolar [-1, 1] around the input range's midpoint.
     const double normalized = ((static_cast<double>(value) - m_inputMin) / inputRange) * 2.0 - 1.0;
 
-    // Deadzone: rescale the region outside it back to [0, 1] magnitude so
-    // there's no jump at the deadzone boundary. Sign is tracked separately
-    // so the (symmetric) response curve below only ever needs to reason
-    // about magnitude in [0, 1], matching the curve's P0=(0,0)/P3=(1,1)
-    // domain.
+    // Deadzone, applied directly over the bipolar [-1, 1] range: any value
+    // whose magnitude falls inside the deadzone collapses to exactly 0.0,
+    // and the region outside it is rescaled back out to fill [-1, 1]
+    // cleanly, with no jump at the boundary. Sign is tracked separately
+    // only to rebuild the rescaled magnitude - the curve below is now
+    // evaluated on this signed value directly, over its own bipolar
+    // domain, so it can be asymmetric (shaped differently pushed forward
+    // vs. back) instead of always mirroring a magnitude-only response.
     const double sign = normalized < 0.0 ? -1.0 : 1.0;
     const double magnitude = std::abs(normalized);
-    double deadzoneAdjusted = 0.0;
-    if (magnitude > m_deadzone) {
-        deadzoneAdjusted = (magnitude - m_deadzone) / (1.0 - m_deadzone);
-    }
+    const double deadzoneAdjusted = (magnitude > m_deadzone)
+        ? sign * (magnitude - m_deadzone) / (1.0 - m_deadzone)
+        : 0.0;
 
     // O(1) LUT lookup: the expensive part (baking the curve) already
     // happened once, in the constructor.
     const double curved = evaluateCurve(deadzoneAdjusted);
 
-    // Re-apply sign, then sensitivity, then clamp back to [-1, 1] (a curve
-    // with y1/y2 outside [0, 1] can overshoot past the endpoints on
-    // purpose; sensitivity can push it further; this is where both get
-    // reined back in before mapping to the output range).
-    double adjusted = std::clamp(sign * curved * m_sensitivity, -1.0, 1.0);
+    // Sensitivity, then clamp back to [-1, 1] (a curve with Y values
+    // outside [-1, 1] can overshoot past the endpoints on purpose;
+    // sensitivity can push it further; this is where both get reined back
+    // in before mapping to the output range).
+    double adjusted = std::clamp(curved * m_sensitivity, -1.0, 1.0);
 
     // Physical inversion: flips output polarity outright, distinct from
     // "inverting" a curve/points in the graphical editor (which only

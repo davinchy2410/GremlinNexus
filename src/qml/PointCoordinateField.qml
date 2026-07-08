@@ -3,35 +3,44 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import GremblingNexus
 
-// One coordinate (X or Y) of curveEditorViewModel's selected control point
+// One coordinate (X or Y) of curveEditorViewModel.points()[selectedIndex]
 // (Phase 10 Part 6).
 //
-// `field.text` is deliberately a plain property, resynced explicitly, not a
-// live `text: expression` binding - the same binding-vs-user-input lesson
-// as CurveHandle's dragged position (Part 3): a bound `text` gets silently
-// destroyed the moment the user types into the field (QML property-write
-// semantics), so a live binding would only ever populate it once and then
-// silently stop following selection changes. Resyncing explicitly, only on
-// the events that should actually override in-progress typing (a new
-// point gets selected, or the model changes shape after Enter is pressed),
-// avoids that trap entirely.
+// currentPoint is a plain property, explicitly reassigned by refresh() (via
+// the Connections below) rather than a live `property var currentPoint:
+// curveEditorViewModel.points()[...]` expression - points() is a
+// Q_INVOKABLE, not a NOTIFY-linked Q_PROPERTY, so a declarative binding
+// that merely *calls* it establishes no dependency on curveEditorViewModel's
+// own pointsChanged signal and would only ever refresh when selectedIndex
+// happens to change, never while dragging. Explicitly listening for both
+// signals and reassigning currentPoint imperatively is what makes dragging
+// update these fields in real time.
+//
+// field.text itself is driven by a Binding element gated on
+// `!field.activeFocus`, not a plain `text: expression` - the same
+// binding-vs-user-input lesson as CurveHandle's dragged position (Part 3):
+// an always-live `text` binding gets silently destroyed the instant the
+// user types into the field (QML property-write semantics), so it would
+// only ever show the very first value and then stop following anything.
+// Gating on focus gets both properties at once: fully reactive (drag,
+// selection change, Enter-commit, all flow straight through) while
+// unfocused, and never touched while the user has a keystroke in flight.
 ColumnLayout {
     id: root
 
     property string label: ""
     property string axis: "x" // "x" | "y"
 
+    // null whenever nothing valid is selected - drives both the displayed
+    // text (blank) and the field's enabled state below.
+    property var currentPoint: null
+
     spacing: 2
 
-    function currentPoint() {
+    function refresh() {
         const idx = curveEditorViewModel.selectedIndex;
         const pts = curveEditorViewModel.points();
-        return (idx >= 0 && idx < pts.length) ? pts[idx] : null;
-    }
-
-    function sync() {
-        const p = currentPoint();
-        field.text = p ? Number(p[root.axis]).toFixed(3) : "";
+        root.currentPoint = (idx >= 0 && idx < pts.length) ? pts[idx] : null;
     }
 
     Text { text: root.label; color: Theme.overlay0; font.pixelSize: 10 }
@@ -43,8 +52,8 @@ ColumnLayout {
         color: Theme.text
         font.pixelSize: 12
         selectByMouse: true
-        enabled: root.currentPoint() !== null
-        validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 3 }
+        enabled: root.currentPoint !== null
+        validator: DoubleValidator { bottom: -1.0; top: 1.0; decimals: 3; notation: DoubleValidator.StandardNotation }
 
         background: Rectangle {
             color: Theme.surface1
@@ -54,14 +63,21 @@ ColumnLayout {
             Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
         }
 
+        Binding {
+            target: field
+            property: "text"
+            value: root.currentPoint ? Number(root.currentPoint[root.axis]).toFixed(3) : ""
+            when: !field.activeFocus
+        }
+
         onAccepted: {
-            const p = root.currentPoint();
+            const p = root.currentPoint;
             if (!p) {
                 return;
             }
             const value = parseFloat(field.text);
             if (isNaN(value)) {
-                root.sync();
+                field.focus = false; // Re-engages the Binding above, snapping back to the last-good value.
                 return;
             }
             const idx = curveEditorViewModel.selectedIndex;
@@ -70,14 +86,18 @@ ColumnLayout {
             } else {
                 curveEditorViewModel.updatePoint(idx, p.x, value);
             }
+            // Drop focus so the Binding immediately re-engages and displays
+            // the committed (possibly ViewModel-clamped) value, rather than
+            // leaving whatever raw string the user typed on screen.
+            field.focus = false;
         }
     }
 
-    Component.onCompleted: root.sync()
+    Component.onCompleted: root.refresh()
 
     Connections {
         target: curveEditorViewModel
-        function onSelectedIndexChanged() { root.sync(); }
-        function onPointsChanged() { root.sync(); }
+        function onSelectedIndexChanged() { root.refresh(); }
+        function onPointsChanged() { root.refresh(); }
     }
 }

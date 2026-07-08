@@ -13,21 +13,26 @@
  *
  * Pipeline, per processAxis() call:
  *  1. Normalize the raw input value to bipolar [-1, 1].
- *  2. Deadzone: rescale the region outside it back to [-1, 1] (magnitude
- *     only) so there's no jump at the deadzone boundary — identical to the
- *     original Phase 4 behavior.
- *  3. Cubic Bezier response curve, applied to the deadzone-adjusted
- *     *magnitude* (i.e. |value| in [0, 1], sign re-applied after), via a
- *     precomputed lookup table (LUT) — see "Performance" below.
+ *  2. Deadzone: collapse anything inside it to exactly 0.0 and rescale the
+ *     region outside it back out to fill the full bipolar [-1, 1] range, so
+ *     there's no jump at the deadzone boundary.
+ *  3. Response curve, evaluated on the deadzone-adjusted *signed* value
+ *     directly over its own [-1, 1] domain (not a magnitude-only [0, 1]
+ *     lookup mirrored by sign), via a precomputed lookup table (LUT) — see
+ *     "Performance" below. This lets a multi-point curve be asymmetric
+ *     (shaped differently pushed forward vs. back) if its own points are.
  *  4. Linear sensitivity multiplier, then clamp back to [-1, 1].
  *  5. Map into the target device's output range and stage it via
  *     IVirtualOutputDevice::setAxis().
  *
  * The curve is a standard cubic Bezier with fixed endpoints P0=(0,0),
  * P3=(1,1) and caller-supplied intermediate control points P1=(x1,y1),
- * P2=(x2,y2) — the same shape used by response-curve editors in flight-sim
- * tools: extra precision near center, extra speed toward the extremes, or
- * whatever shape the two control points describe.
+ * P2=(x2,y2) in magnitude space, mirrored as an odd function (f(-x)=-f(x))
+ * across the LUT's full [-1, 1] domain so a joystick pushed forward or back
+ * gets an identical response by default — the same shape used by
+ * response-curve editors in flight-sim tools: extra precision near center,
+ * extra speed toward the extremes, or whatever shape the two control
+ * points describe.
  *
  * Default control points (1/3, 1/3) and (2/3, 2/3) make the curve the
  * *exact* identity line y=x (this is a standard Bezier identity: control
@@ -39,15 +44,17 @@
  *
  * Multi-point mode: if curvePoints is non-empty, it *replaces* the shape of
  * step 3 above - the curve is a monotone cubic Hermite spline (Fritsch-
- * Carlson) through curvePoints (sorted by X) instead of the cubic Bezier
- * from x1/y1/x2/y2 (which are then ignored). Passes exactly through every
- * control point, with tangents chosen specifically to never overshoot past
- * a point's own Y value between it and its neighbors - unlike a plain
- * Catmull-Rom spline, this can't ring/bulge past [0,1] on a sharp S-curve.
- * Steps 1, 2, 4 and 5 - deadzone and sensitivity - are untouched either
- * way; only which curve gets baked into the LUT changes. Querying outside
- * curvePoints' own X range holds flat at the nearest endpoint's Y rather
- * than extrapolating or going out of bounds.
+ * Carlson) through curvePoints (sorted by X, in the bipolar [-1, 1] domain)
+ * instead of the cubic Bezier from x1/y1/x2/y2 (which are then ignored),
+ * and is free to be asymmetric across X=0 since it's no longer mirrored by
+ * sign. Passes exactly through every control point, with tangents chosen
+ * specifically to never overshoot past a point's own Y value between it
+ * and its neighbors - unlike a plain Catmull-Rom spline, this can't
+ * ring/bulge past a point's own Y on a sharp S-curve. Steps 1, 2, 4 and 5 -
+ * deadzone and sensitivity - are untouched either way; only which curve
+ * gets baked into the LUT changes. Querying outside curvePoints' own X
+ * range holds flat at the nearest endpoint's Y rather than extrapolating or
+ * going out of bounds.
  *
  * Performance: evaluating either curve shape exactly on every axis event
  * (a parametric Bezier's implicit cubic root-find, or re-walking a
@@ -95,9 +102,10 @@ public:
      *                    curve shape, not an error).
      * @param x2          Second Bezier control point's X, in [0, 1].
      * @param y2          Second Bezier control point's Y (see y1).
-     * @param curvePoints Optional multi-point (piecewise-linear) curve,
-     *                    (x, y) pairs in the same [0, 1]-ish domain as the
-     *                    Bezier control points above. Non-empty overrides
+     * @param curvePoints Optional multi-point curve, (x, y) pairs in the
+     *                    bipolar [-1, 1] domain (unlike x1/y1/x2/y2 above,
+     *                    which stay in magnitude space and get mirrored).
+     *                    Non-empty overrides
      *                    x1/y1/x2/y2 entirely (see class docs). Points need
      *                    not be pre-sorted by X - the constructor sorts them.
      * @param invert      Physically flips the axis' output polarity - unlike

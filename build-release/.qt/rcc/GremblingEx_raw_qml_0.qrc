@@ -1,0 +1,35 @@
+<RCC>
+  <qresource prefix="/qt/qml/GremblingEx/">
+    <file alias="src/qml/main.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/main.qml</file>
+    <file alias="src/qml/Theme.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/Theme.qml</file>
+    <file alias="src/qml/TopHeader.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/TopHeader.qml</file>
+    <file alias="src/qml/TopHeaderButton.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/TopHeaderButton.qml</file>
+    <file alias="src/qml/WindowControls.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/WindowControls.qml</file>
+    <file alias="src/qml/ScreenPlaceholder.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ScreenPlaceholder.qml</file>
+    <file alias="src/qml/ProfileEditorView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ProfileEditorView.qml</file>
+    <file alias="src/qml/DeviceCard.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/DeviceCard.qml</file>
+    <file alias="src/qml/InputRow.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/InputRow.qml</file>
+    <file alias="src/qml/Badge.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/Badge.qml</file>
+    <file alias="src/qml/CurveEditorView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/CurveEditorView.qml</file>
+    <file alias="src/qml/CurveHandle.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/CurveHandle.qml</file>
+    <file alias="src/qml/DeviceTesterView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/DeviceTesterView.qml</file>
+    <file alias="src/qml/LogConsoleView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/LogConsoleView.qml</file>
+    <file alias="src/qml/StarCitizenView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/StarCitizenView.qml</file>
+    <file alias="src/qml/ActionPickerPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ActionPickerPopup.qml</file>
+    <file alias="src/qml/MacroEditorPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/MacroEditorPopup.qml</file>
+    <file alias="src/qml/AxisSplitterPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/AxisSplitterPopup.qml</file>
+    <file alias="src/qml/SequencePopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/SequencePopup.qml</file>
+    <file alias="src/qml/SettingsView.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/SettingsView.qml</file>
+    <file alias="src/qml/CalibrationWizardPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/CalibrationWizardPopup.qml</file>
+    <file alias="src/qml/GlassPanel.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/GlassPanel.qml</file>
+    <file alias="src/qml/RemoteControlPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/RemoteControlPopup.qml</file>
+    <file alias="src/qml/AutoSwitchPopup.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/AutoSwitchPopup.qml</file>
+    <file alias="src/qml/ValueSlider.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ValueSlider.qml</file>
+    <file alias="src/qml/ToolButton.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ToolButton.qml</file>
+    <file alias="src/qml/AppComboBox.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/AppComboBox.qml</file>
+    <file alias="src/qml/ToggleSwitch.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/ToggleSwitch.qml</file>
+    <file alias="src/qml/PointCoordinateField.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/PointCoordinateField.qml</file>
+    <file alias="src/qml/GremblingButton.qml">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/GremblingButton.qml</file>
+  </qresource>
+</RCC>
+

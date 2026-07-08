@@ -1,6 +1,6 @@
-; Grembling Nexus - Instalador Todo-en-Uno (Inno Setup)
+; Gremlin Nexus - Instalador Todo-en-Uno (Inno Setup)
 ;
-; Empaqueta el build desplegado (dist\GremblingNexus\*, ya pasado por
+; Empaqueta el build desplegado (dist\GremlinNexus\*, ya pasado por
 ; windeployqt) junto a los 3 drivers de terceros que la app necesita para
 ; funcionar (vJoy, HidHide, ViGEmBus), instalando cada uno en modo
 ; silencioso SOLO si no está ya presente en el sistema.
@@ -25,17 +25,17 @@
 ;     sin desarrollo futuro) pero sigue siendo la fuente oficial y es el
 ;     driver que este proyecto ya usa (ver src/output/ViGEmDevice.cpp).
 
-#define MyAppName "Grembling Nexus"
+#define MyAppName "Gremlin Nexus"
 #define MyAppVersion "1.0"
-#define MyAppExeName "GremblingNexus.exe"
+#define MyAppExeName "GremlinNexus.exe"
 
 [Setup]
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-DefaultDirName={autopf}\Grembling Nexus
+DefaultDirName={autopf}\Gremlin Nexus
 DefaultGroupName={#MyAppName}
 PrivilegesRequired=admin
-OutputBaseFilename=GremblingNexus_Installer
+OutputBaseFilename=GremlinNexus_Installer
 OutputDir=installer_output
 SetupIconFile=app.ico
 Compression=lzma2
@@ -46,13 +46,13 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "custom"; Description: "Instalación Personalizada"; Flags: iscustom
 
 [Components]
-Name: "app"; Description: "Grembling Nexus (Aplicación Principal)"; Types: custom; Flags: fixed
+Name: "app"; Description: "Gremlin Nexus (Aplicación Principal)"; Types: custom; Flags: fixed
 Name: "vjoy"; Description: "Driver vJoy (Joystick Virtual)"; Types: custom
 Name: "hidhide"; Description: "Driver HidHide (Ocultamiento de Dispositivos)"; Types: custom
 Name: "vigembus"; Description: "Driver ViGEmBus (Emulación de Gamepad)"; Types: custom
 
 [Files]
-Source: "dist\GremblingNexus\*"; DestDir: "{app}"; Components: app; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\GremlinNexus\*"; DestDir: "{app}"; Components: app; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "redist\vJoySetup.exe"; DestDir: "{tmp}"; Components: vjoy; Flags: deleteafterinstall
 Source: "redist\HidHide_1.5.230_x64.exe"; DestDir: "{tmp}"; Components: hidhide; Flags: deleteafterinstall
 Source: "redist\ViGEmBus_1.22.0_x64_x86_arm64.exe"; DestDir: "{tmp}"; Components: vigembus; Flags: deleteafterinstall

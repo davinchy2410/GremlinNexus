@@ -1,0 +1,13 @@
+<RCC>
+  <qresource prefix="/qt/qml/GremblingEx/">
+    <file alias="src/qml/icons/profiles.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/profiles.svg</file>
+    <file alias="src/qml/icons/curves.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/curves.svg</file>
+    <file alias="src/qml/icons/tester.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/tester.svg</file>
+    <file alias="src/qml/icons/web.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/web.svg</file>
+    <file alias="src/qml/icons/settings.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/settings.svg</file>
+    <file alias="src/qml/icons/log.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/log.svg</file>
+    <file alias="src/qml/icons/engine.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/icons/engine.svg</file>
+    <file alias="src/qml/grembling_icon.svg">C:/Users/daria/.gemini/antigravity/scratch/grembling 2.0/src/qml/grembling_icon.svg</file>
+  </qresource>
+</RCC>
+

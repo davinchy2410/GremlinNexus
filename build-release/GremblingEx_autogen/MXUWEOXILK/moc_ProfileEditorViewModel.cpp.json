@@ -1,0 +1,723 @@
+{
+    "classes": [
+        {
+            "className": "ProfileEditorViewModel",
+            "lineNumber": 59,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "deviceRow",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 12,
+                    "isConst": true,
+                    "lineNumber": 100,
+                    "name": "axisNamesForDevice",
+                    "returnType": "QStringList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "deviceRow",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 13,
+                    "isConst": true,
+                    "lineNumber": 106,
+                    "name": "systemPathForDevice",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 14,
+                    "lineNumber": 114,
+                    "name": "loadProfileFromPath",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 15,
+                    "lineNumber": 123,
+                    "name": "saveProfileToPath",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 16,
+                    "lineNumber": 132,
+                    "name": "quickSave",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 17,
+                    "isConst": true,
+                    "lineNumber": 139,
+                    "name": "deviceRowForSystemPath",
+                    "returnType": "int"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "actionDataJson",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 18,
+                    "lineNumber": 155,
+                    "name": "bindAction",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 19,
+                    "lineNumber": 166,
+                    "name": "unbindAction",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 20,
+                    "isConst": true,
+                    "lineNumber": 174,
+                    "name": "getActionDataJson",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "targetOutputId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 21,
+                    "isConst": true,
+                    "lineNumber": 183,
+                    "name": "nextAvailableVjoyButton",
+                    "returnType": "int"
+                },
+                {
+                    "access": "public",
+                    "index": 22,
+                    "lineNumber": 190,
+                    "name": "newProfile",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "targetOutputId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 23,
+                    "lineNumber": 204,
+                    "name": "create1to1Mapping",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 24,
+                    "isConst": true,
+                    "lineNumber": 210,
+                    "name": "deviceDisplayNames",
+                    "returnType": "QStringList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "fromDeviceRow",
+                            "type": "int"
+                        },
+                        {
+                            "name": "toDeviceRow",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 25,
+                    "lineNumber": 228,
+                    "name": "swapDevices",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 26,
+                    "lineNumber": 238,
+                    "name": "clearDeviceBindings",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputKind",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 27,
+                    "lineNumber": 249,
+                    "name": "copyAction",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "inputKind",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 28,
+                    "isConst": true,
+                    "lineNumber": 254,
+                    "name": "hasCopiedAction",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputKind",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 29,
+                    "lineNumber": 269,
+                    "name": "pasteAction",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 30,
+                    "lineNumber": 278,
+                    "name": "exportCheatsheetPdf",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "scInput",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 31,
+                    "isConst": true,
+                    "lineNumber": 289,
+                    "name": "resolveSCInput",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 32,
+                    "isConst": true,
+                    "lineNumber": 296,
+                    "name": "isHidHideInstalled",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 33,
+                    "isConst": true,
+                    "lineNumber": 303,
+                    "name": "isDeviceCloaked",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "cloak",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 34,
+                    "lineNumber": 309,
+                    "name": "setDeviceCloaked",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "exeName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "profilePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 35,
+                    "lineNumber": 315,
+                    "name": "addAutoSwitchRule",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "exeName",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 36,
+                    "lineNumber": 319,
+                    "name": "removeAutoSwitchRule",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "profilePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 37,
+                    "lineNumber": 324,
+                    "name": "setAutoSwitchDefaultProfile",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 38,
+                    "isConst": true,
+                    "lineNumber": 326,
+                    "name": "autoSwitchRules",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "index": 39,
+                    "isConst": true,
+                    "lineNumber": 327,
+                    "name": "autoSwitchDefaultProfile",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 40,
+                    "lineNumber": 337,
+                    "name": "openPwaEditor",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "name",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 41,
+                    "lineNumber": 369,
+                    "name": "addMode",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "name",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 42,
+                    "lineNumber": 381,
+                    "name": "removeMode",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 62,
+                    "name": "listenForInputs",
+                    "notify": "listenForInputsChanged",
+                    "override": false,
+                    "read": "listenForInputs",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setListenForInputs"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 63,
+                    "name": "modes",
+                    "notify": "modesChanged",
+                    "override": false,
+                    "read": "modes",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QStringList",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 73,
+                    "name": "hasCopiedAxis",
+                    "notify": "clipboardChanged",
+                    "override": false,
+                    "read": "hasCopiedAxis",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 74,
+                    "name": "hasCopiedButton",
+                    "notify": "clipboardChanged",
+                    "override": false,
+                    "read": "hasCopiedButton",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "virtual": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 75,
+                    "name": "currentMode",
+                    "notify": "currentModeChanged",
+                    "override": false,
+                    "read": "currentMode",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "virtual": false,
+                    "write": "setCurrentMode"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 76,
+                    "name": "currentProfileName",
+                    "notify": "currentProfileNameChanged",
+                    "override": false,
+                    "read": "currentProfileName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "virtual": false
+                }
+            ],
+            "qualifiedClassName": "ProfileEditorViewModel",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 389,
+                    "name": "hardwareInputDetected",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "devicePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "inputName",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "hasBinding",
+                            "type": "bool"
+                        },
+                        {
+                            "name": "bindingLabel",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 390,
+                    "name": "bindingUpdated",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 394,
+                    "name": "saveDialogRequested",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 396,
+                    "name": "listenForInputsChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 397,
+                    "name": "modesChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 5,
+                    "lineNumber": 398,
+                    "name": "currentModeChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 399,
+                    "name": "currentProfileNameChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 7,
+                    "lineNumber": 405,
+                    "name": "clipboardChanged",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "device",
+                            "type": "DeviceInfo"
+                        }
+                    ],
+                    "index": 8,
+                    "lineNumber": 408,
+                    "name": "onDeviceAdded",
+                    "returnType": "void"
+                },
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 9,
+                    "lineNumber": 409,
+                    "name": "onDeviceRemoved",
+                    "returnType": "void"
+                },
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "axisIndex",
+                            "type": "int"
+                        },
+                        {
+                            "name": "value",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 10,
+                    "lineNumber": 415,
+                    "name": "onAxisMovedForDetection",
+                    "returnType": "void"
+                },
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "systemPath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "buttonIndex",
+                            "type": "int"
+                        },
+                        {
+                            "name": "pressed",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 11,
+                    "lineNumber": 420,
+                    "name": "onButtonPressedForDetection",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QAbstractListModel"
+                }
+            ]
+        }
+    ],
+    "inputFile": "ProfileEditorViewModel.h",
+    "outputRevision": 69
+}

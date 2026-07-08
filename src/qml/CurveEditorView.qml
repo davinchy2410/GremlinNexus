@@ -100,7 +100,7 @@ Item {
             // whatever the previously-selected axis had, but leave Save
             // disabled since there's no CurveHandler to write into.
             root.hasEditableCurve = false;
-            curveEditorViewModel.setPoints([{x: 0.0, y: 0.0}, {x: 1.0, y: 1.0}]);
+            curveEditorViewModel.setPoints([{x: -1.0, y: -1.0}, {x: 1.0, y: 1.0}]);
             curveEditorViewModel.deadzone = 0.05;
             curveEditorViewModel.sensitivity = 1.0;
             curveEditorViewModel.smoothingFactor = 0.0;
@@ -112,7 +112,7 @@ Item {
         root.existingCurveAction = curveAction;
         const params = curveAction.parameters || {};
         const pts = (Array.isArray(params.curvePoints) && params.curvePoints.length >= 2)
-            ? params.curvePoints : [{x: 0.0, y: 0.0}, {x: 1.0, y: 1.0}];
+            ? params.curvePoints : [{x: -1.0, y: -1.0}, {x: 1.0, y: 1.0}];
         curveEditorViewModel.setPoints(pts);
         curveEditorViewModel.deadzone = params.deadzone !== undefined ? params.deadzone : 0.05;
         curveEditorViewModel.sensitivity = params.sensitivity !== undefined ? params.sensitivity : 1.0;
@@ -491,16 +491,70 @@ Item {
                         anchors.fill: parent
                         antialiasing: true
 
+                        // Maps a bipolar [-1, 1] axis coordinate to a pixel
+                        // position - x=-1/y=-1 sits at the bottom-left corner,
+                        // x=0/y=0 (the physical joystick's resting position)
+                        // sits dead-center, x=1/y=1 at the top-right.
+                        function mapX(x) { return (x + 1.0) * 0.5 * width; }
+                        function mapY(y) { return height - (y + 1.0) * 0.5 * height; }
+
+                        // Deadzone, applied exactly like CurveHandler::processAxis
+                        // (C++): collapses anything inside it to exactly 0.0 and
+                        // rescales the region outside it back out to fill [-1, 1].
+                        function deadzoneAdjust(x, deadzone) {
+                            const sign = x < 0.0 ? -1.0 : 1.0;
+                            const magnitude = Math.abs(x);
+                            return magnitude > deadzone ? sign * (magnitude - deadzone) / (1.0 - deadzone) : 0.0;
+                        }
+
+                        // Evaluates the monotone cubic Hermite spline (Fritsch-
+                        // Carlson tangents) through pts at an arbitrary x - the
+                        // same math CurveHandler bakes into its LUT in C++
+                        // (buildSplineLut/evaluateCurve), re-derived here per call
+                        // instead of baked into a LUT since the canvas only needs
+                        // a few hundred samples per repaint. Flat extrapolation
+                        // outside pts' own X range, same as the C++ side.
+                        function evaluateSpline(targetX, pts, tangents) {
+                            const n = pts.length;
+                            if (targetX <= pts[0].x) {
+                                return pts[0].y;
+                            }
+                            if (targetX >= pts[n - 1].x) {
+                                return pts[n - 1].y;
+                            }
+                            let segment = 0;
+                            while (segment + 1 < n - 1 && pts[segment + 1].x < targetX) {
+                                segment++;
+                            }
+                            const x0 = pts[segment].x;
+                            const x1 = pts[segment + 1].x;
+                            const y0 = pts[segment].y;
+                            const y1 = pts[segment + 1].y;
+                            const h = x1 - x0;
+                            const t = h > 1e-9 ? (targetX - x0) / h : 0.0;
+                            const t2 = t * t;
+                            const t3 = t2 * t;
+                            const h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+                            const h10 = t3 - 2.0 * t2 + t;
+                            const h01 = -2.0 * t3 + 3.0 * t2;
+                            const h11 = t3 - t2;
+                            return h00 * y0 + h10 * h * tangents[segment] + h01 * y1 + h11 * h * tangents[segment + 1];
+                        }
+
                         onPaint: {
                             const ctx = getContext("2d");
                             ctx.reset();
                             const w = width;
                             const h = height;
+                            const centerX = mapX(0.0);
+                            const centerY = mapY(0.0);
 
-                            // Subtle background grid.
+                            // Subtle background grid, 4 divisions per side so
+                            // gridlines land on quarter-scale (0.5, 0) marks
+                            // either side of the center.
                             ctx.strokeStyle = Theme.surface1;
                             ctx.lineWidth = 1;
-                            const divisions = 10;
+                            const divisions = 8;
                             for (let i = 0; i <= divisions; i++) {
                                 const gx = (w / divisions) * i;
                                 const gy = (h / divisions) * i;
@@ -514,94 +568,107 @@ Item {
                                 ctx.stroke();
                             }
 
-                            // Neutral 1:1 linear reference.
+                            // Bold center cross marking the X=0/Y=0 axes - the
+                            // physical joystick's resting position - so the 4
+                            // quadrants of the bipolar range read clearly.
+                            ctx.strokeStyle = Theme.subtext0;
+                            ctx.lineWidth = 1.5;
+                            ctx.beginPath();
+                            ctx.moveTo(centerX, 0);
+                            ctx.lineTo(centerX, h);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(0, centerY);
+                            ctx.lineTo(w, centerY);
+                            ctx.stroke();
+
+                            // Neutral 1:1 linear reference, corner to corner.
                             ctx.strokeStyle = Theme.overlay0;
                             ctx.lineWidth = 1;
                             ctx.setLineDash([4, 4]);
                             ctx.beginPath();
-                            ctx.moveTo(0, h);
-                            ctx.lineTo(w, 0);
+                            ctx.moveTo(mapX(-1.0), mapY(-1.0));
+                            ctx.lineTo(mapX(1.0), mapY(1.0));
                             ctx.stroke();
                             ctx.setLineDash([]);
 
-                            // The actual multi-point response curve, drawn as a
-                            // monotone cubic Hermite spline (Fritsch-Carlson
-                            // tangents) - the exact same math CurveHandler bakes
-                            // into its LUT in C++ (buildSplineLut). Each segment
-                            // is converted to its algebraically equivalent cubic
-                            // Bezier (P0, P0+m0/3, P1-m1/3, P1 - a standard
-                            // Hermite-to-Bezier identity, not an approximation)
-                            // so Canvas draws one smooth, rounded stroke through
-                            // every control point instead of a lineTo() zigzag.
+                            // The actual multi-point response curve. Sampled at
+                            // fixed X steps across the raw input's own [-1, 1]
+                            // domain and pushed through the same deadzone math
+                            // as CurveHandler::processAxis() before evaluating
+                            // the spline - this is what makes the drawn line
+                            // sit perfectly flat at Y=0 wherever the deadzone
+                            // slider says the raw input should be silenced,
+                            // instead of just showing the raw control-point
+                            // shape with no deadzone applied at all.
                             const pts = curveEditorViewModel.points();
-                            if (pts.length === 2) {
-                                ctx.strokeStyle = Theme.accent;
-                                ctx.lineWidth = 2.5;
-                                ctx.lineCap = "round";
-                                ctx.beginPath();
-                                ctx.moveTo(pts[0].x * w, h - pts[0].y * h);
-                                ctx.lineTo(pts[1].x * w, h - pts[1].y * h);
-                                ctx.stroke();
-                            } else if (pts.length > 2) {
-                                const n = pts.length;
-                                const secants = [];
-                                for (let i = 0; i < n - 1; i++) {
-                                    const dx = pts[i + 1].x - pts[i].x;
-                                    secants.push(dx > 1e-9 ? (pts[i + 1].y - pts[i].y) / dx : 0.0);
-                                }
-
-                                const tangents = new Array(n);
-                                tangents[0] = secants[0];
-                                tangents[n - 1] = secants[n - 2];
-                                for (let i = 1; i < n - 1; i++) {
-                                    tangents[i] = (secants[i - 1] * secants[i] <= 0.0)
-                                        ? 0.0
-                                        : (secants[i - 1] + secants[i]) / 2.0;
-                                }
-                                for (let i = 0; i < n - 1; i++) {
-                                    if (secants[i] === 0.0) {
-                                        tangents[i] = 0.0;
-                                        tangents[i + 1] = 0.0;
-                                        continue;
-                                    }
-                                    const alpha = tangents[i] / secants[i];
-                                    const beta = tangents[i + 1] / secants[i];
-                                    const magnitude = Math.sqrt(alpha * alpha + beta * beta);
-                                    if (magnitude > 3.0) {
-                                        const tau = 3.0 / magnitude;
-                                        tangents[i] = tau * alpha * secants[i];
-                                        tangents[i + 1] = tau * beta * secants[i];
-                                    }
-                                }
-
-                                ctx.strokeStyle = Theme.accent;
-                                ctx.lineWidth = 2.5;
-                                ctx.lineJoin = "round";
-                                ctx.lineCap = "round";
-                                ctx.beginPath();
-                                ctx.moveTo(pts[0].x * w, h - pts[0].y * h);
-                                for (let i = 0; i < n - 1; i++) {
-                                    const segDx = pts[i + 1].x - pts[i].x;
-                                    const cp1x = pts[i].x + segDx / 3.0;
-                                    const cp1y = pts[i].y + (segDx * tangents[i]) / 3.0;
-                                    const cp2x = pts[i + 1].x - segDx / 3.0;
-                                    const cp2y = pts[i + 1].y - (segDx * tangents[i + 1]) / 3.0;
-
-                                    ctx.bezierCurveTo(
-                                        cp1x * w, h - cp1y * h,
-                                        cp2x * w, h - cp2y * h,
-                                        pts[i + 1].x * w, h - pts[i + 1].y * h);
-                                }
-                                ctx.stroke();
+                            const deadzone = curveEditorViewModel.deadzone;
+                            const n = pts.length;
+                            const secants = [];
+                            for (let i = 0; i < n - 1; i++) {
+                                const dx = pts[i + 1].x - pts[i].x;
+                                secants.push(dx > 1e-9 ? (pts[i + 1].y - pts[i].y) / dx : 0.0);
                             }
+
+                            const tangents = new Array(n);
+                            tangents[0] = secants[0];
+                            tangents[n - 1] = secants[n - 2];
+                            for (let i = 1; i < n - 1; i++) {
+                                tangents[i] = (secants[i - 1] * secants[i] <= 0.0)
+                                    ? 0.0
+                                    : (secants[i - 1] + secants[i]) / 2.0;
+                            }
+                            for (let i = 0; i < n - 1; i++) {
+                                if (secants[i] === 0.0) {
+                                    tangents[i] = 0.0;
+                                    tangents[i + 1] = 0.0;
+                                    continue;
+                                }
+                                const alpha = tangents[i] / secants[i];
+                                const beta = tangents[i + 1] / secants[i];
+                                const magnitude = Math.sqrt(alpha * alpha + beta * beta);
+                                if (magnitude > 3.0) {
+                                    const tau = 3.0 / magnitude;
+                                    tangents[i] = tau * alpha * secants[i];
+                                    tangents[i + 1] = tau * beta * secants[i];
+                                }
+                            }
+
+                            ctx.strokeStyle = Theme.accent;
+                            ctx.lineWidth = 2.5;
+                            ctx.lineJoin = "round";
+                            ctx.lineCap = "round";
+                            ctx.beginPath();
+                            const steps = 200;
+                            for (let s = 0; s <= steps; s++) {
+                                const x = -1.0 + 2.0 * s / steps;
+                                const y = evaluateSpline(deadzoneAdjust(x, deadzone), pts, tangents);
+                                const px = mapX(x);
+                                const py = mapY(y);
+                                if (s === 0) {
+                                    ctx.moveTo(px, py);
+                                } else {
+                                    ctx.lineTo(px, py);
+                                }
+                            }
+                            ctx.stroke();
                         }
 
                         onWidthChanged: requestPaint()
                         onHeightChanged: requestPaint()
 
+                        // pointsChanged covers drag/add/remove/preset/invert;
+                        // deadzoneChanged is needed separately since moving
+                        // the Deadzone slider mutates curveEditorViewModel's
+                        // own deadzone property directly (ValueSlider's
+                        // onMoved), never touching m_points at all - without
+                        // this, the slider silently changes the deadzone
+                        // used by processAxis()/onPaint's own sampling loop
+                        // below, but the canvas never redraws to show it.
                         Connections {
                             target: curveEditorViewModel
                             function onPointsChanged() { curveCanvas.requestPaint(); }
+                            function onDeadzoneChanged() { curveCanvas.requestPaint(); }
                         }
                     }
 
@@ -618,9 +685,25 @@ Item {
                             if (curveCanvas.width <= 0 || curveCanvas.height <= 0) {
                                 return;
                             }
-                            const nx = mouse.x / curveCanvas.width;
-                            const ny = 1.0 - mouse.y / curveCanvas.height;
-                            curveEditorViewModel.addPoint(nx, ny);
+                            const nx = (mouse.x / curveCanvas.width) * 2.0 - 1.0;
+                            const ny = (1.0 - mouse.y / curveCanvas.height) * 2.0 - 1.0;
+
+                            // Same reverse-deadzone math as CurveHandle's own
+                            // drag handler: nx is the raw stick position the
+                            // user clicked, but addPoint()/m_points store the
+                            // post-deadzone spline-domain x, so a click inside
+                            // the deadzone's flat region becomes exactly 0
+                            // instead of a point CurveHandler could never
+                            // actually reach.
+                            const dz = curveEditorViewModel.deadzone;
+                            let adjX = 0.0;
+                            if (nx > dz) {
+                                adjX = (nx - dz) / (1.0 - dz);
+                            } else if (nx < -dz) {
+                                adjX = (nx + dz) / (1.0 - dz);
+                            }
+
+                            curveEditorViewModel.addPoint(adjX, ny);
                         }
                     }
 

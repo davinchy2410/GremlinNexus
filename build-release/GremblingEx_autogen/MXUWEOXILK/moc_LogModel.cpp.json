@@ -1,0 +1,43 @@
+{
+    "classes": [
+        {
+            "className": "LogModel",
+            "lineNumber": 29,
+            "methods": [
+                {
+                    "access": "public",
+                    "index": 1,
+                    "isConst": true,
+                    "lineNumber": 44,
+                    "name": "getAllText",
+                    "returnType": "QString"
+                }
+            ],
+            "object": true,
+            "qualifiedClassName": "LogModel",
+            "slots": [
+                {
+                    "access": "private",
+                    "arguments": [
+                        {
+                            "name": "line",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 51,
+                    "name": "appendLine",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QStringListModel"
+                }
+            ]
+        }
+    ],
+    "inputFile": "LogModel.h",
+    "outputRevision": 69
+}
