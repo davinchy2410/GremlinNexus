@@ -33,10 +33,10 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 ## 🛠️ Installation & Usage
 
 For regular users, there is no need to compile the source code. 
-
-1.  Download the latest pre-compiled `.zip` from the [Releases](../../releases) page.
-2.  Extract the archive and run `GremlinNexus.exe`.
-3.  Plug in your gear, create a new profile, and start routing!
+1.Download the latest precompiled `setup.exe` from the [Releases](../../releases).
+2.Run the installer and follow the on-screen instructions to complete the installation.
+3.Launch `GremlinNexus.exe.`
+4.Connect your device, create a new profile, and start routing!
 
 ## 💻 Building from Source
 
