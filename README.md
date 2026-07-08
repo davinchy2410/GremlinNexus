@@ -1,5 +1,4 @@
-<img width="982" height="587" alt="Animation 3" src="https://github.com/user-attachments/assets/0aaacf98-59c7-467b-8b57-c14a33ea6a3f" />
-<img width="982" height="587" alt="Animation 2" src="https://github.com/user-attachments/assets/b5114756-22a9-470a-8a87-979a23c033c9" />
+
 # Gremlin Nexus 🚀
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
@@ -28,7 +27,8 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 ## 📸 Screenshots
 
 
-
+* <img width="982" height="587" alt="Animation 3" src="https://github.com/user-attachments/assets/0aaacf98-59c7-467b-8b57-c14a33ea6a3f" />
+* <img width="982" height="587" alt="Animation 2" src="https://github.com/user-attachments/assets/b5114756-22a9-470a-8a87-979a23c033c9" />
 * <img width="1915" height="1021" alt="profiles" src="https://github.com/user-attachments/assets/e68a07a1-a5db-46e3-ab04-cafd5f63d42a" />
 
 * <img width="1897" height="1018" alt="divide tester" src="https://github.com/user-attachments/assets/ae184b44-6187-4856-8103-f7cbdddfc609" /><img width="982" height="587" alt="Animation" src="https://github.com/user-attachments/assets/47c645e3-d245-4741-8d9a-8c9bab356765" />
