@@ -5,7 +5,6 @@
 #include <QSettings>
 
 #include "AutoSwitchManager.h"
-#include "HidHideManager.h"
 
 namespace {
 /// Windows' own per-user "Run" key - a value here (name -> executable path)
@@ -25,26 +24,6 @@ SettingsViewModel::SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *par
     : QObject(parent)
     , m_autoSwitch(autoSwitch)
 {
-}
-
-bool SettingsViewModel::isHidHideInstalled() const
-{
-    return HidHideManager::instance().isInstalled();
-}
-
-bool SettingsViewModel::globalCloakEnabled() const
-{
-    return m_globalCloakEnabled;
-}
-
-void SettingsViewModel::setGlobalCloakEnabled(bool enabled)
-{
-    if (m_globalCloakEnabled == enabled) {
-        return;
-    }
-    m_globalCloakEnabled = enabled;
-    HidHideManager::instance().setGlobalCloak(enabled);
-    emit hidHideStateChanged();
 }
 
 bool SettingsViewModel::runOnStartup() const
@@ -81,11 +60,6 @@ void SettingsViewModel::setAutoSwitchEnabled(bool enabled)
     }
     m_autoSwitch.setEnabled(enabled);
     emit autoSwitchChanged();
-}
-
-void SettingsViewModel::whitelistApplication()
-{
-    HidHideManager::instance().whitelistApplication();
 }
 
 void SettingsViewModel::resetVJoy()

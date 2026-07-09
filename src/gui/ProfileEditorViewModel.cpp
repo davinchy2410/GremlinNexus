@@ -19,7 +19,6 @@
 #include "DeviceInfo.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
-#include "HidHideManager.h"
 #include "PwaServer.h"
 #include "SCIntegrationManager.h"
 
@@ -1042,25 +1041,6 @@ QStringList ProfileEditorViewModel::deviceDisplayNames() const
         names.append(device.name);
     }
     return names;
-}
-
-bool ProfileEditorViewModel::isHidHideInstalled() const
-{
-    return HidHideManager::instance().isInstalled();
-}
-
-bool ProfileEditorViewModel::isDeviceCloaked(const QString &systemPath) const
-{
-    return HidHideManager::instance().isDeviceCloaked(systemPath);
-}
-
-void ProfileEditorViewModel::setDeviceCloaked(const QString &systemPath, bool cloak)
-{
-    if (cloak) {
-        HidHideManager::instance().cloakDevice(systemPath);
-    } else {
-        HidHideManager::instance().uncloakDevice(systemPath);
-    }
 }
 
 void ProfileEditorViewModel::addAutoSwitchRule(const QString &exeName, const QString &profilePath)

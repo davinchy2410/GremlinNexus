@@ -369,26 +369,6 @@ public:
     /// string if nothing in the live profile targets that vJoy output.
     Q_INVOKABLE QString resolveSCInput(const QString &scInput) const;
 
-    /// Whether HidHideCLI.exe (Fase 11) is installed - lets DeviceCard.qml's
-    /// cloak/uncloak button hide or disable itself when the optional HidHide
-    /// dependency isn't present, rather than offering a control that would
-    /// silently do nothing. Thin QML-facing wrapper around
-    /// HidHideManager::isInstalled().
-    Q_INVOKABLE bool isHidHideInstalled() const;
-
-    /// Whether systemPath is currently hidden from non-whitelisted
-    /// applications - queries HidHideManager::getCloakedDevices() fresh each
-    /// call (per HidHideManager's own docs) rather than caching, since
-    /// nothing here is notified of cloak state changing outside of this
-    /// process (e.g. via HidHide's own GUI).
-    Q_INVOKABLE bool isDeviceCloaked(const QString &systemPath) const;
-
-    /// Cloaks or uncloaks systemPath via HidHideManager - the DeviceCard.qml
-    /// button behind this re-reads isDeviceCloaked() right after calling it
-    /// (the underlying HidHideCLI.exe call is synchronous) to refresh its
-    /// own displayed state, so no extra changed-signal is needed here.
-    Q_INVOKABLE void setDeviceCloaked(const QString &systemPath, bool cloak);
-
     /// Registers (or overwrites) an Auto-Switch rule (Fase 12): whenever
     /// exeName becomes the foreground application's executable, m_autoSwitch
     /// requests loading profilePath. Thin QML-facing wrapper around

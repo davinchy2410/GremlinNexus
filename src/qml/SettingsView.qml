@@ -4,8 +4,11 @@ import QtQuick.Layouts
 import GremblingNexus
 
 // "Settings" screen (Fase 10.9 mock-up, wired to SettingsViewModel in Fase
-// 13): three glassmorphism cards - vJoy status, HidHide integration, and
-// app-wide preferences (run on Windows startup, Auto-Switch).
+// 13): glassmorphism cards for vJoy status and app-wide preferences (run on
+// Windows startup, Auto-Switch). HidHide integration was removed entirely -
+// GremblingNexus no longer manages HidHide whitelisting/cloaking itself;
+// users who want a device hidden from other applications whitelist this
+// executable and cloak the device manually via HidHide's own GUI.
 Item {
     id: root
 
@@ -78,59 +81,6 @@ Item {
                         accentHoverColor: Theme.danger
                         Layout.alignment: Qt.AlignLeft
                         onClicked: settingsViewModel.resetVJoy()
-                    }
-                }
-            }
-
-            // --- HidHide Integration Panel ------------------------------
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                GlassPanel {
-                    anchors.fill: parent
-                    cornerRadius: Theme.radiusLarge
-                    bgOpacity: 0.7
-                }
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingLg
-                    spacing: Theme.spacingMd
-
-                    Text { text: qsTr("HidHide Integration"); color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
-
-                    RowLayout {
-                        spacing: Theme.spacingSm
-                        Rectangle {
-                            width: 8; height: 8; radius: 4
-                            color: settingsViewModel.isHidHideInstalled ? Theme.success : Theme.overlay0
-                        }
-                        Text {
-                            text: settingsViewModel.isHidHideInstalled ? qsTr("HidHideCLI detected") : qsTr("HidHideCLI not installed")
-                            color: Theme.text
-                            font.pixelSize: 13
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.topMargin: Theme.spacingXs
-                        spacing: Theme.spacingMd
-
-                        Text { text: qsTr("Global Cloaking"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
-                        ToggleSwitch {
-                            checked: settingsViewModel.globalCloakEnabled
-                            onToggled: (v) => settingsViewModel.globalCloakEnabled = v
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-
-                    GremblingButton {
-                        text: qsTr("Re-Whitelist GremblingNexus")
-                        Layout.alignment: Qt.AlignLeft
-                        onClicked: settingsViewModel.whitelistApplication()
                     }
                 }
             }

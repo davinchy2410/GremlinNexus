@@ -11,7 +11,7 @@ class QQmlApplicationEngine;
 /**
  * @brief Runtime language switcher (i18n) for the whole app.
  *
- * Follows the same Meyer's-singleton pattern as HidHideManager/DeviceManager:
+ * Follows the same Meyer's-singleton pattern as DeviceManager:
  * use I18nManager::instance() to obtain the single shared instance. Exposed
  * to QML as the root-context property "I18nManager" (see main.cpp), so
  * `I18nManager.setLanguage("es")` works directly from any .qml file, the

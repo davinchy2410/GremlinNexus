@@ -28,8 +28,7 @@ add_library(GremblingCore STATIC
     src/core/DeviceInfo.h
     src/core/DeviceManager.h
     src/core/DeviceManager.cpp
-    src/core/HidHideManager.h
-    src/core/HidHideManager.cpp
+    src/core/ShutdownTrace.h
     src/core/AutoSwitchManager.h
     src/core/AutoSwitchManager.cpp
     src/core/I18nManager.h
@@ -65,14 +64,17 @@ qt_add_resources(GremblingCore "pwa_resources"
 )
 
 if(WIN32)
-    # RawInput/PnP-notification (user32), HID report parsing (hid) and
-    # device-interface enumeration (setupapi) used by DeviceManager's
+    # RawInput/PnP-notification (user32), HID report parsing (hid),
+    # device-interface enumeration (setupapi) and device-tree/CM_Get_Parent
+    # traversal (cfgmgr32, for reading the real bus-reported product name of
+    # composite USB devices off their parent node) used by DeviceManager's
     # Windows-native monitoring backend.
     target_link_libraries(GremblingCore
         PUBLIC
             user32
             hid
             setupapi
+            cfgmgr32
     )
 endif()
 

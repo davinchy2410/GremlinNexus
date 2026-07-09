@@ -40,7 +40,12 @@ Rectangle {
     readonly property color engineOnInk: Theme.mantle   // #070a14 - max contrast against engineOnColor
     readonly property color engineOffColor: Theme.overlay0 // dim slate - reads as visually "off"
 
-    // Shadow to float above content
+    // Shadow to float above content. source: root means every repaint of
+    // this effect re-captures the *entire* header bar (all nav buttons, the
+    // Tools menu, the Engine switch) into a texture before blurring it - so
+    // it's switched off for the duration of a window drag (see
+    // isDraggingWindow's own docs in main.qml) instead of paying that cost on
+    // every repaint the OS pumps through the native move loop.
     MultiEffect {
         source: root
         anchors.fill: root
@@ -49,6 +54,7 @@ Rectangle {
         shadowBlur: 1.0
         shadowVerticalOffset: 4
         z: -1
+        visible: !Window.window.isDraggingWindow
     }
 
     Rectangle {
@@ -73,7 +79,13 @@ Rectangle {
         acceptedButtons: Qt.LeftButton
         onPressed: (mouse) => {
             if (mouse.button === Qt.LeftButton) {
+                // startSystemMove() blocks until the OS-native move loop
+                // ends (mouse released or drag cancelled), so bracketing it
+                // like this covers exactly the drag's duration - see
+                // isDraggingWindow's own docs in main.qml.
+                Window.window.isDraggingWindow = true;
                 Window.window.startSystemMove();
+                Window.window.isDraggingWindow = false;
             }
         }
         onDoubleClicked: {

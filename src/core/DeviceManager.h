@@ -46,6 +46,24 @@ public:
     void initialize();
 
     /**
+     * @brief Synchronously tears down hardware monitoring: unregisters raw
+     *        input (RIDEV_REMOVE) and device-change notifications, stops and
+     *        joins the monitoring thread, then deletes the worker.
+     *
+     * Call this explicitly - from main.cpp, right after app.exec() returns -
+     * instead of relying on this being a Meyer's singleton whose destructor
+     * only runs via atexit(), strictly after QCoreApplication (and every Qt
+     * object in main()'s own stack) is already destroyed. Running the native
+     * teardown that late is undefined-behavior territory for any Qt
+     * cross-thread machinery it touches; calling shutdown() here instead,
+     * while qApp is still alive, guarantees a clean, deterministic teardown.
+     * Idempotent and safe to call more than once (e.g. ~DeviceManager()
+     * below also calls it, purely as a safety net) - a call after the first
+     * is a no-op.
+     */
+    void shutdown();
+
+    /**
      * @brief Returns a thread-safe snapshot of all currently catalogued devices.
      *
      * The returned list is a copy, so callers may freely read it without
@@ -130,4 +148,8 @@ private:
     DeviceMonitorWorker *m_monitorWorker = nullptr;
 
     bool m_initialized = false;
+
+    /// Guards shutdown() against running its (thread quit/join + delete)
+    /// teardown more than once - see shutdown()'s own docs.
+    bool m_shutdownComplete = false;
 };

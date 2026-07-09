@@ -36,6 +36,16 @@ ApplicationWindow {
     property bool isPseudoMaximized: false
     property rect normalGeometry: Qt.rect(0, 0, 1450, 760)
 
+    // Perf: startSystemMove() (TopHeader.qml's drag MouseArea) blocks
+    // synchronously for the whole native Windows move loop, which floods the
+    // GUI thread with repaint requests. Heavy MultiEffect shadows (full
+    // header bar, per-device card) get re-rendered on every one of those
+    // repaints even though nothing they display actually changed, which is
+    // what caused the drag-stutter - this flag lets those effects switch
+    // themselves off for exactly the duration of a drag instead of paying
+    // that shader cost on every repaint pumped during the move.
+    property bool isDraggingWindow: false
+
     function toggleSmartMaximize() {
         if (window.visibility === Window.Maximized || window.isPseudoMaximized) {
             window.showNormal();

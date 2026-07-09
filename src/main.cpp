@@ -19,7 +19,7 @@
 #include "AutoSwitchManager.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
-#include "HidHideManager.h"
+#include "ShutdownTrace.h"
 #include "I18nManager.h"
 #include "PwaServer.h"
 #include "SCIntegrationManager.h"
@@ -141,17 +141,17 @@ int main(int argc, char *argv[])
     // QML-type registration pattern fits better than a singleton).
     qmlRegisterType<QrCodeItem>("GremblingNexus", 1, 0, "QrCodeItem");
 
-    // Fase 11: registers this executable on HidHide's application whitelist
-    // before DeviceManager starts reading any hardware, so a device
-    // GremblingEx itself has cloaked never goes blind to its own RawInput
-    // reads. Needs QCoreApplication::applicationFilePath() to be valid,
-    // which requires the QGuiApplication constructed above; a no-op if
-    // HidHide isn't installed.
-    HidHideManager::instance().whitelistApplication();
-
-    // Starts the RawInput monitoring thread (Phase 1/2): background device
-    // enumeration + hot-plug notifications begin immediately, independent
-    // of whether any QML window has finished loading yet.
+    // Fase (HidHide removal): GremblingNexus no longer manages HidHide
+    // whitelisting/cloaking itself - the CLI-based integration proved too
+    // flaky (async calls that either blocked the UI thread or raced
+    // DeviceManager's own startup scan depending on how they were called,
+    // and a stdin pipe deadlock under some HidHide/Windows configurations
+    // that no timeout tuning fully resolved). Users who want a device hidden
+    // from other applications now whitelist this executable and cloak the
+    // device manually via HidHide's own GUI - standard practice for the
+    // wider Joystick Gremlin community. Device enumeration is a single,
+    // immediate, fire-and-forget scan with no HidHide-specific retry/delay
+    // logic surrounding it.
     DeviceManager::instance().initialize();
 
     // The 200 Hz output tick (Phase 4), per EventRouter's documented
@@ -294,11 +294,29 @@ int main(int argc, char *argv[])
 
     const int exitCode = app.exec();
 
+    logShutdownTrace(QStringLiteral("main: app.exec() returned %1").arg(exitCode));
+
+    // Confirmed root cause (Heisenbug investigation: HID enumeration losing
+    // devices after Quit -> relaunch): DeviceManager::instance() is a
+    // Meyer's singleton, so relying on its destructor to tear down the
+    // monitoring thread/RawInput registration meant that teardown only ran
+    // via atexit(), strictly *after* everything below - including `app`
+    // itself - already unwound; undefined-behavior territory for the Qt
+    // cross-thread calls that teardown needs. Calling shutdown() explicitly
+    // here, while qApp and every ViewModel/the QML engine are still fully
+    // alive, guarantees a deterministic, synchronous teardown instead:
+    // RIDEV_REMOVE + UnregisterDeviceNotification + DestroyWindow all run on
+    // the monitor thread before it's stopped, then the thread is joined and
+    // its worker deleted - see DeviceManager::shutdown()'s own docs.
+    DeviceManager::instance().shutdown();
+
     // Only undo the increment this process actually owns - see the
     // CoInitializeEx call above.
     if (comInitializedHere) {
         CoUninitialize();
     }
+
+    logShutdownTrace(QStringLiteral("main: about to return %1 to the CRT").arg(exitCode));
 
     return exitCode;
 }

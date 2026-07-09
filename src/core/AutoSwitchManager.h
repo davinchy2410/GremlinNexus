@@ -23,7 +23,7 @@
  * ProfileEditorViewModel::loadProfileFromPath(), so this class could be
  * reused (or tested) with zero knowledge of bindings/EventRouter/etc.
  *
- * Not a Meyer's singleton like DeviceManager/HidHideManager - main.cpp owns
+ * Not a Meyer's singleton like DeviceManager - main.cpp owns
  * the single instance directly (see its own docs), matching how EventRouter
  * is already owned/passed around by reference rather than looked up via
  * instance().
