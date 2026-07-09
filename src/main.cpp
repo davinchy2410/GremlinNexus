@@ -8,6 +8,7 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QStringList>
+#include <QTimer>
 #include <QUrl>
 
 #include <QQmlEngine>
@@ -20,6 +21,7 @@
 #include "DeviceManager.h"
 #include "EventRouter.h"
 #include "ShutdownTrace.h"
+#include "HidHideController.h"
 #include "I18nManager.h"
 #include "PwaServer.h"
 #include "SCIntegrationManager.h"
@@ -141,18 +143,48 @@ int main(int argc, char *argv[])
     // QML-type registration pattern fits better than a singleton).
     qmlRegisterType<QrCodeItem>("GremblingNexus", 1, 0, "QrCodeItem");
 
+    // Uncreatable (it's the hidHideController context property singleton
+    // below, not something QML instantiates) - registered only so QML can
+    // reference the CloakState enum values by name (HidHideController.Active
+    // etc.) when comparing against hidHideController.cloakState.
+    qmlRegisterUncreatableType<HidHideController>("GremblingNexus", 1, 0, "HidHideController",
+                                                    QStringLiteral("HidHideController is a singleton - use the hidHideController context property"));
+
     // Fase (HidHide removal): GremblingNexus no longer manages HidHide
-    // whitelisting/cloaking itself - the CLI-based integration proved too
-    // flaky (async calls that either blocked the UI thread or raced
-    // DeviceManager's own startup scan depending on how they were called,
-    // and a stdin pipe deadlock under some HidHide/Windows configurations
-    // that no timeout tuning fully resolved). Users who want a device hidden
-    // from other applications now whitelist this executable and cloak the
-    // device manually via HidHide's own GUI - standard practice for the
-    // wider Joystick Gremlin community. Device enumeration is a single,
-    // immediate, fire-and-forget scan with no HidHide-specific retry/delay
-    // logic surrounding it.
+    // whitelisting/blacklisting itself - the old CLI-based integration
+    // proved too flaky (async calls that either blocked the UI thread or
+    // raced DeviceManager's own startup scan depending on how they were
+    // called, and a stdin pipe deadlock under some HidHide/Windows
+    // configurations that no timeout tuning fully resolved). Users who want
+    // a device hidden from other applications still whitelist this
+    // executable and blacklist the device manually via HidHide's own GUI,
+    // once, persistently - standard practice for the wider Joystick Gremlin
+    // community (confirmed 2026-07-09: the original Python Joystick Gremlin
+    // does the exact same hands-off, GUI-configured-once integration, and
+    // never touches HidHide's API either).
+    //
+    // Fase (HidHide zombie-lock fix): what main.cpp DOES do, below, is
+    // narrower and unrelated to that old CLI removal - a confirmed HidHide
+    // driver bug only grants a whitelisted process access to an
+    // already-blacklisted device if that process's FIRST open of the
+    // device happens while the cloak is inactive; a process starting with
+    // the cloak already active (the normal case, since the user leaves
+    // cloaking on permanently) can get denied access until the device's
+    // driver stack is rebuilt. HidHideController::deactivateCloak() here
+    // guarantees every device DeviceManager is about to enumerate gets
+    // opened for the first time while uncloaked; reactivateCloak() below
+    // (scheduled once startup enumeration has had time to finish) restores
+    // hiding for the rest of the session. Both are safe no-ops if HidHide
+    // isn't installed - see HidHideController's own docs.
+    HidHideController::instance().deactivateCloak();
+
     DeviceManager::instance().initialize();
+
+    // 2.5s comfortably clears performInitialScan()'s own three warmup
+    // rescans (500/1000/2000ms - see DeviceMonitorWorker::
+    // scheduleStartupWarmupScans()), so every device already found by then
+    // has already had its first, uncloaked open before the cloak comes back.
+    QTimer::singleShot(2500, &app, []() { HidHideController::instance().reactivateCloak(); });
 
     // The 200 Hz output tick (Phase 4), per EventRouter's documented
     // threading model - runs on this (main) thread's event loop once
@@ -281,6 +313,7 @@ int main(int argc, char *argv[])
     I18nManager::instance().setEngine(&engine);
     engine.rootContext()->setContextProperty(QStringLiteral("I18nManager"), &I18nManager::instance());
     engine.rootContext()->setContextProperty(QStringLiteral("VoiceFeedbackManager"), &VoiceFeedbackManager::instance());
+    engine.rootContext()->setContextProperty(QStringLiteral("hidHideController"), &HidHideController::instance());
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

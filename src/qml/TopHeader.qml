@@ -381,6 +381,60 @@ Rectangle {
             }
         }
 
+        // --- HidHide cloak-exposed warning ----------------------------------
+        // Only ever visible while hidHideController.cloakState is confirmed
+        // Inactive - i.e. HidHide is installed/configured but the startup
+        // deactivate->reactivate sequence (see main.cpp's HidHideController
+        // wiring) either hasn't finished yet or failed to confirm re-cloaking,
+        // so every device is genuinely visible to every other process right
+        // now. Deliberately silent for Unknown (still starting up) and
+        // Unavailable (HidHide isn't installed - not a warning-worthy state
+        // for a user who never opted into cloaking at all).
+        Item {
+            id: cloakWarning
+            Layout.leftMargin: Theme.spacingLg
+            Layout.preferredWidth: cloakWarningContent.implicitWidth + Theme.spacingMd * 2
+            Layout.preferredHeight: 36
+            visible: hidHideController.cloakState === HidHideController.Inactive
+
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radiusMedium
+                color: Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.12)
+                border.width: 1
+                border.color: Theme.warning
+            }
+
+            RowLayout {
+                id: cloakWarningContent
+                anchors.centerIn: parent
+                spacing: Theme.spacingSm
+
+                SvgIcon {
+                    Layout.preferredWidth: 14
+                    Layout.preferredHeight: 14
+                    pathData: "M12 2L1 21h22z M12 9v5 M12 17h.01"
+                    color: Theme.warning
+                }
+                Text {
+                    text: qsTr("DEVICES EXPOSED")
+                    font.pixelSize: 11
+                    font.weight: Font.Bold
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing: 1
+                    color: Theme.warning
+                }
+            }
+
+            MouseArea {
+                id: cloakWarningArea
+                anchors.fill: parent
+                hoverEnabled: true
+                ToolTip.visible: cloakWarningArea.containsMouse
+                ToolTip.text: qsTr("HidHide couldn't re-hide your devices on startup - they're visible to all of Windows right now, including the game. Close and reopen Gremlin Nexus. Tip: always launch Gremlin Nexus before the game.")
+            }
+        }
+
         // --- Right: global Engine switch -----------------------------------
         // Ghost/dim when OFF, solid phosphor-LED when ON - the visual weight
         // now actually tracks the button's real-world stakes (this is the

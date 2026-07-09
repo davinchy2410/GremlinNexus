@@ -35,6 +35,8 @@ add_library(GremblingCore STATIC
     src/core/I18nManager.cpp
     src/core/VoiceFeedbackManager.h
     src/core/VoiceFeedbackManager.cpp
+    src/core/HidHideController.h
+    src/core/HidHideController.cpp
     src/network/PwaServer.h
     src/network/PwaServer.cpp
 )

@@ -1,5 +1,6 @@
 # Build output (CMake/Ninja artifacts, copied Qt DLLs, generated qml cache).
 /build/
+/build-release/
 /dist/
 /installer_output/
 
