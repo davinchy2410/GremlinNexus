@@ -52,7 +52,10 @@ Name: "hidhide"; Description: "Driver HidHide (Ocultamiento de Dispositivos)"; T
 Name: "vigembus"; Description: "Driver ViGEmBus (Emulación de Gamepad)"; Types: custom
 
 [Files]
-Source: "dist\GremlinNexus\*"; DestDir: "{app}"; Components: app; Flags: ignoreversion recursesubdirs createallsubdirs
+; Excludes "Logs\*" - runtime log files from local test runs, not part of the
+; shipped app; they'd otherwise get bundled verbatim since Source uses a
+; recursive wildcard.
+Source: "dist\GremlinNexus\*"; DestDir: "{app}"; Components: app; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "Logs\*"
 Source: "redist\vJoySetup.exe"; DestDir: "{tmp}"; Components: vjoy; Flags: deleteafterinstall
 Source: "redist\HidHide_1.5.230_x64.exe"; DestDir: "{tmp}"; Components: hidhide; Flags: deleteafterinstall
 Source: "redist\ViGEmBus_1.22.0_x64_x86_arm64.exe"; DestDir: "{tmp}"; Components: vigembus; Flags: deleteafterinstall
