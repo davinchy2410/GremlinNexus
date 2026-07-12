@@ -69,6 +69,31 @@ public:
     /// the real state either way.
     bool reactivateCloak();
 
+    /// Queries IOCTL_GET_WLINVERSE - true if HidHide's whitelist is
+    /// currently configured as "Inverse" (the Configuration Client's own
+    /// "Inverse application cloak" checkbox: the list becomes a blacklist -
+    /// every process EXCEPT the ones listed can see a blacklisted device -
+    /// instead of the default "only listed processes can see it"
+    /// whitelist). Read-only, unlike deactivateCloak()/reactivateCloak() -
+    /// never changes driver state, and doesn't touch cloakState()/
+    /// cloakStateChanged() (an orthogonal setting, not a snapshot of the
+    /// same "is cloaking on right now" question those track). Returns false
+    /// if HidHide isn't installed or the query otherwise fails - same
+    /// fail-open convention as every other query here.
+    ///
+    /// Why this matters: main.cpp's whole deactivateCloak()/reactivateCloak()
+    /// dance around startup only exists because HidHide's *default* whitelist
+    /// mode can permanently deny a process access to a device if that
+    /// process's first-ever open of it happens while the cloak is already
+    /// active (see class docs above). In Inverse mode that race structurally
+    /// can't happen - the internal Windows "System" process (and this app,
+    /// since it's never blacklisted) always gets through regardless of
+    /// cloak timing - so a user who's switched to Inverse mode pays for a
+    /// startup dance that protects against a bug their own configuration
+    /// already prevents. main.cpp queries this once at startup to skip that
+    /// dance automatically when it's confirmed unnecessary.
+    bool isWhitelistInverseEnabled() const;
+
 signals:
     void cloakStateChanged(CloakState state);
 

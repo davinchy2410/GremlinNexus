@@ -169,6 +169,68 @@ Item {
                         }
                     }
 
+                    // Debug Session Log (QoL): off by default for every
+                    // install - only worth turning on while actively
+                    // diagnosing a bug with someone, since it writes every
+                    // qDebug()/qInfo()/qWarning() line to a growing
+                    // Logs/*.txt file next to the executable for as long as
+                    // it stays on (see AsyncLogSink's own docs for why this
+                    // used to be always-on and why that was a problem).
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingMd
+
+                            Text { text: qsTr("Debug Session Log"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
+                            ToggleSwitch {
+                                checked: settingsViewModel.debugLoggingEnabled
+                                onToggled: (v) => settingsViewModel.debugLoggingEnabled = v
+                            }
+                        }
+                        Text {
+                            text: qsTr("Writes every log line to a file under Logs/ - only enable while diagnosing an issue")
+                            color: Theme.subtext0
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    // HidHide Auto-Cloak Management (QoL - faster startup):
+                    // off by default this toggle would silently reintroduce
+                    // the zombie-lock bug for a HidHide user (see
+                    // HidHideController's own docs / Memory.md), so it
+                    // defaults ON (settingsViewModel.hidHideAutoCloakEnabled
+                    // itself defaults to true when unset) - this is purely
+                    // an opt-OUT for someone who doesn't use HidHide's cloak
+                    // feature at all and wants to skip the ~2s of startup
+                    // work that dance costs every launch either way.
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingMd
+
+                            Text { text: qsTr("HidHide Auto-Cloak Management"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
+                            ToggleSwitch {
+                                checked: settingsViewModel.hidHideAutoCloakEnabled
+                                onToggled: (v) => settingsViewModel.hidHideAutoCloakEnabled = v
+                            }
+                        }
+                        Text {
+                            text: qsTr("Uncloaks devices briefly on startup so HidHide's whitelist works reliably - skipped automatically if HidHide's own \"Inverse application cloak\" is on. Turn off only if you don't use HidHide, for a faster launch. Takes effect on next restart.")
+                            color: Theme.subtext0
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
                     Item { Layout.fillHeight: true }
                 }
             }

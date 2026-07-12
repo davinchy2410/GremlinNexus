@@ -1,9 +1,10 @@
 #include "LogModel.h"
 
-#include <cstdio>
+#include "AsyncLogSink.h"
 
 #include <QDateTime>
 #include <QMetaObject>
+#include <QTimer>
 
 LogModel &LogModel::instance()
 {
@@ -14,6 +15,10 @@ LogModel &LogModel::instance()
 LogModel::LogModel(QObject *parent)
     : QStringListModel(parent)
 {
+    m_flushTimer = new QTimer(this);
+    m_flushTimer->setInterval(150);
+    connect(m_flushTimer, &QTimer::timeout, this, &LogModel::flushPendingUpdate);
+    m_flushTimer->start();
 }
 
 void LogModel::install()
@@ -22,10 +27,15 @@ void LogModel::install()
         return;
     }
     m_installed = true;
-    m_previousHandler = qInstallMessageHandler(&LogModel::messageHandler);
+    // Deliberately does NOT start AsyncLogSink here - this runs before
+    // QGuiApplication is constructed (see main.cpp), and AsyncLogSink's
+    // openSessionFile() needs QCoreApplication::applicationDirPath(), which
+    // isn't valid yet at this point. main() calls AsyncLogSink::instance().
+    // start() itself, right after constructing `app`.
+    qInstallMessageHandler(&LogModel::messageHandler);
 }
 
-void LogModel::messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &message)
+void LogModel::messageHandler(QtMsgType type, const QMessageLogContext & /*context*/, const QString &message)
 {
     const char *levelLabel = "DEBUG";
     switch (type) {
@@ -41,17 +51,15 @@ void LogModel::messageHandler(QtMsgType type, const QMessageLogContext &context,
                               .arg(QString::fromLatin1(levelLabel))
                               .arg(message);
 
+    // Both calls below are Qt::QueuedConnection/AutoConnection - O(1) on
+    // whichever thread is logging (just posts an event), never blocks it.
+    // appendLine() still runs on the GUI thread (LogModel wasn't moved off
+    // it) but only does a cheap insertRow(); the actual console/file I/O
+    // happens on AsyncLogSink's own dedicated thread - see its docs for why
+    // that split matters (both threads used to be the same one that also
+    // runs EventRouter's routing/vJoy tick).
     QMetaObject::invokeMethod(&LogModel::instance(), "appendLine", Qt::AutoConnection, Q_ARG(QString, line));
-
-    // Still forward to whatever handler (if any) was installed before this
-    // one - capturing logs for the in-app console must not silence the
-    // console/debugger output every existing qWarning()/qInfo() call site
-    // already relies on.
-    if (LogModel::instance().m_previousHandler) {
-        LogModel::instance().m_previousHandler(type, context, message);
-    } else {
-        fprintf(stderr, "%s\n", qPrintable(line));
-    }
+    QMetaObject::invokeMethod(&AsyncLogSink::instance(), "writeLine", Qt::QueuedConnection, Q_ARG(QString, line));
 }
 
 QString LogModel::getAllText() const
@@ -85,11 +93,20 @@ void LogModel::appendLine(const QString &line)
     if (rowCount() > kMaxLines) {
         removeRows(0, rowCount() - kMaxLines);
     }
-    emit logUpdated();
+    m_dirty = true;
+}
+
+void LogModel::flushPendingUpdate()
+{
+    if (m_dirty) {
+        m_dirty = false;
+        emit logUpdated();
+    }
 }
 
 void LogModel::clearLogs()
 {
     setStringList({});
+    m_dirty = false;
     emit logUpdated();
 }

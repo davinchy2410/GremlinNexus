@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QSettings>
 
+#include "AsyncLogSink.h"
 #include "AutoSwitchManager.h"
 
 namespace {
@@ -18,6 +19,10 @@ QSettings runKeySettings()
 }
 
 constexpr auto kRunOnStartupValueName = "GremblingEx";
+
+// Same key main.cpp and DeviceManager::initialize() read directly (see
+// SettingsViewModel::hidHideAutoCloakEnabled()'s own docs) - keep in sync.
+constexpr auto kHidHideAutoCloakSettingsKey = "HidHide/AutoCloakManagement";
 } // namespace
 
 SettingsViewModel::SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent)
@@ -60,6 +65,34 @@ void SettingsViewModel::setAutoSwitchEnabled(bool enabled)
     }
     m_autoSwitch.setEnabled(enabled);
     emit autoSwitchChanged();
+}
+
+bool SettingsViewModel::debugLoggingEnabled() const
+{
+    return AsyncLogSink::instance().isEnabled();
+}
+
+void SettingsViewModel::setDebugLoggingEnabled(bool enabled)
+{
+    if (AsyncLogSink::instance().isEnabled() == enabled) {
+        return;
+    }
+    AsyncLogSink::instance().setEnabled(enabled);
+    emit debugLoggingChanged();
+}
+
+bool SettingsViewModel::hidHideAutoCloakEnabled() const
+{
+    return QSettings().value(QLatin1String(kHidHideAutoCloakSettingsKey), true).toBool();
+}
+
+void SettingsViewModel::setHidHideAutoCloakEnabled(bool enabled)
+{
+    if (enabled == hidHideAutoCloakEnabled()) {
+        return;
+    }
+    QSettings().setValue(QLatin1String(kHidHideAutoCloakSettingsKey), enabled);
+    emit hidHideAutoCloakChanged();
 }
 
 void SettingsViewModel::resetVJoy()

@@ -28,6 +28,14 @@ public:
     /// matching ProfileManager::instantiateButtonRemapHandler()'s schema.
     QJsonObject toJson() const override;
 
+    /// Read-only introspection (Macro Editor "record joystick buttons"):
+    /// lets MacroRecorderViewModel discover what vJoy device/button a
+    /// physical button currently drives, without adding a second entry
+    /// point for invoking this handler. Never used by the hot dispatch path
+    /// itself - processButton() already holds these privately for that.
+    std::shared_ptr<IVirtualOutputDevice> target() const { return m_target; }
+    int targetButton() const { return m_targetButton; }
+
 private:
     std::shared_ptr<IVirtualOutputDevice> m_target;
     int m_targetButton;

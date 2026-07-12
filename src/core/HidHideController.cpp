@@ -29,6 +29,14 @@ constexpr DWORD ctlCode(DWORD function)
 constexpr DWORD kIoctlGetActive = ctlCode(2052);
 constexpr DWORD kIoctlSetActive = ctlCode(2053);
 
+// Added to the driver in nefarius/HidHide PR #73 (merged 2022-05-31) -
+// cross-checked 2026-07-12 against the same official managed wrapper
+// (HidHideControlService.cs's IoctlGetWlInverse/IoctlSetWlInverse
+// constants and its "IsAppListInverted" property, which confirms the
+// 1-byte buffer convention here too) since no public C++ header ships
+// these either, same situation as kIoctlGetActive/kIoctlSetActive above.
+constexpr DWORD kIoctlGetWlInverse = ctlCode(2054);
+
 constexpr wchar_t kControlDevicePath[] = L"\\\\.\\HidHide";
 
 } // namespace
@@ -105,6 +113,40 @@ bool HidHideController::setActiveRaw(bool active) const
         return false;
     }
     return true;
+}
+
+bool HidHideController::isWhitelistInverseEnabled() const
+{
+    HANDLE handle = CreateFileW(kControlDevicePath, GENERIC_READ | GENERIC_WRITE,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        logShutdownTrace(
+            QStringLiteral("HidHideController::isWhitelistInverseEnabled: CreateFileW(%1) FAILED - GetLastError=%2")
+                .arg(QString::fromWCharArray(kControlDevicePath))
+                .arg(GetLastError()));
+        return false;
+    }
+
+    BYTE value = 0;
+    DWORD bytesReturned = 0;
+    const BOOL ok = DeviceIoControl(handle, kIoctlGetWlInverse, nullptr, 0, &value, sizeof(value), &bytesReturned,
+                                     nullptr);
+    const DWORD lastError = ok ? 0 : GetLastError();
+    CloseHandle(handle);
+
+    if (!ok) {
+        // Older HidHide driver builds predating PR #73 don't recognize this
+        // IOCTL at all - failing closed (false, "not inverse") here is the
+        // safe choice, since it just means main.cpp falls back to running
+        // the normal deactivate/reactivate dance, exactly as it always did
+        // before this method existed.
+        logShutdownTrace(
+            QStringLiteral("HidHideController::isWhitelistInverseEnabled: IOCTL_GET_WLINVERSE FAILED - GetLastError=%1")
+                .arg(lastError));
+        return false;
+    }
+
+    return value != 0;
 }
 
 bool HidHideController::deactivateCloak()

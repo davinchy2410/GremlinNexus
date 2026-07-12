@@ -54,6 +54,23 @@ For regular users, there is no need to compile the source code.
 3. Launch `GremlinNexus.exe`.
 4. Connect your devices, create a new profile, and start routing!
 
+## 🔒 Hiding Physical Controllers with HidHide (Recommended)
+
+Gremlin Nexus routes your physical inputs into virtual vJoy devices, but by default your game will still see your **physical** HOTAS/HOSAS controllers at the same time as the vJoy outputs. That causes double input — duplicate, conflicting axis and button data reaching the game. [HidHide](https://github.com/nefarius/HidHide) fixes this by hiding physical devices from specific applications at the driver level, and it's free and open-source.
+
+### One-time setup (per game)
+
+1. Install [HidHide](https://github.com/nefarius/HidHide/releases) if you haven't already.
+2. Open the **HidHide Configuration Client**.
+3. Go to the **Devices** tab and check every physical controller you want hidden from your games. Leave your vJoy virtual devices **unchecked**.
+4. Go to the **Applications** tab and enable **Inverse application cloak**.
+5. Add your game's `.exe` (e.g. `StarCitizen.exe`) to the list.
+6. Do **not** add `GremlinNexus.exe` to the list — leave it out entirely.
+
+That's it — this only needs to be done once per game. In this mode, HidHide hides the checked devices only from the application(s) you explicitly added (your game), while everything else — Gremlin Nexus, Windows itself, and any other tool — keeps full access automatically. This also survives PC restarts cleanly: physical controllers stay visible to Nexus and hidden from the game from the very first boot, with no extra steps and nothing for Nexus to manage at startup.
+
+> **Why Inverse mode instead of the regular whitelist?** In the default (non-inverse) mode, only whitelisted apps can see the devices and everything else is blocked by default — including Windows' own internal device registration the very first time a controller is detected after a fresh reboot. If that initial registration gets blocked, the device can become invisible to every application (Nexus included) until it's physically unplugged and replugged. Inverse mode avoids this entirely: only the one application you explicitly list is denied access, so nothing else — including that internal Windows registration step — is ever blocked by default.
+
 ## 💻 Building from Source
 
 If you wish to contribute or build the project yourself:

@@ -1,6 +1,12 @@
 #include "VJoyDevice.h"
+#include "ShutdownTrace.h"
 
+#include <QDateTime>
 #include <QDebug>
+#include <QLoggingCategory>
+#include <QString>
+
+Q_LOGGING_CATEGORY(lcVJoy, "grembling.output.vjoy")
 
 std::function<void(unsigned int, int, bool)> VJoyDevice::s_telemetryCallback;
 
@@ -44,6 +50,10 @@ bool VJoyDevice::ensureLibraryLoaded()
     // to treating every hat as continuous, vJoy's modern default (see
     // setHatDirection()).
     m_getVJDContPovNumber = reinterpret_cast<GetVJDContPovNumber_t>(m_library.resolve("GetVJDContPovNumber"));
+    // Diagnostic-only, same as GetVJDContPovNumber above - not required for
+    // acquire()/update() to function, only for logUpdateFailureReason() to
+    // explain *why* a later UpdateVJD() call was rejected.
+    m_getVJDStatus = reinterpret_cast<GetVJDStatus_t>(m_library.resolve("GetVJDStatus"));
 
     if (!m_acquireVJD || !m_relinquishVJD || !m_updateVJD || !m_resetVJD) {
         qWarning() << "VJoyDevice: vJoyInterface.dll is missing one or more required exports"
@@ -282,10 +292,118 @@ void VJoyDevice::setHatDirection(int hatIndex, int direction, bool pressed)
     setHat(hatIndex, angle);
 }
 
+void VJoyDevice::logUpdateFailureReason() const
+{
+    // Also routed through logShutdownTrace() (plain-text file under
+    // %TEMP%, same one DeviceManager/HidHideController already use), not
+    // just qCCritical: this bug takes ~2h of active play to surface, so
+    // whoever hits it is watching the game, not this app's in-memory Log
+    // Console (QStringListModel, capped at LogModel::kMaxLines=2000 lines -
+    // long gone from a live console's scrollback and from memory outright
+    // the moment the process exits) - a durable, after-the-fact-checkable
+    // record is the whole point here.
+    QString reason;
+    if (!m_getVJDStatus) {
+        reason = QStringLiteral("and GetVJDStatus is unavailable (vJoyInterface.dll export missing)"
+                                 " - cannot determine why the driver rejected the report");
+    } else {
+        const int status = m_getVJDStatus(m_deviceId);
+        switch (status) {
+        case VJD_STAT_OWN:
+            reason = QStringLiteral("despite VJD_STAT_OWN (still owned by us) - driver rejected the"
+                                     " report itself, not a handle/ownership loss");
+            break;
+        case VJD_STAT_FREE:
+            reason = QStringLiteral("- status is VJD_STAT_FREE, we lost ownership silently"
+                                     " (device was released without relinquish() being called)");
+            break;
+        case VJD_STAT_BUSY:
+            reason = QStringLiteral("- status is VJD_STAT_BUSY, another application has taken"
+                                     " ownership of this device ID");
+            break;
+        case VJD_STAT_MISS:
+            reason = QStringLiteral("- status is VJD_STAT_MISS, the device is no longer installed"
+                                     " or has been disabled in vJoy's configuration");
+            break;
+        default:
+            reason = QStringLiteral("- GetVJDStatus returned unrecognized/unknown status %1").arg(status);
+            break;
+        }
+    }
+
+    const QString message = QStringLiteral("VJoyDevice: UpdateVJD failed for device %1 %2").arg(m_deviceId).arg(reason);
+    qCCritical(lcVJoy).noquote() << message;
+    logShutdownTrace(message);
+}
+
 bool VJoyDevice::update()
 {
-    if (!m_acquired || !m_updateVJD) {
+    if (!m_updateVJD) {
         return false;
     }
-    return m_updateVJD(m_deviceId, &m_state);
+
+    if (!m_acquired) {
+        // Ownership was lost (see this file's own docs on the sleep/resume
+        // bug that motivated this) - retry acquire() periodically instead
+        // of just returning false forever. Rate-limited (kReacquireIntervalMs)
+        // rather than every 5ms tick, since a still-unavailable driver would
+        // otherwise spam AcquireVJD calls just as badly as the original bug
+        // spammed UpdateVJD ones.
+        const int64_t now = QDateTime::currentMSecsSinceEpoch();
+        if (now - m_lastReacquireAttemptMs < kReacquireIntervalMs) {
+            return false;
+        }
+        m_lastReacquireAttemptMs = now;
+        if (!acquire()) {
+            return false;
+        }
+        qCInfo(lcVJoy) << "VJoyDevice: re-acquired device" << m_deviceId << "after losing ownership";
+        logShutdownTrace(QStringLiteral("VJoyDevice: re-acquired device %1 after losing ownership").arg(m_deviceId));
+        return true; // acquire() already pushed one fresh update() internally.
+    }
+
+    // Fase (bugfix): the silent-disconnect bug - vJoy quietly stops
+    // accepting reports after prolonged use, with no crash and no visible
+    // symptom on the RawInput/EventRouter side (this is purely the outbound
+    // half) - was invisible because UpdateVJD()'s boolean return was never
+    // checked. GetVJDStatus() is only queried on failure (not every tick) so
+    // the healthy path stays as cheap as before.
+    const bool ok = m_updateVJD(m_deviceId, &m_state);
+    if (!ok) {
+        ++m_failuresSinceLastLog;
+        const int64_t now = QDateTime::currentMSecsSinceEpoch();
+        const bool firstFailureInStreak = !m_isCurrentlyFailing;
+        m_isCurrentlyFailing = true;
+
+        // Rate-limited: this used to log every single failed tick (200/sec)
+        // unconditionally - during the sleep/resume bug this produced a
+        // 5.7GB log file over one ~9h unattended session. Still logs
+        // immediately on the first failure of a new streak (so a brief
+        // one-off blip is never silent), then at most once per
+        // kFailureLogIntervalMs while it persists.
+        if (firstFailureInStreak || now - m_lastFailureLogMs >= kFailureLogIntervalMs) {
+            const QString message = QStringLiteral("VJoyDevice: UpdateVJD rejected the report for device %1 (%2 failure(s) since last log)")
+                                          .arg(m_deviceId)
+                                          .arg(m_failuresSinceLastLog);
+            qCCritical(lcVJoy).noquote() << message;
+            logShutdownTrace(message);
+            logUpdateFailureReason();
+            m_lastFailureLogMs = now;
+            m_failuresSinceLastLog = 0;
+        }
+
+        // VJD_STAT_FREE specifically means the driver no longer considers
+        // us the owner (see this file's docs) - flip m_acquired so the next
+        // tick takes the re-acquire path above instead of continuing to
+        // call an UpdateVJD that's already known to keep failing.
+        if (m_getVJDStatus && m_getVJDStatus(m_deviceId) == VJD_STAT_FREE) {
+            m_acquired = false;
+        }
+    } else if (m_isCurrentlyFailing) {
+        m_isCurrentlyFailing = false;
+        m_failuresSinceLastLog = 0;
+        qCInfo(lcVJoy) << "VJoyDevice: device" << m_deviceId << "resumed accepting updates";
+        logShutdownTrace(QStringLiteral("VJoyDevice: device %1 resumed accepting updates").arg(m_deviceId));
+    }
+    return ok;
 }

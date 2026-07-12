@@ -172,10 +172,32 @@ Popup {
     // above for why Keyboard/Macro only make sense for a button input.
     readonly property var actionTypesForAxis: ["vJoy Remap", "Axis-to-Button", "Split Axis", "Merge Axis",
         "Condition / Modifier Check", "Mouse X Axis", "Mouse Y Axis"]
-    readonly property var actionTypesForButton: ["vJoy Remap", "vJoy Hat Remap", "Keyboard", "Macro",
-        "Tempo (Short/Long Press)", "Sequence / Rotary", "Toggle / Latching Switch", "Shift / Modifier",
-        "Mode Toggle (Sticky)", "Condition / Modifier Check", "Delay (Pause)", "Play Audio", "Text-to-Speech",
-        "Mouse Left Click", "Mouse Right Click", "Mouse Middle Click", "Mouse Scroll Up", "Mouse Scroll Down"]
+    // Fase QoL: "Delay (Pause)" is a real, functional leaf action
+    // (DelayAction) but only actually DOES something as a step inside a
+    // Tempo short/long action list (see TempoHandler.cpp's own dynamic_cast
+    // handling) - bound standalone to a button, its only observable effect
+    // is a pair of qInfo() log lines (see DelayAction's own class docs), so
+    // offering it as a normal top-level choice here was just confusing
+    // ("why is Delay even here, it doesn't do anything"). It's left OUT of
+    // the selectable list for a fresh/other-type binding, but
+    // existingActionIsDelay (set in openFor() from whatever's already
+    // saved for this input) puts it back in for the one case that still
+    // needs it: re-opening a button that already has a standalone Delay
+    // binding from before this change (or hand-edited into a profile) still
+    // finds and displays it correctly instead of silently falling back to
+    // "vJoy Remap" (index 0) - see the restore branch below.
+    property bool existingActionIsDelay: false
+    readonly property var actionTypesForButton: {
+        const base = ["vJoy Remap", "vJoy Hat Remap", "Keyboard", "Macro",
+            "Tempo (Short/Long Press)", "Sequence / Rotary", "Toggle / Latching Switch", "Shift / Modifier",
+            "Mode Toggle (Sticky)", "Condition / Modifier Check", "Play Audio", "Text-to-Speech",
+            "Mouse Left Click", "Mouse Right Click", "Mouse Middle Click", "Mouse Scroll Up", "Mouse Scroll Down"];
+        if (!root.existingActionIsDelay) {
+            return base;
+        }
+        const idx = base.indexOf("Condition / Modifier Check") + 1;
+        return base.slice(0, idx).concat(["Delay (Pause)"]).concat(base.slice(idx));
+    }
     readonly property var hatDirectionNames: ["Up", "Right", "Down", "Left"]
 
     // Qt::Key -> PS/2 Set 1 hardware scan code (see KeyboardHandler /
@@ -274,16 +296,20 @@ Popup {
             if (action.actionType === "ButtonRemapHandler") {
                 return { category: "device", targetDeviceType: action.targetDeviceType || "vjoy",
                     targetOutputId: action.targetOutputId || 1, targetButton: action.targetButton || 0,
-                    delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "" };
+                    delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+                    macroTargetOutputId: 0, macroTargetIsVigem: false };
             } else if (action.actionType === "DelayAction") {
                 return { category: "delay", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                    delayMs: params.delayMs !== undefined ? params.delayMs : 100, filePath: "", text: "", macroSteps: [], targetMode: "" };
+                    delayMs: params.delayMs !== undefined ? params.delayMs : 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+                    macroTargetOutputId: 0, macroTargetIsVigem: false };
             } else if (action.actionType === "AudioAction") {
                 return { category: "audio", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                    delayMs: 100, filePath: params.filePath || "", text: "", macroSteps: [], targetMode: "" };
+                    delayMs: 100, filePath: params.filePath || "", text: "", macroSteps: [], targetMode: "",
+                    macroTargetOutputId: 0, macroTargetIsVigem: false };
             } else if (action.actionType === "TTSAction") {
                 return { category: "tts", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                    delayMs: 100, filePath: "", text: params.text || "", macroSteps: [], targetMode: "" };
+                    delayMs: 100, filePath: "", text: params.text || "", macroSteps: [], targetMode: "",
+                    macroTargetOutputId: 0, macroTargetIsVigem: false };
             } else if (action.actionType === "MacroHandler") {
                 // Sprint 6: a macro recorded via MacroEditorPopup.openEmbedded()
                 // and nested inside this Tempo gesture - params.steps is
@@ -291,8 +317,13 @@ Popup {
                 // shape MacroHandler::toJson() writes, so it round-trips
                 // straight back into the row as-is; toCascadeAction() below
                 // wraps it back into the same actionType JSON on Apply.
+                // macroTargetOutputId/macroTargetIsVigem (joystick-button
+                // steps) come from the binding's own top-level
+                // "targetOutputId"/"targetDeviceType" - see MacroHandler::toJson().
                 return { category: "macro", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                    delayMs: 100, filePath: "", text: "", macroSteps: params.steps || [], targetMode: "" };
+                    delayMs: 100, filePath: "", text: "", macroSteps: params.steps || [], targetMode: "",
+                    macroTargetOutputId: action.targetOutputId || 0,
+                    macroTargetIsVigem: action.targetDeviceType === "vigem" };
             } else if (action.actionType === "ModeSwitch") {
                 // Mode Switch inside a Tempo cascade: "ModeSwitch" is the
                 // same actionType/JSON shape the top-level "Mode Toggle
@@ -307,7 +338,8 @@ Popup {
                 // same polymorphism that already let a Macro nest inside a
                 // Tempo cascade since Sprint 6.
                 return { category: "modeSwitch", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                    delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: params.targetMode || "" };
+                    delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: params.targetMode || "",
+                    macroTargetOutputId: 0, macroTargetIsVigem: false };
             }
             return null;
         }).filter((row) => row !== null);
@@ -335,6 +367,11 @@ Popup {
         root.inputName = inputName_;
         root.inputKind = inputKind_;
         root.hasBinding = !!hasBinding_;
+        // Reset here, then set true below only if the binding this popup
+        // turns out to be restoring is actually a standalone DelayAction -
+        // see actionTypesForButton's own docs for why this gates "Delay
+        // (Pause)"'s visibility in the type combo.
+        root.existingActionIsDelay = false;
         actionTypeCombo.currentIndex = 0;
         vjoyDeviceCombo.setFromTarget(root.lastVjoyTarget);
         vjoyAxisCombo.currentIndex = root.lastVjoyAxis;
@@ -359,9 +396,11 @@ Popup {
         tempoThresholdMs.value = 300;
         tempoPulseMs.value = 50;
         root.tempoShortActions = [{category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-            delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: ""}];
+            delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+            macroTargetOutputId: 0, macroTargetIsVigem: false}];
         root.tempoLongActions = [{category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 1,
-            delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: ""}];
+            delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+            macroTargetOutputId: 0, macroTargetIsVigem: false}];
         delayMsStepper.value = 100;
         audioFilePathField.text = "";
         ttsTextField.text = "";
@@ -400,6 +439,7 @@ Popup {
             try {
                 const actionData = JSON.parse(existingJsonStr);
                 const actionType = actionData.actionType;
+                root.existingActionIsDelay = (actionType === "DelayAction");
 
                 // Sprint QoL Part 2: "Nota / Descripción" is generic - it
                 // lives in whatever the OUTERMOST action's own
@@ -1419,7 +1459,8 @@ Popup {
                             onClicked: {
                                 tempoMacroEditorPopup.targetArrayName = "short";
                                 tempoMacroEditorPopup.targetIndex = index;
-                                tempoMacroEditorPopup.openEmbedded(modelData.macroSteps || []);
+                                tempoMacroEditorPopup.openEmbedded(modelData.macroSteps || [],
+                                    modelData.macroTargetOutputId || 0, modelData.macroTargetIsVigem || false);
                             }
                         }
                     }
@@ -1508,7 +1549,8 @@ Popup {
                 onClicked: {
                     const arr = root.tempoShortActions.slice();
                     arr.push({category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                        delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: ""});
+                        delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+                        macroTargetOutputId: 0, macroTargetIsVigem: false});
                     root.tempoShortActions = arr;
                 }
             }
@@ -1717,7 +1759,8 @@ Popup {
                             onClicked: {
                                 tempoMacroEditorPopup.targetArrayName = "long";
                                 tempoMacroEditorPopup.targetIndex = index;
-                                tempoMacroEditorPopup.openEmbedded(modelData.macroSteps || []);
+                                tempoMacroEditorPopup.openEmbedded(modelData.macroSteps || [],
+                                    modelData.macroTargetOutputId || 0, modelData.macroTargetIsVigem || false);
                             }
                         }
                     }
@@ -1779,7 +1822,8 @@ Popup {
                 onClicked: {
                     const arr = root.tempoLongActions.slice();
                     arr.push({category: "device", targetDeviceType: "vjoy", targetOutputId: 1, targetButton: 0,
-                        delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: ""});
+                        delayMs: 100, filePath: "", text: "", macroSteps: [], targetMode: "",
+                        macroTargetOutputId: 0, macroTargetIsVigem: false});
                     root.tempoLongActions = arr;
                 }
             }
@@ -2313,7 +2357,20 @@ Popup {
                                 // MacroHandler::toJson() itself writes (see
                                 // MacroEditorPopup's macroReady() and
                                 // extractTempoActions() above) - just rewrap it.
-                                return { actionType: "MacroHandler", parameters: { steps: a.macroSteps || [] } };
+                                // Joystick-button steps (a.macroTargetOutputId != 0):
+                                // targetOutputId/targetDeviceType go at the TOP
+                                // level of this action object, matching
+                                // MacroHandler::toJson()'s own binding shape -
+                                // not inside "parameters", same convention
+                                // extractTempoActions() reads back from.
+                                const macroAction = { actionType: "MacroHandler", parameters: { steps: a.macroSteps || [] } };
+                                if (a.macroTargetOutputId) {
+                                    macroAction.targetOutputId = a.macroTargetOutputId;
+                                    if (a.macroTargetIsVigem) {
+                                        macroAction.targetDeviceType = "vigem";
+                                    }
+                                }
+                                return macroAction;
                             } else if (category === "modeSwitch") {
                                 return { actionType: "ModeSwitch", parameters: { targetMode: a.targetMode || "" } };
                             }
@@ -2507,14 +2564,19 @@ Popup {
             if (targetIndex < 0) {
                 return;
             }
-            const steps = JSON.parse(actionDataJson).parameters.steps;
+            const actionData = JSON.parse(actionDataJson);
+            const steps = actionData.parameters.steps;
+            const targetOutputId = actionData.targetOutputId || 0;
+            const targetIsVigem = actionData.targetDeviceType === "vigem";
             if (targetArrayName === "long") {
                 const arr = root.tempoLongActions.slice();
-                arr[targetIndex] = Object.assign({}, arr[targetIndex], {macroSteps: steps});
+                arr[targetIndex] = Object.assign({}, arr[targetIndex],
+                    {macroSteps: steps, macroTargetOutputId: targetOutputId, macroTargetIsVigem: targetIsVigem});
                 root.tempoLongActions = arr;
             } else {
                 const arr = root.tempoShortActions.slice();
-                arr[targetIndex] = Object.assign({}, arr[targetIndex], {macroSteps: steps});
+                arr[targetIndex] = Object.assign({}, arr[targetIndex],
+                    {macroSteps: steps, macroTargetOutputId: targetOutputId, macroTargetIsVigem: targetIsVigem});
                 root.tempoShortActions = arr;
             }
         }

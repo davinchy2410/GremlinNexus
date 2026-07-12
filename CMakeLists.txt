@@ -29,6 +29,8 @@ add_library(GremblingCore STATIC
     src/core/DeviceManager.h
     src/core/DeviceManager.cpp
     src/core/ShutdownTrace.h
+    src/core/AsyncLogSink.h
+    src/core/AsyncLogSink.cpp
     src/core/AutoSwitchManager.h
     src/core/AutoSwitchManager.cpp
     src/core/I18nManager.h
@@ -102,6 +104,11 @@ add_library(GremblingOutput STATIC
 target_include_directories(GremblingOutput
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/output
+    PRIVATE
+        # Header-only logShutdownTrace() (ShutdownTrace.h) only, for
+        # VJoyDevice's silent-disconnect diagnostics - not worth linking the
+        # whole GremblingCore library just for one inline function.
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core
 )
 
 target_link_libraries(GremblingOutput
@@ -184,6 +191,8 @@ add_library(GremblingProcessing STATIC
     src/processing/ProfileManager.cpp
     src/processing/LegacyProfileImporter.h
     src/processing/LegacyProfileImporter.cpp
+    src/processing/R14ProfileImporter.h
+    src/processing/R14ProfileImporter.cpp
     src/processing/LegacyMigrator.h
     src/processing/LegacyMigrator.cpp
     src/processing/SCIntegrationManager.h

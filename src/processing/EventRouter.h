@@ -119,6 +119,34 @@ public:
     /// Thread-safe snapshot of the currently active mode.
     QString currentMode() const;
 
+    /// Shift-state stack (Fase bugfix - nested/simultaneous shift buttons,
+    /// 2026-07-11): TemporaryModeSwitchHandler used to save/restore the
+    /// router's mode itself, snapshotting currentMode() as "the mode to go
+    /// back to" independently in every handler instance. That breaks the
+    /// instant a second shift button is pressed while a first one is still
+    /// held (e.g. one shift per HOTAS stick, both reachable from Global) -
+    /// the second handler's snapshot is "the first shift's target mode", not
+    /// the true pre-shift mode, so releasing the FIRST shift while the
+    /// SECOND is still held stomps the active mode back past it (straight to
+    /// whatever was active before either was pressed) instead of leaving the
+    /// still-held second shift's mode in effect - exactly the "vuelve a
+    /// Global solo mientras sueltas un boton, con el otro todavia
+    /// apretado" symptom this was built to fix.
+    ///
+    /// owner identifies which handler instance pushed/is popping an entry
+    /// (its own `this`, opaque to EventRouter) so pop can find and remove
+    /// its entry wherever it sits in the stack - a shift released out of
+    /// press-order (releasing the outer one while an inner one is still
+    /// held) must NOT change the active mode, since the inner one's target
+    /// is still the correct one to display; only popping the topmost entry
+    /// (the most recently pressed shift still held) ever calls setMode().
+    /// The very first push (stack going from empty to non-empty) also
+    /// records currentMode() as the base mode to restore once the stack
+    /// empties out again - the same "what was active before any shift"
+    /// snapshot each handler used to keep privately, now taken once, shared.
+    void pushTemporaryMode(const void *owner, const QString &targetMode);
+    void popTemporaryMode(const void *owner);
+
     /// Sprint 5 (Familias de Modos): records that child's routes should
     /// cascade up to parent whenever child itself has no route bound for a
     /// given (systemPath, index) - see resolveHandlerWithFallback() for the
@@ -191,6 +219,17 @@ public:
     /// no-mutex-needed reasoning as isButtonPressed(): both the write
     /// (onAxisMoved) and every read happen only on the router's own thread.
     int getAxisValue(const QString &systemPath, int axisIndex) const;
+
+    /// Read-only lookup (Macro Editor "record joystick buttons" feature):
+    /// resolves whichever handler is bound to buttonIndex on systemPath
+    /// under the mode that's active *right now*, through the same Global/
+    /// parent-mode fallback chain onButtonPressed() itself dispatches
+    /// through - without touching m_activeButtonHandlers or any other
+    /// dispatch-side state. nullptr if nothing is bound. Used by
+    /// MacroRecorderViewModel while live-recording, to tell "this physical
+    /// button is a direct vJoy button remap" apart from "it's unbound, or
+    /// bound to something else (Tempo/Toggle/keyboard/...)".
+    std::shared_ptr<IActionHandler> resolveButtonHandlerForCurrentMode(const QString &systemPath, int buttonIndex) const;
 
     /// One registered route, flattened out of the (mode -> RouteTable)
     /// structure for easy iteration - see allRoutes().
@@ -419,4 +458,14 @@ private:
 
     mutable QMutex m_modeMutex;
     QString m_currentMode; ///< Guarded by m_modeMutex; see setMode()/currentMode().
+
+    /// See pushTemporaryMode()/popTemporaryMode(). Ordered oldest-held-first;
+    /// only ever touched from the router's own thread (shift buttons are
+    /// dispatched through the same single-threaded onButtonPressed() path as
+    /// every other route), so unlike m_currentMode this needs no mutex.
+    std::vector<std::pair<const void *, QString>> m_modeStack;
+
+    /// currentMode() captured at the moment m_modeStack went from empty to
+    /// non-empty - the mode to restore once every shift has been released.
+    QString m_modeStackBaseMode;
 };

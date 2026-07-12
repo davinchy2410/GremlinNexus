@@ -63,12 +63,53 @@ private:
     using UpdateVJD_t = bool(__stdcall *)(unsigned int, void *);
     using ResetVJD_t = bool(__stdcall *)(unsigned int);
 
+    /// vJoy's own VjdStat enum (public.h): the ownership/availability state
+    /// of a device ID as vJoy itself sees it. Queried only for diagnostics
+    /// when UpdateVJD() reports failure - see update()'s own comment on why
+    /// the silent-disconnect bug needed this.
+    enum VjdStat
+    {
+        VJD_STAT_OWN = 0,  // Owned by this application.
+        VJD_STAT_FREE = 1, // Not owned by any application.
+        VJD_STAT_BUSY = 2, // Owned by another application.
+        VJD_STAT_MISS = 3, // Not installed or disabled.
+        VJD_STAT_UNKN = 4, // Unknown state.
+    };
+    using GetVJDStatus_t = int(__stdcall *)(unsigned int);
+
     /// Fase 20.3: how many of this device's POV hats are configured as
     /// *continuous* (angle-based) in vJoy's own config tool - the rest are
     /// discrete (ordinal 0-3/-1). Needed because a discrete hat rejects the
     /// angle values setHatDirection() would otherwise send it (see that
     /// method's own docs).
     using GetVJDContPovNumber_t = int(__stdcall *)(unsigned int);
+
+    /// Logs exactly why UpdateVJD() rejected a report, via GetVJDStatus() -
+    /// see update()'s own comment for the silent-disconnect symptom this
+    /// diagnoses.
+    void logUpdateFailureReason() const;
+
+    /// Fase (bugfix - PC sleep/resume losing vJoy ownership, 2026-07-11): a
+    /// real session log caught this happening for real - device idle for
+    /// 3+ hours (almost certainly the PC sleeping with Nexus left open),
+    /// then BOTH vJoy devices came back from resume in VJD_STAT_FREE
+    /// (nobody called relinquish() - vJoy's own driver just doesn't survive
+    /// a sleep cycle cleanly). update() used to keep calling UpdateVJD every
+    /// 5ms forever after that with no recovery path, logging every single
+    /// failed tick - one session logged ~9 hours of that before anyone
+    /// noticed, producing a 5.7GB log file. Two independent fixes:
+    /// - Logging is now rate-limited (kFailureLogIntervalMs) instead of
+    ///   once per tick.
+    /// - update() itself now retries acquire() periodically
+    ///   (kReacquireIntervalMs) once ownership loss is detected, instead of
+    ///   spamming a driver call that's already known to be failing forever.
+    static constexpr int64_t kFailureLogIntervalMs = 30000;
+    static constexpr int64_t kReacquireIntervalMs = 5000;
+
+    int64_t m_lastFailureLogMs = 0;
+    int64_t m_lastReacquireAttemptMs = 0;
+    int m_failuresSinceLastLog = 0;
+    bool m_isCurrentlyFailing = false;
 
     /// Binary layout of a vJoy report, matching the vJoy SDK's
     /// JOYSTICK_POSITION_V2 struct field-for-field: this is wire ABI shared
@@ -123,6 +164,7 @@ private:
     UpdateVJD_t m_updateVJD = nullptr;
     ResetVJD_t m_resetVJD = nullptr;
     GetVJDContPovNumber_t m_getVJDContPovNumber = nullptr;
+    GetVJDStatus_t m_getVJDStatus = nullptr;
 
     JoystickPositionV2 m_state{};
 

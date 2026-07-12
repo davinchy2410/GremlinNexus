@@ -42,8 +42,18 @@ public:
      * catalogue scan and (from Phase 2 onward) registers for Windows device
      * arrival/removal notifications. Safe to call multiple times; calls
      * after the first successful initialization are ignored.
+     *
+     * hidHideWarmupEnabled: whether the worker should run its extra
+     * staggered startup rescans (see DeviceMonitorWorker::
+     * startMonitoring()'s own docs) - those exist purely to give a HidHide
+     * uncloak/recloak cycle time to settle, so main.cpp resolves this once
+     * (Settings toggle AND NOT already in HidHide's Inverse whitelist mode -
+     * see HidHideController::isWhitelistInverseEnabled()) and passes the
+     * same decision here that it used to decide whether to run
+     * HidHideController::deactivateCloak()/reactivateCloak() at all, rather
+     * than this method re-deriving it independently.
      */
-    void initialize();
+    void initialize(bool hidHideWarmupEnabled = true);
 
     /**
      * @brief Synchronously tears down hardware monitoring: unregisters raw
@@ -115,6 +125,14 @@ signals:
     
     // Legacy single-button signal (kept for UI bindings that don't need simultaneous resolution)
     void buttonPressed(const QString &systemPath, int buttonIndex, bool pressed);
+
+    /// Relayed from DeviceMonitorWorker::startupScanComplete() - fires once
+    /// the last startup warmup rescan has actually finished, not after a
+    /// fixed delay. main.cpp connects this to HidHideController's cloak
+    /// reactivation so that call never races a scan still in progress on a
+    /// loaded system - see the worker signal's own docs for why a fixed
+    /// timer isn't good enough here.
+    void initialScanComplete();
 
 private slots:
     /// Relays a worker-thread axis reading out as DeviceManager::axisMoved.

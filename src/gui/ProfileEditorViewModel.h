@@ -93,6 +93,19 @@ public:
         VendorProductRole,
         SystemPathRole,
         InputsRole,
+        /// Fase (bugfix): same "deviceName" as DeviceNameRole, except every
+        /// vJoy slot - which all report the identical HID product name
+        /// ("vJoy Device") - is disambiguated to "vJoy N Output" instead,
+        /// N being this row's 1-based ordinal among just the vjoy-matching
+        /// rows (same convention DeviceTesterViewModel::currentDeviceLabel()
+        /// already uses for its badge). Added for DeviceTesterView.qml's
+        /// device-picker ComboBox specifically, which used to show a
+        /// useless list of identical "vJoy Device" entries with no way to
+        /// tell slot 1 from slot 2 apart until AFTER picking one - a
+        /// separate role rather than changing DeviceNameRole itself, since
+        /// that one is also what the Profiles screen's own tab bar reads,
+        /// and nobody asked for THAT to change.
+        TesterDisplayNameRole,
     };
 
     explicit ProfileEditorViewModel(EventRouter &router, AutoSwitchManager &autoSwitch, PwaServer &pwaServer,

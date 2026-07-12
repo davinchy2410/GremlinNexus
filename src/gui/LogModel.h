@@ -3,14 +3,16 @@
 #include <QStringListModel>
 #include <QtLogging>
 
+class QTimer;
+
 /**
  * @brief App-wide log console (Fase 14): installs itself as the sole Qt
  *        message handler and keeps the most recent lines as a
  *        QStringListModel, so a QML ListView/TextArea can show
- *        qDebug()/qInfo()/qWarning()/qCritical() output live instead of
- *        only being visible in whatever console window happens to be
- *        attached (see CMakeLists.txt's note on why the console subsystem
- *        is kept attached in the first place).
+ *        qDebug()/qInfo()/qWarning()/qCritical() output live. Actual
+ *        console/file I/O is delegated to AsyncLogSink on its own thread
+ *        (see that class's docs) - this model's own job is just tracking
+ *        the in-app console's text.
  *
  * A singleton (like VirtualOutputManager/DeviceManager) rather than an
  * object owned by main.cpp: qInstallMessageHandler() takes a bare function
@@ -57,8 +59,13 @@ private slots:
     /// Appends line as a new row, then trims from the front once past
     /// kMaxLines - a plain ring buffer, since a live console some hours
     /// into a session showing tens of thousands of rows would only get
-    /// slower for no benefit (nobody scrolls back that far).
+    /// slower for no benefit (nobody scrolls back that far). Does NOT emit
+    /// logUpdated() itself anymore - see m_flushTimer's docs.
     void appendLine(const QString &line);
+
+    /// m_flushTimer's own slot - emits logUpdated() at most once per tick,
+    /// only if a line actually arrived since the last one.
+    void flushPendingUpdate();
 
 private:
     explicit LogModel(QObject *parent = nullptr);
@@ -68,5 +75,19 @@ private:
     static constexpr int kMaxLines = 2000;
 
     bool m_installed = false;
-    QtMessageHandler m_previousHandler = nullptr;
+
+    /// Coalesces appendLine() into at most one logUpdated() emission per
+    /// tick (150 ms) instead of one per log line. LogConsoleView.qml binds
+    /// its TextArea directly to htmlText, an O(current line count) rebuild
+    /// (escapes + wraps every line in a <font> tag, up to kMaxLines) that
+    /// used to re-run on literally every single qDebug()/qInfo() call, on
+    /// the main/GUI thread, for the whole app session - not just while the
+    /// Log Console tab is visible (it lives inside main.qml's StackLayout,
+    /// which keeps every tab's Item instantiated). Under log-heavy activity
+    /// (e.g. mashing buttons on the Device Tester screen, each transition
+    /// logged by EventRouter) this was almost certainly the dominant real
+    /// cost behind the UI/joystick-response lag investigated this session -
+    /// same shape as DeviceTesterViewModel's own m_uiThrottleTimer.
+    QTimer *m_flushTimer = nullptr;
+    bool m_dirty = false;
 };

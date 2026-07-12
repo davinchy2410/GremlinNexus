@@ -33,6 +33,21 @@ public:
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
 
+    /// Fase (bugfix - profile save data loss): this override was missing
+    /// entirely - every other IActionHandler subclass has one, but this one
+    /// fell through to IActionHandler's own default (an empty object, no
+    /// "actionType"), which makes ProfileManager::serializeProfile() skip
+    /// the binding outright (with only a qWarning - easy to miss) instead
+    /// of writing it to the saved profile. A Trim binding worked perfectly
+    /// all session, then silently vanished from the JSON on save/reload.
+    /// "parameters.initialValue" is written as m_currentValue (the trim's
+    /// *live* running position), not whatever initialValue the binding was
+    /// originally constructed with - a trim wheel is meant to hold wherever
+    /// the pilot left it across a save/reload, not snap back to its
+    /// starting point every time (same reasoning a real flight-sim's trim
+    /// state survives a restart).
+    QJsonObject toJson() const override;
+
 private:
     std::shared_ptr<IVirtualOutputDevice> m_target;
     int m_targetAxis;

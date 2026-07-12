@@ -36,11 +36,21 @@ import GremblingNexus
 // click-and-drag reordering (see the delegate's DragHandler below) actually
 // work: swapping the dragged row into a new slot mid-gesture would kill the
 // drag itself if the delegate were destroyed and rebuilt in the process.
-// Every row always carries the same five roles - type/scanCode/waitMs/
-// targetAction/label - regardless of which of the six MacroStep kinds it
-// represents (unused roles for a given kind just sit at their placeholder
-// default), because ListModel fixes its role set from the very first
-// append() and silently drops any key not present in that first row.
+// Every row always carries the same seven roles - type/scanCode/waitMs/
+// targetAction/buttonIndex/targetOutputId/label - regardless of which of
+// the eight MacroStep kinds it represents (unused roles for a given kind
+// just sit at their placeholder default), because ListModel fixes its role
+// set from the very first append() and silently drops any key not present
+// in that first row.
+//
+// Joystick buttons (feature request): a PressButton/ReleaseButton step
+// targets a *specific* vJoy/ViGEm device (buttonIndex + targetOutputId),
+// not just "whatever's bound" - MacroHandler itself only has one such
+// target for its entire step sequence (see MacroHandler.h), so
+// root.macroTargetOutputId/macroTargetIsVigem track whichever device the
+// first recorded button step locked in; a later button that resolves to a
+// *different* device is rejected (see onButtonStepRecorded below) rather
+// than silently producing a macro that can't represent what was recorded.
 Popup {
     id: root
 
@@ -59,6 +69,26 @@ Popup {
     /// Sprint 6: see the file-level comment above for what this toggles -
     /// set by openFor()/openEmbedded(), read only by the Apply button below.
     property bool embeddedMode: false
+
+    /// The vJoy/ViGEm device this macro's PressButton/ReleaseButton steps
+    /// (if any) target - 0 means "none yet" (see the file-level comment
+    /// above on why there can only be one). Set from the restored binding's
+    /// own top-level "targetOutputId" in openFor(), or from the first
+    /// recorded button step in onButtonStepRecorded below.
+    property int macroTargetOutputId: 0
+    property bool macroTargetIsVigem: false
+
+    /// Short-lived warning surfaced in place of the recording status line
+    /// (see recorderWarningTimer below) - e.g. "that button isn't a direct
+    /// vJoy assignment" from MacroRecorderViewModel::buttonRecordSkipped(),
+    /// or a same-macro device-conflict rejection from onButtonStepRecorded.
+    property string recorderWarning: ""
+
+    Timer {
+        id: recorderWarningTimer
+        interval: 2500
+        onTriggered: root.recorderWarning = ""
+    }
 
     /// Fixed delegate height - both the ListView delegate itself and the
     /// drag-reorder threshold math below key off this same constant, so a
@@ -113,19 +143,26 @@ Popup {
     /// display shape - synthesizing a human-readable "label" for whichever
     /// steps don't carry one on the wire (every step except a freshly
     /// live-recorded key, which is never what this function is fed).
-    function stepsFromWireArray(rawSteps) {
+    function stepsFromWireArray(rawSteps, targetOutputId) {
         return (rawSteps || []).map((s) => {
             if (s.type === "Wait") {
-                return { type: "Wait", scanCode: 0, waitMs: s.waitMs || 0, targetAction: "", label: "" };
+                return { type: "Wait", scanCode: 0, waitMs: s.waitMs || 0, targetAction: "",
+                    buttonIndex: 0, targetOutputId: 0, label: "" };
             }
             if (s.type === "PressKey" || s.type === "ReleaseKey") {
                 const scanCode = s.scanCode || 0;
                 return { type: s.type, scanCode: scanCode, waitMs: 0, targetAction: "",
-                    label: "Key 0x" + scanCode.toString(16) };
+                    buttonIndex: 0, targetOutputId: 0, label: "Key 0x" + scanCode.toString(16) };
             }
             if (s.type === "PressMouseButton" || s.type === "ReleaseMouseButton" || s.type === "MouseScroll") {
                 const action = s.targetAction || "Left";
-                return { type: s.type, scanCode: 0, waitMs: 0, targetAction: action, label: action };
+                return { type: s.type, scanCode: 0, waitMs: 0, targetAction: action,
+                    buttonIndex: 0, targetOutputId: 0, label: action };
+            }
+            if (s.type === "PressButton" || s.type === "ReleaseButton") {
+                const btn = s.buttonIndex || 0;
+                return { type: s.type, scanCode: 0, waitMs: 0, targetAction: "",
+                    buttonIndex: btn, targetOutputId: targetOutputId || 0, label: qsTr("Button ") + (btn + 1) };
             }
             return null; // Unrecognized step type - dropped rather than crashing the popup open.
         }).filter((s) => s !== null);
@@ -153,6 +190,8 @@ Popup {
                 result.push({ type: "Wait", waitMs: s.waitMs });
             } else if (s.type === "PressKey" || s.type === "ReleaseKey") {
                 result.push({ type: s.type, scanCode: s.scanCode });
+            } else if (s.type === "PressButton" || s.type === "ReleaseButton") {
+                result.push({ type: s.type, buttonIndex: s.buttonIndex });
             } else {
                 result.push({ type: s.type, targetAction: s.targetAction });
             }
@@ -171,7 +210,121 @@ Popup {
         case "PressMouseButton": return qsTr("Mouse Down: ") + label;
         case "ReleaseMouseButton": return qsTr("Mouse Up: ") + label;
         case "MouseScroll": return targetAction === "ScrollUp" ? qsTr("Scroll Up") : qsTr("Scroll Down");
+        case "PressButton": return qsTr("vJoy Down: ") + label;
+        case "ReleaseButton": return qsTr("vJoy Up: ") + label;
         default: return label;
+        }
+    }
+
+    /// Identifies which Press/Release step a given row would pair with -
+    /// same scan code for keyboard, same targetAction for mouse, same
+    /// (targetOutputId, buttonIndex) for a vJoy button (Feature: reorder
+    /// guard below) - or null for a step with no press/release concept at
+    /// all (Wait, MouseScroll), which orderKeepsPressBeforeRelease() below
+    /// simply ignores.
+    function stepGroupId(s) {
+        if (s.type === "PressKey" || s.type === "ReleaseKey") return "key:" + s.scanCode;
+        if (s.type === "PressMouseButton" || s.type === "ReleaseMouseButton") return "mouse:" + s.targetAction;
+        if (s.type === "PressButton" || s.type === "ReleaseButton") return "btn:" + s.targetOutputId + ":" + s.buttonIndex;
+        return null;
+    }
+
+    /// True if, reading orderedSteps top to bottom, every Release is
+    /// preceded by a still-unmatched Press of the same key/button/mouse
+    /// action (running per-group balance, like matching parentheses - two
+    /// Press/Release pairs of the *same* key can coexist in one sequence,
+    /// e.g. a double-tap macro, so this can't just check "is there a Press
+    /// anywhere earlier"). Used by the drag-reorder handler below to refuse
+    /// a swap that would put a Release before its own Press - playing back
+    /// a Release with no Press first would leave that key/button/mouse
+    /// action stuck logically "held" in whatever backend receives it,
+    /// exactly the risk a manually-dragged step could otherwise introduce.
+    function orderKeepsPressBeforeRelease(orderedSteps) {
+        const balance = {};
+        for (const s of orderedSteps) {
+            const groupId = stepGroupId(s);
+            if (groupId === null) {
+                continue;
+            }
+            const isPress = s.type === "PressKey" || s.type === "PressMouseButton" || s.type === "PressButton";
+            if (isPress) {
+                balance[groupId] = (balance[groupId] || 0) + 1;
+            } else {
+                const current = balance[groupId] || 0;
+                if (current <= 0) {
+                    return false;
+                }
+                balance[groupId] = current - 1;
+            }
+        }
+        return true;
+    }
+
+    /// Finds the step that pairs with steps[index] - the matching Release
+    /// for a Press, or the matching Press for a Release - using proper
+    /// bracket-matching (a running per-group depth counter, not just "the
+    /// nearest one"), so it still finds the *correct* partner when the same
+    /// key/button/mouse action appears more than once in the sequence (e.g.
+    /// a double-tap macro: Press,Release,Press,Release - deleting the
+    /// second Press must not grab the first Release). -1 if steps[index]
+    /// has no pairing concept (Wait, MouseScroll) or is already unpaired
+    /// (e.g. a malformed/legacy sequence). Used by the delete button below
+    /// so removing either half of a pair removes both, instead of leaving
+    /// a lone Release with nothing to precede it (see
+    /// orderKeepsPressBeforeRelease()'s own docs on why that's a real risk,
+    /// not just cosmetic) or a lone Press that never releases.
+    function findPairedStepIndex(steps, index) {
+        const s = steps[index];
+        const groupId = stepGroupId(s);
+        if (groupId === null) {
+            return -1;
+        }
+        const isPress = s.type === "PressKey" || s.type === "PressMouseButton" || s.type === "PressButton";
+        let depth = 1;
+        if (isPress) {
+            for (let i = index + 1; i < steps.length; i++) {
+                if (stepGroupId(steps[i]) !== groupId) {
+                    continue;
+                }
+                const otherIsPress = steps[i].type === "PressKey" || steps[i].type === "PressMouseButton" || steps[i].type === "PressButton";
+                depth += otherIsPress ? 1 : -1;
+                if (depth === 0) {
+                    return i;
+                }
+            }
+        } else {
+            for (let i = index - 1; i >= 0; i--) {
+                if (stepGroupId(steps[i]) !== groupId) {
+                    continue;
+                }
+                const otherIsPress = steps[i].type === "PressKey" || steps[i].type === "PressMouseButton" || steps[i].type === "PressButton";
+                depth += otherIsPress ? -1 : 1;
+                if (depth === 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /// Deletes index from stepsModel - and, if it's one half of a Press/
+    /// Release pair (see findPairedStepIndex()), its partner too, in one
+    /// click, so the "×" button can never leave a dangling unpaired step
+    /// behind. Shared by every macro editor surface (standalone Macro tab
+    /// and Tempo-embedded), since both use this same delegate.
+    function deleteStepWithPartner(index) {
+        const snapshot = [];
+        for (let i = 0; i < stepsModel.count; i++) {
+            snapshot.push(stepsModel.get(i));
+        }
+        const partnerIndex = findPairedStepIndex(snapshot, index);
+        if (partnerIndex >= 0) {
+            const first = Math.min(index, partnerIndex);
+            const second = Math.max(index, partnerIndex);
+            stepsModel.remove(second);
+            stepsModel.remove(first);
+        } else {
+            stepsModel.remove(index);
         }
     }
 
@@ -179,6 +332,9 @@ Popup {
         root.devicePath = devicePath_;
         root.inputName = inputName_;
         root.embeddedMode = false;
+        root.macroTargetOutputId = 0;
+        root.macroTargetIsVigem = false;
+        root.recorderWarning = "";
         macroRecorder.stopRecording();
 
         // Fase (UI overhaul): re-populate from whatever MacroHandler is
@@ -192,7 +348,9 @@ Popup {
             try {
                 const actionData = JSON.parse(existingJsonStr);
                 if (actionData.actionType === "MacroHandler" && actionData.parameters) {
-                    restored = stepsFromWireArray(actionData.parameters.steps);
+                    restored = stepsFromWireArray(actionData.parameters.steps, actionData.targetOutputId || 0);
+                    root.macroTargetOutputId = actionData.targetOutputId || 0;
+                    root.macroTargetIsVigem = actionData.targetDeviceType === "vigem";
                 }
             } catch (e) {
                 restored = []; // Malformed JSON - same tolerant fallback as every other restore path.
@@ -208,11 +366,14 @@ Popup {
     /// macroSteps (the same wire shape MacroHandler::toJson() writes - see
     /// extractTempoActions() - not the live-recording shape), so re-opening
     /// an already-recorded row shows what's there instead of starting blank.
-    function openEmbedded(existingSteps) {
+    function openEmbedded(existingSteps, targetOutputId, targetIsVigem) {
         root.devicePath = "";
         root.inputName = qsTr("Tempo cascade step");
         root.embeddedMode = true;
-        loadStepsIntoModel(stepsFromWireArray(existingSteps || []));
+        root.macroTargetOutputId = targetOutputId || 0;
+        root.macroTargetIsVigem = targetIsVigem || false;
+        root.recorderWarning = "";
+        loadStepsIntoModel(stepsFromWireArray(existingSteps || [], root.macroTargetOutputId));
         macroRecorder.stopRecording();
         root.open();
     }
@@ -227,10 +388,36 @@ Popup {
         target: macroRecorder
         function onStepRecorded(kind, scanCode, waitMs, label) {
             if (kind === "Wait") {
-                stepsModel.append({ type: "Wait", scanCode: 0, waitMs: waitMs, targetAction: "", label: "" });
+                stepsModel.append({ type: "Wait", scanCode: 0, waitMs: waitMs, targetAction: "",
+                    buttonIndex: 0, targetOutputId: 0, label: "" });
             } else {
-                stepsModel.append({ type: kind, scanCode: scanCode, waitMs: 0, targetAction: "", label: label });
+                stepsModel.append({ type: kind, scanCode: scanCode, waitMs: 0, targetAction: "",
+                    buttonIndex: 0, targetOutputId: 0, label: label });
             }
+        }
+
+        /// Joystick buttons (feature request): only reached for a button
+        /// that resolved to a direct ButtonRemapHandler (see
+        /// MacroRecorderViewModel::onButtonPressed()) - a plain vJoy target/
+        /// button pair. Rejects (with a warning, not a silently-wrong step)
+        /// a button that would point this macro's PressButton/ReleaseButton
+        /// steps at a *different* device than one already locked in - see
+        /// the file-level comment on why MacroHandler can't represent that.
+        function onButtonStepRecorded(kind, targetOutputId, isVigemTarget, buttonIndex, label) {
+            if (root.macroTargetOutputId !== 0 && root.macroTargetOutputId !== targetOutputId) {
+                root.recorderWarning = qsTr("That button targets a different vJoy device than this macro already uses - not recorded.");
+                recorderWarningTimer.restart();
+                return;
+            }
+            root.macroTargetOutputId = targetOutputId;
+            root.macroTargetIsVigem = isVigemTarget;
+            stepsModel.append({ type: kind, scanCode: 0, waitMs: 0, targetAction: "",
+                buttonIndex: buttonIndex, targetOutputId: targetOutputId, label: label });
+        }
+
+        function onButtonRecordSkipped(reason) {
+            root.recorderWarning = reason;
+            recorderWarningTimer.restart();
         }
     }
 
@@ -314,10 +501,11 @@ Popup {
             }
 
             Text {
-                text: macroRecorder.recording
-                    ? qsTr("Recording… press and release keys now")
-                    : qsTr("Click Record, then press the keys for this macro")
-                color: macroRecorder.recording ? Theme.success : Theme.subtext0
+                text: root.recorderWarning !== "" ? root.recorderWarning
+                    : macroRecorder.recording
+                        ? qsTr("Recording… press keys or joystick buttons now")
+                        : qsTr("Click Record, then press keys or joystick buttons for this macro")
+                color: root.recorderWarning !== "" ? Theme.warning : (macroRecorder.recording ? Theme.success : Theme.subtext0)
                 font.pixelSize: 12
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
@@ -417,9 +605,24 @@ Popup {
                                 const from = stepRow.index;
                                 const to = Math.max(0, Math.min(stepsModel.count - 1, from + shift));
                                 if (to !== from) {
-                                    stepsModel.move(from, to, 1);
-                                    consumedTranslation += (to - from) * root.rowHeight;
-                                    dragTranslate.y = translation.y - consumedTranslation;
+                                    // Reorder guard (Feature): simulate the move first - if
+                                    // it would put some Release before its own matching
+                                    // Press (see orderKeepsPressBeforeRelease()'s own docs),
+                                    // refuse it. The row still visually follows the pointer
+                                    // (dragTranslate.y is already set above) - it just won't
+                                    // swap past this particular boundary.
+                                    const snapshot = [];
+                                    for (let i = 0; i < stepsModel.count; i++) {
+                                        snapshot.push(stepsModel.get(i));
+                                    }
+                                    const simulated = snapshot.slice();
+                                    const [movedItem] = simulated.splice(from, 1);
+                                    simulated.splice(to, 0, movedItem);
+                                    if (root.orderKeepsPressBeforeRelease(simulated)) {
+                                        stepsModel.move(from, to, 1);
+                                        consumedTranslation += (to - from) * root.rowHeight;
+                                        dragTranslate.y = translation.y - consumedTranslation;
+                                    }
                                 }
                             }
                         }
@@ -474,7 +677,7 @@ Popup {
                         ToolButton {
                             label: qsTr("×")
                             Layout.preferredWidth: 24
-                            onClicked: stepsModel.remove(stepRow.index)
+                            onClicked: root.deleteStepWithPartner(stepRow.index)
                         }
                     }
                 }
@@ -490,7 +693,8 @@ Popup {
             ToolButton {
                 label: qsTr("+ Wait")
                 Layout.fillWidth: true
-                onClicked: stepsModel.append({ type: "Wait", scanCode: 0, waitMs: 100, targetAction: "", label: "" })
+                onClicked: stepsModel.append({ type: "Wait", scanCode: 0, waitMs: 100, targetAction: "",
+                    buttonIndex: 0, targetOutputId: 0, label: "" })
             }
             ToolButton {
                 label: qsTr("+ Key")
@@ -532,6 +736,12 @@ Popup {
                 opacity: enabled ? 1.0 : 0.5
                 onClicked: {
                     const actionData = {actionType: "MacroHandler", parameters: {steps: root.wireStepsFromModel()}};
+                    if (root.macroTargetOutputId !== 0) {
+                        actionData.targetOutputId = root.macroTargetOutputId;
+                        if (root.macroTargetIsVigem) {
+                            actionData.targetDeviceType = "vigem";
+                        }
+                    }
 
                     if (root.embeddedMode) {
                         // No physical input to bindAction() against - hand
@@ -648,8 +858,10 @@ Popup {
                     onClicked: {
                         const scanCode = insertKeyPopup.capturedScanCode;
                         const lbl = insertKeyPopup.capturedLabel;
-                        stepsModel.append({ type: "PressKey", scanCode: scanCode, waitMs: 0, targetAction: "", label: lbl });
-                        stepsModel.append({ type: "ReleaseKey", scanCode: scanCode, waitMs: 0, targetAction: "", label: lbl });
+                        stepsModel.append({ type: "PressKey", scanCode: scanCode, waitMs: 0, targetAction: "",
+                            buttonIndex: 0, targetOutputId: 0, label: lbl });
+                        stepsModel.append({ type: "ReleaseKey", scanCode: scanCode, waitMs: 0, targetAction: "",
+                            buttonIndex: 0, targetOutputId: 0, label: lbl });
                         insertKeyPopup.close();
                     }
                 }
@@ -707,12 +919,15 @@ Popup {
                     onClicked: {
                         if (modelData.scroll) {
                             stepsModel.append({ type: "MouseScroll", scanCode: 0, waitMs: 0,
-                                targetAction: modelData.action, label: modelData.action });
+                                targetAction: modelData.action, buttonIndex: 0, targetOutputId: 0,
+                                label: modelData.action });
                         } else {
                             stepsModel.append({ type: "PressMouseButton", scanCode: 0, waitMs: 0,
-                                targetAction: modelData.action, label: modelData.action });
+                                targetAction: modelData.action, buttonIndex: 0, targetOutputId: 0,
+                                label: modelData.action });
                             stepsModel.append({ type: "ReleaseMouseButton", scanCode: 0, waitMs: 0,
-                                targetAction: modelData.action, label: modelData.action });
+                                targetAction: modelData.action, buttonIndex: 0, targetOutputId: 0,
+                                label: modelData.action });
                         }
                         insertMousePopup.close();
                     }

@@ -8,15 +8,16 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QStringList>
-#include <QTimer>
 #include <QUrl>
 
 #include <QQmlEngine>
+#include <QSettings>
 #include <QtQml/qqml.h>
 
 #include <windows.h>
 #include <objbase.h>
 
+#include "AsyncLogSink.h"
 #include "AutoSwitchManager.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
@@ -120,10 +121,17 @@ int main(int argc, char *argv[])
 
     // Fase 20.5: without an organization/app name registered, QSettings has
     // nowhere to persist "LastProfile" to - the auto-load added in Fase 20.4
-    // silently found nothing to load on every launch.
+    // silently found nothing to load on every launch. Must run before
+    // AsyncLogSink::instance().start() below - that now also reads QSettings
+    // (the debug-logging enabled flag) and needs it scoped correctly too.
     QCoreApplication::setOrganizationName(QStringLiteral("Antigravity"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("antigravity.com"));
     QCoreApplication::setApplicationName(QStringLiteral("GremblingEx"));
+
+    // Only safe to call now - see AsyncLogSink::start()'s own docs for why
+    // this can't happen inside LogModel::install() above (before `app`
+    // exists, QCoreApplication::applicationDirPath() isn't valid yet).
+    AsyncLogSink::instance().start();
 
     // Force the Basic Controls style everywhere: Phase 10's design system is
     // fully custom (dark/glassmorphism), so no native-OS-styled control
@@ -173,18 +181,58 @@ int main(int argc, char *argv[])
     // driver stack is rebuilt. HidHideController::deactivateCloak() here
     // guarantees every device DeviceManager is about to enumerate gets
     // opened for the first time while uncloaked; reactivateCloak() below
-    // (scheduled once startup enumeration has had time to finish) restores
-    // hiding for the rest of the session. Both are safe no-ops if HidHide
-    // isn't installed - see HidHideController's own docs.
-    HidHideController::instance().deactivateCloak();
+    // restores hiding for the rest of the session once startup enumeration
+    // has actually finished. Both are safe no-ops if HidHide isn't
+    // installed - see HidHideController's own docs.
+    //
+    // Confirmed 2026-07-09 (real repro, not theoretical): this was
+    // originally a fixed QTimer::singleShot(2500, ...) guess rather than a
+    // real completion signal, on the assumption that 2.5s comfortably
+    // clears performInitialScan()'s three warmup rescans (500/1000/2000ms).
+    // That guess raced and lost at least twice - once on the very first
+    // launch after a full PC reboot, once on an ordinary launch while the
+    // machine was under heavier load than usual (another build running
+    // concurrently) - reactivating the cloak before the worker thread's
+    // slower-than-usual scan had actually finished opening every device,
+    // silently reproducing the exact bug this sequencing exists to prevent
+    // (with no error logged anywhere, since nothing here failed - it just
+    // raced). DeviceManager::initialScanComplete() now fires only once the
+    // real last warmup scan has finished running, however long that
+    // actually took.
+    //
+    // Fase (Settings toggle - faster startup): a user who doesn't use
+    // HidHide's cloak feature at all pays for this sequencing anyway - see
+    // DeviceMonitorWorker::startMonitoring()'s own docs for the ~2s of
+    // extra warmup rescans that exist purely to let a cloak/uncloak cycle
+    // settle. "HidHide/AutoCloakManagement" (also exposed as
+    // SettingsViewModel::hidHideAutoCloakEnabled - keep the key in sync
+    // across both) defaults to true so an existing HidHide user's
+    // zombie-lock protection stays on unless they explicitly opt out.
+    //
+    // Fase (auto-detect Inverse whitelist mode): even with the Settings
+    // toggle left on, the dance itself is only needed against HidHide's
+    // *default* whitelist mode's first-open race (see HidHideController's
+    // own class docs). In "Inverse application cloak" mode that race can't
+    // happen - the internal Windows "System" process (and this app, never
+    // itself blacklisted) always gets through regardless of cloak timing -
+    // so a user who's switched to Inverse mode in HidHide's own
+    // Configuration Client gets this skipped automatically too, with no
+    // Settings change of their own required. isWhitelistInverseEnabled()
+    // is a single fast IOCTL query, safe to call even before deciding
+    // anything else HidHide-related.
+    const bool hidHideAutoCloakEnabled =
+        QSettings().value(QStringLiteral("HidHide/AutoCloakManagement"), true).toBool() &&
+        !HidHideController::instance().isWhitelistInverseEnabled();
+    if (hidHideAutoCloakEnabled) {
+        HidHideController::instance().deactivateCloak();
+    }
 
-    DeviceManager::instance().initialize();
+    DeviceManager::instance().initialize(hidHideAutoCloakEnabled);
 
-    // 2.5s comfortably clears performInitialScan()'s own three warmup
-    // rescans (500/1000/2000ms - see DeviceMonitorWorker::
-    // scheduleStartupWarmupScans()), so every device already found by then
-    // has already had its first, uncloaked open before the cloak comes back.
-    QTimer::singleShot(2500, &app, []() { HidHideController::instance().reactivateCloak(); });
+    if (hidHideAutoCloakEnabled) {
+        QObject::connect(&DeviceManager::instance(), &DeviceManager::initialScanComplete, &app,
+                          []() { HidHideController::instance().reactivateCloak(); });
+    }
 
     // The 200 Hz output tick (Phase 4), per EventRouter's documented
     // threading model - runs on this (main) thread's event loop once
@@ -281,7 +329,7 @@ int main(int argc, char *argv[])
     CurveEditorViewModel curveEditorViewModel;
     DeviceTesterViewModel deviceTesterViewModel;
     EngineViewModel engineViewModel(router);
-    MacroRecorderViewModel macroRecorderViewModel;
+    MacroRecorderViewModel macroRecorderViewModel(router);
 
     // Fase 11: shares profileEditorViewModel's own ProfileManager instance
     // (rather than owning a second one) so a calibration captured here is
@@ -350,6 +398,14 @@ int main(int argc, char *argv[])
     }
 
     logShutdownTrace(QStringLiteral("main: about to return %1 to the CRT").arg(exitCode));
+
+    // Last, after every other subsystem (and every qDebug()/qInfo() call
+    // they could still make during their own teardown) is done - flushes
+    // and closes this session's log file, and joins AsyncLogSink's thread.
+    // Same reasoning as DeviceManager::shutdown() above: must run
+    // explicitly here, not via a static destructor that could fire via
+    // atexit() after qApp has already unwound.
+    AsyncLogSink::instance().shutdown();
 
     return exitCode;
 }

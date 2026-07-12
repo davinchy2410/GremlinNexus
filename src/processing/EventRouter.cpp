@@ -1,6 +1,7 @@
 #include "EventRouter.h"
 
 #include <chrono>
+#include <iterator>
 #include <utility>
 
 #include <QDebug>
@@ -15,6 +16,21 @@
 
 namespace {
 constexpr int kTickIntervalMs = 5; // 200 Hz output poll rate.
+
+/// Some devices (seen on VKB sticks) expose the same physical button through
+/// a second, generic HID collection interface (systemPath containing
+/// "HIDCLASS&Col") in addition to their real vendor-specific VID/PID
+/// interface - Windows reports a duplicate press event on that shadow
+/// interface for every real one. Profiles only ever bind against the real
+/// VID/PID path, so the shadow interface's event legitimately never has a
+/// handler; logging "NO handler found" for it every single press was just
+/// noise (the real interface's own press, logged right alongside it, is what
+/// actually drives the handler) that made a user's session log look like a
+/// binding problem when nothing was actually broken.
+bool isShadowHidInterface(const QString &systemPath)
+{
+    return systemPath.contains(QStringLiteral("HIDCLASS&Col"), Qt::CaseInsensitive);
+}
 }
 
 const QString EventRouter::kGlobalMode = QStringLiteral("Global");
@@ -136,6 +152,31 @@ QString EventRouter::currentMode() const
     return m_currentMode;
 }
 
+void EventRouter::pushTemporaryMode(const void *owner, const QString &targetMode)
+{
+    if (m_modeStack.empty()) {
+        m_modeStackBaseMode = currentMode();
+    }
+    m_modeStack.emplace_back(owner, targetMode);
+    setMode(targetMode);
+}
+
+void EventRouter::popTemporaryMode(const void *owner)
+{
+    for (auto it = m_modeStack.rbegin(); it != m_modeStack.rend(); ++it) {
+        if (it->first == owner) {
+            const bool wasTop = (it == m_modeStack.rbegin());
+            // rbegin()-based reverse_iterator -> base() is the corresponding
+            // forward iterator one element ahead; erase() needs the forward one.
+            m_modeStack.erase(std::next(it).base());
+            if (wasTop) {
+                setMode(m_modeStack.empty() ? m_modeStackBaseMode : m_modeStack.back().second);
+            }
+            return;
+        }
+    }
+}
+
 void EventRouter::setModeParent(const QString &child, const QString &parent)
 {
     if (child.isEmpty() || child == kGlobalMode) {
@@ -176,6 +217,9 @@ void EventRouter::reevaluateHeldState(const QString &excludeSystemPath, int excl
 
         auto it = m_activeButtonHandlers.find(key);
         if (it != m_activeButtonHandlers.end()) {
+            qInfo() << "EventRouter: reevaluateHeldState re-releasing button" << key.second << "on" << key.first
+                     << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
+                     << excludeSystemPath << ")";
             const ButtonEvent releaseEvt{key.first, key.second, false};
             for (const auto &handler : it->second) {
                 handler->processButton(releaseEvt);
@@ -186,6 +230,9 @@ void EventRouter::reevaluateHeldState(const QString &excludeSystemPath, int excl
         const ButtonEvent pressEvt{key.first, key.second, true};
         std::vector<std::shared_ptr<IActionHandler>> handlers;
         if (const auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, key.first, key.second)) {
+            qInfo() << "EventRouter: reevaluateHeldState re-pressing button" << key.second << "on" << key.first
+                     << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
+                     << excludeSystemPath << ")";
             handler->processButton(pressEvt);
             handlers.push_back(handler);
         }
@@ -216,6 +263,12 @@ int EventRouter::getAxisValue(const QString &systemPath, int axisIndex) const
 {
     const auto it = m_axisStates.find(RouteKey{systemPath, axisIndex});
     return it != m_axisStates.end() ? it->second : 32767;
+}
+
+std::shared_ptr<IActionHandler> EventRouter::resolveButtonHandlerForCurrentMode(const QString &systemPath,
+                                                                                  int buttonIndex) const
+{
+    return resolveHandlerWithFallback(m_buttonRoutesByMode, currentMode(), systemPath, buttonIndex);
 }
 
 void EventRouter::onAxisMoved(const QString &systemPath, int axisIndex, int value)
@@ -305,11 +358,13 @@ void EventRouter::onButtonPressed(const QString &systemPath, int buttonIndex, bo
     if (pressed) {
         std::vector<std::shared_ptr<IActionHandler>> handlers;
         if (const auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, systemPath, buttonIndex)) {
-            qInfo() << "EventRouter: Button" << buttonIndex << "pressed. Executing handler resolved via mode cascade from:" << activeMode;
+            qInfo() << "EventRouter: Button" << buttonIndex << "on" << systemPath
+                    << "pressed. Executing handler resolved via mode cascade from:" << activeMode;
             handler->processButton(evt);
             handlers.push_back(handler);
-        } else {
-            qInfo() << "EventRouter: Button" << buttonIndex << "pressed. NO handler found anywhere in the mode cascade from" << activeMode;
+        } else if (!isShadowHidInterface(systemPath)) {
+            qInfo() << "EventRouter: Button" << buttonIndex << "on" << systemPath
+                    << "pressed. NO handler found anywhere in the mode cascade from" << activeMode;
         }
         if (!handlers.empty()) {
             m_activeButtonHandlers[key] = std::move(handlers);
@@ -317,7 +372,8 @@ void EventRouter::onButtonPressed(const QString &systemPath, int buttonIndex, bo
     } else {
         auto it = m_activeButtonHandlers.find(key);
         if (it != m_activeButtonHandlers.end()) {
-            qInfo() << "EventRouter: Button" << buttonIndex << "released. Found" << it->second.size() << "tracked handler(s) from previous press.";
+            qInfo() << "EventRouter: Button" << buttonIndex << "on" << systemPath
+                    << "released. Found" << it->second.size() << "tracked handler(s) from previous press.";
             for (const auto &handler : it->second) {
                 handler->processButton(evt);
             }
@@ -325,7 +381,8 @@ void EventRouter::onButtonPressed(const QString &systemPath, int buttonIndex, bo
         } else {
             // Fallback for buttons already held before the router or profile loaded
             if (const auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, systemPath, buttonIndex)) {
-                qInfo() << "EventRouter: Button" << buttonIndex << "released (untracked). Executing handler resolved via mode cascade from:" << activeMode;
+                qInfo() << "EventRouter: Button" << buttonIndex << "on" << systemPath
+                        << "released (untracked). Executing handler resolved via mode cascade from:" << activeMode;
                 handler->processButton(evt);
             }
         }

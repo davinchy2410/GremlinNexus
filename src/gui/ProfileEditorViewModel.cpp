@@ -477,6 +477,18 @@ QVariant ProfileEditorViewModel::data(const QModelIndex &index, int role) const
     case VendorProductRole: return device.vendorProduct;
     case SystemPathRole: return device.systemPath;
     case InputsRole: return device.inputs;
+    case TesterDisplayNameRole: {
+        if (!device.name.contains(QStringLiteral("vjoy"), Qt::CaseInsensitive)) {
+            return device.name;
+        }
+        int vjoyOrdinal = 0;
+        for (int row = 0; row <= index.row(); ++row) {
+            if (m_devices.at(row).name.contains(QStringLiteral("vjoy"), Qt::CaseInsensitive)) {
+                ++vjoyOrdinal;
+            }
+        }
+        return tr("vJoy %1 Output").arg(vjoyOrdinal);
+    }
     default: return {};
     }
 }
@@ -488,6 +500,7 @@ QHash<int, QByteArray> ProfileEditorViewModel::roleNames() const
         {VendorProductRole, "vendorProduct"},
         {SystemPathRole, "systemPath"},
         {InputsRole, "inputs"},
+        {TesterDisplayNameRole, "testerDisplayName"},
     };
 }
 
@@ -1456,6 +1469,18 @@ void ProfileEditorViewModel::onAxisMovedForDetection(const QString &systemPath, 
     }
     const DeviceEntry &entry = m_devices.at(deviceRow);
 
+    // Fase (bugfix): Quick Bind used to react to vJoy's own virtual devices
+    // too - DeviceManager enumerates them via RawInput exactly like any
+    // physical joystick, so whenever a game (or Nexus's own output writes)
+    // moved a vJoy axis, Quick Bind would jump the Profiles screen over to
+    // that vJoy tab and highlight it as if the user had just wiggled a real
+    // stick. vJoy devices are outputs, never something to bind FROM - same
+    // "vjoy" substring check DeviceTesterViewModel already uses to label
+    // them.
+    if (entry.name.contains(QStringLiteral("vjoy"), Qt::CaseInsensitive)) {
+        return;
+    }
+
     // Fase 16.7: axisIndex is true-analog-axes only now - a POV hat comes
     // through onButtonPressedForDetection() instead (DeviceManager reports
     // it as 4 synthetic buttons, not a fake axis).
@@ -1499,6 +1524,13 @@ void ProfileEditorViewModel::onButtonPressedForDetection(const QString &systemPa
         return;
     }
     const DeviceEntry &entry = m_devices.at(deviceRow);
+
+    // Fase (bugfix): see onAxisMovedForDetection()'s own docs - Quick Bind
+    // must never react to vJoy's own virtual devices.
+    if (entry.name.contains(QStringLiteral("vjoy"), Qt::CaseInsensitive)) {
+        return;
+    }
+
     if (buttonIndex < 0 || buttonIndex >= entry.numButtons) {
         return;
     }

@@ -174,8 +174,16 @@ class DeviceMonitorWorker : public QObject
     Q_OBJECT
 
 public:
-    explicit DeviceMonitorWorker(QObject *parent = nullptr)
+    /// hidHideWarmupEnabled: whether startMonitoring() should run the extra
+    /// staggered warmup rescans scheduleStartupWarmupScans() exists purely
+    /// for (see that method's own docs - they only matter for a HidHide
+    /// uncloak/recloak cycle settling). Read once in DeviceManager::
+    /// initialize() (main thread, before this worker is moved off it) and
+    /// passed in here rather than each having their own QSettings read, so
+    /// there's exactly one place this setting is resolved from disk.
+    explicit DeviceMonitorWorker(bool hidHideWarmupEnabled, QObject *parent = nullptr)
         : QObject(parent)
+        , m_hidHideWarmupEnabled(hidHideWarmupEnabled)
     {
     }
 
@@ -205,7 +213,21 @@ public slots:
         registerForDeviceNotifications();
         registerForRawInput();
         performInitialScan();
-        scheduleStartupWarmupScans();
+        if (m_hidHideWarmupEnabled) {
+            scheduleStartupWarmupScans();
+        } else {
+            // Fase (Settings toggle - faster startup): the warmup rescans
+            // scheduleStartupWarmupScans() runs exist purely to give a
+            // HidHide uncloak/recloak cycle time to settle (see that
+            // method's own docs) - with HidHide auto-cloak management
+            // turned off in Settings, main.cpp never touches the cloak at
+            // all, so there is nothing for those extra ~2s of rescans to
+            // wait out. startupScanComplete() still fires (immediately)
+            // since main.cpp's reactivateCloak() connection is harmless to
+            // leave wired either way - HidHideController itself no-ops if
+            // deactivateCloak() was never called this run.
+            emit startupScanComplete();
+        }
 
         // Created here (not in the constructor) so it's already parented on
         // this worker's own thread - see the class docs above for why this
@@ -213,6 +235,14 @@ public slots:
         m_axisFlushTimer = new QTimer(this);
         connect(m_axisFlushTimer, &QTimer::timeout, this, &DeviceMonitorWorker::flushPendingAxisEvents);
         m_axisFlushTimer->start(kAxisFlushIntervalMs);
+
+        // Debounce for a burst of WM_DEVICECHANGE arrivals - see
+        // handleWindowMessage()'s own docs on why this exists. Single-shot:
+        // each arrival restarts the countdown, so it only ever fires once
+        // per burst, after things settle.
+        m_arrivalDebounceTimer = new QTimer(this);
+        m_arrivalDebounceTimer->setSingleShot(true);
+        connect(m_arrivalDebounceTimer, &QTimer::timeout, this, &DeviceMonitorWorker::performInitialScan);
     }
 
     /**
@@ -234,6 +264,9 @@ public slots:
     {
         if (m_axisFlushTimer) {
             m_axisFlushTimer->stop();
+        }
+        if (m_arrivalDebounceTimer) {
+            m_arrivalDebounceTimer->stop();
         }
 
         if (m_deviceNotifyHandle) {
@@ -284,6 +317,17 @@ signals:
     /// simultaneously with the buttons it's meant to gate, instead of only
     /// seeing them one at a time via the buttonPressed() signal above.
     void buttonsChanged(const QVector<ButtonEvent> &events);
+
+    /// Fires once the LAST scheduled startup warmup rescan (see
+    /// scheduleStartupWarmupScans()) has actually finished running - not a
+    /// fixed delay guess. main.cpp uses this to know when it's safe to
+    /// re-enable HidHide's cloak (see HidHideController) without racing a
+    /// scan that's still in progress on a loaded system: a fixed timer
+    /// (the previous approach) could fire before a slow first boot/heavy-
+    /// load scan actually finished opening every device, silently
+    /// reintroducing the exact "device opened for the first time while
+    /// already cloaked" bug that sequencing exists to prevent.
+    void startupScanComplete();
 
 private:
     // -- Setup -------------------------------------------------------------
@@ -400,9 +444,20 @@ private:
     /// destroyed first.
     void scheduleStartupWarmupScans()
     {
-        for (int delayMs : {500, 1000, 2000}) {
+        for (int delayMs : {500, 1000}) {
             QTimer::singleShot(delayMs, this, &DeviceMonitorWorker::performInitialScan);
         }
+        // The last rescan is its own lambda (not just another entry in the
+        // loop above) so startupScanComplete() only fires once this specific
+        // performInitialScan() call has actually returned - i.e. after every
+        // device this scan is ever going to find this run has already had
+        // its GetRawInputDeviceInfoW/queryProductName() calls run to
+        // completion. See the signal's own docs for why this matters more
+        // than it looks like it should.
+        QTimer::singleShot(2000, this, [this]() {
+            performInitialScan();
+            emit startupScanComplete();
+        });
     }
 
     /// Queries capabilities/metadata for hDevice and, if it is a joystick or
@@ -506,10 +561,33 @@ private:
         }
 
         uint32_t hatCount = 0;
+        int diagnosticHatIndex = 0;
         for (const HIDP_VALUE_CAPS &vc : valueCaps) {
             const bool isHat = !vc.IsRange && vc.NotRange.Usage == HID_USAGE_GENERIC_HATSWITCH;
             if (isHat) {
                 hatCount += vc.IsRange ? static_cast<uint32_t>(vc.Range.UsageMax - vc.Range.UsageMin + 1) : 1u;
+
+                // Diagnostic-only (investigating "all hats move together on
+                // a vJoy device" - 2026-07-09): parseHidReport()'s existing
+                // fix for this class of bug disambiguates hat N's own vc
+                // from hat 0..N-1's via vc.LinkCollection, which only works
+                // if the device's report descriptor actually assigns each
+                // hat its own distinct link collection - true for the
+                // physical multi-hat panel that bug was originally fixed
+                // against, unconfirmed for vJoy's own virtual descriptor.
+                // If every hat below logs the SAME LinkCollection value,
+                // that's confirmed as the reason the existing fix doesn't
+                // help here, and NotRange.DataIndex (which is guaranteed
+                // unique per value-caps entry regardless of collection
+                // structure) is the next thing to try disambiguating with
+                // instead.
+                logShutdownTrace(QStringLiteral(
+                    "registerHidDevice: %1 - hat #%2 (valueCaps LinkCollection=%3, DataIndex=%4)")
+                                      .arg(devicePath)
+                                      .arg(diagnosticHatIndex)
+                                      .arg(vc.LinkCollection)
+                                      .arg(vc.NotRange.DataIndex));
+                ++diagnosticHatIndex;
             }
         }
 
@@ -978,12 +1056,77 @@ private:
             buttonBase += rangeCount;
         }
 
+        // Fase (bugfix - vJoy flat descriptor, hats still moving together):
+        // the LinkCollection-based fix below (see its own comment on the
+        // hat branch) assumes every hat lives in its own HID link
+        // collection - true for a physical multi-hat panel, but confirmed
+        // empirically (2026-07-09) NOT true for vJoy's own virtual
+        // descriptor: every value-caps entry on a vJoy device, hats
+        // included, reports LinkCollection=0 - vJoy emits one single flat
+        // top-level collection ("Col01"), never nesting anything under it.
+        // HidP_GetUsageValue(..., vc.LinkCollection, usage, ...) can't tell
+        // vJoy's 4 hats apart in that case - every one of them resolves to
+        // the exact same (UsagePage, LinkCollection=0, Usage) lookup, so
+        // all 4 read back whichever hat's value HidP happens to return
+        // first. HIDP_VALUE_CAPS::NotRange.DataIndex, unlike LinkCollection,
+        // is guaranteed unique per value-caps entry regardless of
+        // collection structure (confirmed: 8/9/10/11 for 4 hats sharing
+        // LinkCollection=0) - HidP_GetData() retrieves this report's raw
+        // value for every control keyed by that same DataIndex, so hats are
+        // resolved through that lookup instead, sidestepping
+        // LinkCollection/Usage ambiguity entirely. Axes keep using
+        // HidP_GetUsageValue below - no evidence (yet) that any axis needs
+        // this same treatment, and HidP_GetData returning every value-typed
+        // control's DataIndex without the axis-standardization this file
+        // already does via axisIndices would need its own separate mapping.
+        ULONG dataListLength = HidP_MaxDataListLength(HidP_Input, preparsedData);
+        std::vector<HIDP_DATA> dataList(dataListLength);
+        const bool haveDataList = dataListLength > 0
+            && HidP_GetData(HidP_Input, dataList.data(), &dataListLength, preparsedData, mutableReport, reportSize)
+                   == HIDP_STATUS_SUCCESS;
+
         std::size_t axisPosition = 0; ///< Indexes ctx.axisIndices - advances once per non-hat position, in lockstep with registerHidDevice()'s own identical iteration order.
         int hatIndex = 0;
         for (const HIDP_VALUE_CAPS &vc : ctx.valueCaps) {
             const bool isHat = !vc.IsRange && vc.NotRange.Usage == HID_USAGE_GENERIC_HATSWITCH;
             const USAGE usageMin = vc.IsRange ? vc.Range.UsageMin : vc.NotRange.Usage;
             const USAGE usageMax = vc.IsRange ? vc.Range.UsageMax : vc.NotRange.Usage;
+
+            if (isHat) {
+                // Always a single (non-range) usage in practice - the
+                // usageMin/usageMax loop below is for axes.
+                ULONG value = 0;
+                bool found = false;
+                if (haveDataList) {
+                    for (ULONG i = 0; i < dataListLength; ++i) {
+                        if (dataList[i].DataIndex == vc.NotRange.DataIndex) {
+                            value = dataList[i].RawValue;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!found) {
+                    ++hatIndex;
+                    continue;
+                }
+
+                bool up = false;
+                bool right = false;
+                bool down = false;
+                bool left = false;
+                decodeHatDirections(value, vc.LogicalMax, up, right, down, left);
+
+                const int base = physicalButtonCount + hatIndex * 4;
+                if (base + 3 < currentButtons.size()) {
+                    currentButtons[base + 0] = up;
+                    currentButtons[base + 1] = right;
+                    currentButtons[base + 2] = down;
+                    currentButtons[base + 3] = left;
+                }
+                ++hatIndex;
+                continue;
+            }
 
             for (int usage = usageMin; usage <= usageMax; ++usage) {
                 // CRITICAL: this position's standardized index is resolved -
@@ -993,52 +1136,15 @@ private:
                 // the advance on failure (the old bug) silently shifted
                 // every subsequent axis in this same report by one index.
                 int index = -1;
-                if (!isHat) {
-                    if (axisPosition < ctx.axisIndices.size()) {
-                        index = ctx.axisIndices[axisPosition];
-                    }
-                    ++axisPosition;
+                if (axisPosition < ctx.axisIndices.size()) {
+                    index = ctx.axisIndices[axisPosition];
                 }
+                ++axisPosition;
 
-                // Fase (bugfix - all hats moving together): a hardcoded 0
-                // here means "give me this UsagePage/Usage's value from
-                // LINK COLLECTION 0", NOT "from whichever collection vc
-                // itself belongs to". A hat switch's usage (Generic Desktop,
-                // Hat Switch) is identical for every hat on a multi-hat
-                // device - the ONLY thing that tells hat 0's own value-caps
-                // entry apart from hat 1/2/3's is which HID link collection
-                // each one lives in (vc.LinkCollection), since each physical
-                // hat is its own collection in the report descriptor. With
-                // this hardcoded to 0, every iteration of this loop for
-                // every hat's own vc asked "what's hat 0's value?" and got
-                // hat 0's own live reading back, four times over - so
-                // decodeHatDirections() below stamped hat 0's real state
-                // into hat 1/2/3's synthetic button slots too, on every
-                // report, regardless of which hat actually moved. Passing
-                // vc.LinkCollection instead correctly scopes each read to
-                // the specific hat vc describes.
                 ULONG value = 0;
                 const NTSTATUS status = HidP_GetUsageValue(HidP_Input, vc.UsagePage, vc.LinkCollection, usage, &value,
                                                              preparsedData, mutableReport, reportSize);
                 if (status != HIDP_STATUS_SUCCESS) {
-                    continue;
-                }
-
-                if (isHat) {
-                    bool up = false;
-                    bool right = false;
-                    bool down = false;
-                    bool left = false;
-                    decodeHatDirections(value, vc.LogicalMax, up, right, down, left);
-
-                    const int base = physicalButtonCount + hatIndex * 4;
-                    if (base + 3 < currentButtons.size()) {
-                        currentButtons[base + 0] = up;
-                        currentButtons[base + 1] = right;
-                        currentButtons[base + 2] = down;
-                        currentButtons[base + 3] = left;
-                    }
-                    ++hatIndex;
                     continue;
                 }
 
@@ -1104,11 +1210,32 @@ private:
                 const auto *hdr = reinterpret_cast<DEV_BROADCAST_HDR *>(lParam);
                 if (hdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
                     if (wParam == DBT_DEVICEARRIVAL) {
-                        performInitialScan();
-                        // RawInput's device list can lag a few milliseconds
-                        // behind the PnP arrival notification; a short
-                        // deferred re-scan catches devices missed above.
-                        QTimer::singleShot(50, this, &DeviceMonitorWorker::performInitialScan);
+                        // Powering on several devices close together (a
+                        // HOTAS+throttle+pedals on one switch/hub) fires one
+                        // WM_DEVICECHANGE per device *interface*, not per
+                        // physical device - often several messages within
+                        // well under a second. performInitialScan() rescans
+                        // and re-registers EVERY currently-known device, not
+                        // just the new one, and each re-registration walks
+                        // the router's full binding table on the UI thread
+                        // (see ProfileEditorViewModel::makeDeviceEntry()) -
+                        // so N arrival messages in a burst used to mean N
+                        // full rescans stacked back to back, visible as a
+                        // brief UI freeze right after a multi-device power-on.
+                        // Debounced instead: the first arrival in a while
+                        // still scans immediately (no added latency for the
+                        // common single-device hotplug), but any arrival
+                        // that follows within m_arrivalDebounceTimer's
+                        // window just restarts it rather than scanning again
+                        // - the whole burst collapses into one immediate
+                        // scan plus one trailing catch-up once it settles
+                        // (which also replaces the old fixed 50ms singleShot
+                        // catch-up below, since the debounce timer already
+                        // covers "RawInput's list lagging behind arrival").
+                        if (!m_arrivalDebounceTimer->isActive()) {
+                            performInitialScan();
+                        }
+                        m_arrivalDebounceTimer->start(120);
                     } else {
                         const auto *iface = reinterpret_cast<const DEV_BROADCAST_DEVICEINTERFACE_W *>(hdr);
                         handleDeviceInterfaceRemoved(QString::fromWCharArray(iface->dbcc_name));
@@ -1165,6 +1292,8 @@ private:
     HWND m_hwnd = nullptr;
     HDEVNOTIFY m_deviceNotifyHandle = nullptr;
     QTimer *m_axisFlushTimer = nullptr;
+    QTimer *m_arrivalDebounceTimer = nullptr;
+    const bool m_hidHideWarmupEnabled;
 
     /// systemPath -> axisIndex -> latest raw value not yet flushed as
     /// axisMoved() - see flushPendingAxisEvents().
@@ -1265,7 +1394,7 @@ void DeviceManager::shutdown()
     logShutdownTrace(QStringLiteral("DeviceManager::shutdown: exit"));
 }
 
-void DeviceManager::initialize()
+void DeviceManager::initialize(bool hidHideWarmupEnabled)
 {
     if (m_initialized) {
         return;
@@ -1273,7 +1402,7 @@ void DeviceManager::initialize()
     m_initialized = true;
 
     m_monitorThread = new QThread(this);
-    m_monitorWorker = new DeviceMonitorWorker();
+    m_monitorWorker = new DeviceMonitorWorker(hidHideWarmupEnabled);
     m_monitorWorker->moveToThread(m_monitorThread);
 
     connect(m_monitorThread, &QThread::started, m_monitorWorker, &DeviceMonitorWorker::startMonitoring);
@@ -1282,6 +1411,7 @@ void DeviceManager::initialize()
     connect(m_monitorWorker, &DeviceMonitorWorker::axisMoved, this, &DeviceManager::onAxisMoved);
     connect(m_monitorWorker, &DeviceMonitorWorker::buttonPressed, this, &DeviceManager::onButtonPressed);
     connect(m_monitorWorker, &DeviceMonitorWorker::buttonsChanged, this, &DeviceManager::onButtonsChanged);
+    connect(m_monitorWorker, &DeviceMonitorWorker::startupScanComplete, this, &DeviceManager::initialScanComplete);
     // Deliberately no QThread::finished -> deleteLater() connection here
     // anymore (confirmed Heisenbug root cause): m_monitorThread (the QObject)
     // lives on the thread that created it - this one, the main thread -

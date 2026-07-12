@@ -163,7 +163,7 @@ Item {
                         id: deviceCombo
                         Layout.preferredWidth: 260
                         model: profileEditorViewModel
-                        textRole: "deviceName"
+                        textRole: "testerDisplayName"
                         valueRole: "systemPath"
                         onCurrentValueChanged: {
                             deviceTesterViewModel.currentSystemPath = currentValue || "";
@@ -418,8 +418,20 @@ Item {
             }
 
             // --- Right: button matrix -------------------------------------
+            // QoL (redistributed layout): the hat D-pads used to stack below
+            // buttonGrid, eating a fixed chunk of this panel's vertical space
+            // (Layout.preferredHeight: Math.min(hatFlow.implicitHeight, 240))
+            // no matter how many buttons the device had - on a 128-button
+            // stick that only left room for ~64 buttons before the grid had
+            // to scroll, even at this screen's default (non-maximized)
+            // window size. Moving the hats into a narrow side column instead
+            // (buttonRow below) gives buttonGrid the panel's *full* height,
+            // and cellWidth/cellHeight were trimmed from 34 to 30 (delegate
+            // cells from 30 to 26) so the grid comfortably fits every
+            // button + hat row at once in the default 1450x760 window
+            // without needing to resize/maximize.
             Rectangle {
-                Layout.preferredWidth: 320
+                Layout.preferredWidth: 400
                 Layout.fillHeight: true
                 radius: Theme.radiusMedium
                 color: Theme.surface0
@@ -431,15 +443,42 @@ Item {
                     anchors.margins: Theme.spacingMd
                     spacing: Theme.spacingSm
 
-                    Text { text: qsTr("Buttons"); color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spacingSm
+
+                        Text { text: qsTr("Buttons"); color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+
+                        // QoL (per-device tester memory): a friend's request
+                        // - the "touched" highlight below used to reset the
+                        // instant you switched the Device combo to a
+                        // different stick, so comparing "which buttons did I
+                        // already press on THIS joystick" meant never
+                        // touching the dropdown until you were done. Memory
+                        // is now kept per systemPath (see
+                        // buttonGrid.touchedByDevice below) and survives
+                        // switching devices back and forth - this button is
+                        // the explicit way to wipe it back to blank for
+                        // whichever device is currently selected, since nothing
+                        // else clears it anymore.
+                        ToolButton {
+                            label: qsTr("Clear")
+                            onClicked: buttonGrid.clearTouchedForCurrentDevice()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: Theme.spacingSm
 
                     GridView {
                         id: buttonGrid
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        cellWidth: 34
-                        cellHeight: 34
+                        cellWidth: 30
+                        cellHeight: 30
                         // Excludes the synthetic per-hat button entries
                         // (Fase 16.7/16.8) - those get their own 3x3 D-pad
                         // section below instead of showing up as loose
@@ -448,28 +487,30 @@ Item {
                         // physical button count.
                         model: Math.min(256, deviceTesterViewModel.currentDeviceNumButtons - deviceTesterViewModel.currentDeviceNumHats * 4)
 
-                        // Marks which buttons were pressed at least once
-                        // since the current device was selected ("button
-                        // trails"), keyed by index. touchedButtonsVersion is
-                        // a plain counter bumped alongside every in-place
-                        // mutation of touchedButtons so the "touched"
-                        // property below - a QML dictionary key isn't
-                        // itself observable, so this stands in as the
-                        // rebinding trigger.
-                        property var touchedButtons: ({})
-                        property int touchedButtonsVersion: 0
+                        // Marks which buttons were pressed at least once,
+                        // per device (systemPath -> {buttonIndex: true}) so
+                        // the "touched" trail survives switching the Device
+                        // combo back and forth instead of resetting on every
+                        // switch - see the "Clear" button above for the only
+                        // way to wipe it now. touchedVersion is a plain
+                        // counter bumped alongside every in-place mutation
+                        // of touchedByDevice so the "touched" property below
+                        // rebinds - a QML dictionary key isn't itself
+                        // observable, so this stands in as the trigger.
+                        property var touchedByDevice: ({})
+                        property int touchedVersion: 0
 
-                        Connections {
-                            target: deviceTesterViewModel
-                            function onCurrentSystemPathChanged() {
-                                buttonGrid.touchedButtons = {};
-                                buttonGrid.touchedButtonsVersion++;
+                        function clearTouchedForCurrentDevice() {
+                            const path = deviceTesterViewModel.currentSystemPath;
+                            if (buttonGrid.touchedByDevice[path]) {
+                                delete buttonGrid.touchedByDevice[path];
+                                buttonGrid.touchedVersion++;
                             }
                         }
 
                         delegate: Rectangle {
-                            width: 30
-                            height: 30
+                            width: 26
+                            height: 26
                             radius: Theme.radiusSmall
                             border.width: 1
                             border.color: Qt.rgba(1, 1, 1, 0.08)
@@ -479,13 +520,18 @@ Item {
                                 return index < states.length && states[index] === true;
                             }
                             property bool touched: {
-                                buttonGrid.touchedButtonsVersion;
-                                return buttonGrid.touchedButtons[index] === true;
+                                buttonGrid.touchedVersion;
+                                const deviceMap = buttonGrid.touchedByDevice[deviceTesterViewModel.currentSystemPath];
+                                return !!(deviceMap && deviceMap[index] === true);
                             }
                             onPressedChanged: {
                                 if (pressed) {
-                                    buttonGrid.touchedButtons[index] = true;
-                                    buttonGrid.touchedButtonsVersion++;
+                                    const path = deviceTesterViewModel.currentSystemPath;
+                                    if (!buttonGrid.touchedByDevice[path]) {
+                                        buttonGrid.touchedByDevice[path] = {};
+                                    }
+                                    buttonGrid.touchedByDevice[path][index] = true;
+                                    buttonGrid.touchedVersion++;
                                 }
                             }
                             color: pressed ? Theme.accent : (touched ? Theme.accentSecondary : Theme.surface1)
@@ -495,7 +541,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: index + 1
                                 color: (pressed || touched) ? Theme.crust : Theme.subtext0
-                                font.pixelSize: 10
+                                font.pixelSize: 9
                             }
                         }
 
@@ -503,27 +549,28 @@ Item {
                     }
 
                     // --- POV hats: dedicated 3x3 D-pad matrices ------------
-                    // Fase QoL: a device with several hats (Virpil/VKB-style,
-                    // 4+) used to stack every hat's label+3x3 grid straight
-                    // down this same ColumnLayout - with enough hats that
-                    // easily outgrew this fixed-width panel's height and
-                    // spilled past its rounded border (starving buttonGrid's
-                    // Layout.fillHeight above of any room at all). Wrapping
-                    // the Repeater in a Flow lets hats sit side-by-side and
-                    // wrap onto additional rows instead of one long vertical
-                    // stack, and the ScrollView is a last resort if even that
-                    // doesn't fit - so this panel can't break its own bounds
-                    // no matter how many hats a device reports.
+                    // Fase QoL: moved from a block below buttonGrid into a
+                    // narrow side column here (still inside the same
+                    // buttonRow RowLayout as buttonGrid) so hats no longer
+                    // compete with the button grid for vertical space - see
+                    // this panel's own top-level comment above for why. A
+                    // device with several hats (Virpil/VKB-style, 4+) can
+                    // still outgrow this narrow column's height, so it keeps
+                    // its own independent ScrollView rather than assuming
+                    // every hat fits - hatFlow's width is now pinned to the
+                    // column's own width (~1 hat wide) instead of
+                    // buttonGrid.width, so the Flow wraps to one hat per row
+                    // (a vertical stack) instead of sitting side-by-side.
                     ScrollView {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(hatFlow.implicitHeight, 240)
+                        Layout.preferredWidth: 108
+                        Layout.fillHeight: true
                         clip: true
                         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                         Flow {
                             id: hatFlow
-                            width: buttonGrid.width
-                            spacing: Theme.spacingMd
+                            width: 108
+                            spacing: Theme.spacingSm
 
                             Repeater {
                                 model: deviceTesterViewModel.currentDeviceNumHats
@@ -581,8 +628,8 @@ Item {
                                             ]
 
                                             delegate: Rectangle {
-                                                Layout.preferredWidth: 30
-                                                Layout.preferredHeight: 30
+                                                Layout.preferredWidth: 26
+                                                Layout.preferredHeight: 26
                                                 radius: Theme.radiusSmall
                                                 border.width: 1
                                                 border.color: Qt.rgba(1, 1, 1, 0.08)
@@ -593,7 +640,7 @@ Item {
                                                     anchors.centerIn: parent
                                                     text: modelData.label
                                                     color: modelData.lit ? Theme.crust : Theme.subtext0
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: 9
                                                 }
                                             }
                                         }
@@ -602,6 +649,7 @@ Item {
                             }
                         }
                     }
+                    } // end buttonRow (buttonGrid + hats side column)
                 }
             }
         }
