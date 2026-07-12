@@ -84,9 +84,14 @@ Popup {
     /// or a same-macro device-conflict rejection from onButtonStepRecorded.
     property string recorderWarning: ""
 
+    /// 6s (was 2.5s) - a "why didn't that record?" warning is easy to miss
+    /// in 2.5s if the user's eyes are on their hardware, not the popup, at
+    /// the moment they press the button; the recommended next step it now
+    /// carries (see onButtonRecordSkipped above) needs enough time to
+    /// actually be read.
     Timer {
         id: recorderWarningTimer
-        interval: 2500
+        interval: 6000
         onTriggered: root.recorderWarning = ""
     }
 
@@ -123,6 +128,73 @@ Popup {
         [Qt.Key_Up]: 0x48, [Qt.Key_Down]: 0x50, [Qt.Key_Left]: 0x4B, [Qt.Key_Right]: 0x4D,
         [Qt.Key_CapsLock]: 0x3A,
     })
+
+    /// Same widget ActionPickerPopup.qml declares under this exact name -
+    /// duplicated rather than shared (this popup is self-contained, like
+    /// every other popup in this codebase - see the file-level comment) for
+    /// "+ Button" below's device/button-number picker.
+    component IntStepper: RowLayout {
+        id: stepper
+        property int value: 0
+        property int from: 0
+        property int to: 127
+        property int stepSize: 1
+        spacing: Theme.spacingXs
+
+        WheelHandler {
+            onWheel: (event) => {
+                if (event.angleDelta.y > 0) {
+                    stepper.value = Math.min(stepper.to, stepper.value + stepper.stepSize);
+                } else if (event.angleDelta.y < 0) {
+                    stepper.value = Math.max(stepper.from, stepper.value - stepper.stepSize);
+                }
+                event.accepted = true;
+            }
+        }
+
+        ToolButton {
+            label: qsTr("−")
+            Layout.preferredWidth: 28
+            onClicked: stepper.value = Math.max(stepper.from, stepper.value - stepper.stepSize)
+        }
+        TextField {
+            id: stepperField
+            text: stepper.value
+            Layout.preferredWidth: 48
+            implicitHeight: 28
+            horizontalAlignment: Text.AlignHCenter
+            color: Theme.text
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+            validator: IntValidator { bottom: stepper.from; top: stepper.to }
+            background: Rectangle {
+                color: Theme.surface0
+                radius: Theme.radiusSmall
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.08)
+            }
+            // Typing a value (e.g. "101") beats clicking +/- up to 100
+            // times - clamped to [from, to] rather than rejected outright,
+            // and snapped back to stepper.value's own text if left empty/
+            // non-numeric, so this field can never desync from the value
+            // every other part of the popup reads.
+            onEditingFinished: {
+                const parsed = parseInt(stepperField.text);
+                stepper.value = isNaN(parsed) ? stepper.value : Math.max(stepper.from, Math.min(stepper.to, parsed));
+                stepperField.text = stepper.value;
+                // Pressing Enter fires editingFinished without dropping
+                // focus on its own (unlike clicking away, which already
+                // moves focus elsewhere) - without this the caret keeps
+                // blinking in an already-committed field.
+                stepperField.focus = false;
+            }
+        }
+        ToolButton {
+            label: qsTr("+")
+            Layout.preferredWidth: 28
+            onClicked: stepper.value = Math.min(stepper.to, stepper.value + stepper.stepSize)
+        }
+    }
 
     /// Fires after a successful bindAction() + self-close - lets
     /// ActionPickerPopup close itself too, the same "opener reacts to
@@ -307,6 +379,26 @@ Popup {
         return -1;
     }
 
+    /// Shared by the live recorder's onButtonStepRecorded below AND the "+
+    /// Button" manual insert popup - both need the exact same "only one
+    /// target device per macro" enforcement (see the file-level comment on
+    /// why a single MacroHandler instance can't represent two). Returns
+    /// true if the step was appended, false if it was rejected (root.
+    /// recorderWarning is set either way it's rejected, for the caller to
+    /// just let the shared warning Text pick up).
+    function tryInsertButtonStep(kind, targetOutputId, isVigemTarget, buttonIndex, label) {
+        if (root.macroTargetOutputId !== 0 && root.macroTargetOutputId !== targetOutputId) {
+            root.recorderWarning = qsTr("That button targets a different vJoy device than this macro already uses - not recorded.");
+            recorderWarningTimer.restart();
+            return false;
+        }
+        root.macroTargetOutputId = targetOutputId;
+        root.macroTargetIsVigem = isVigemTarget;
+        stepsModel.append({ type: kind, scanCode: 0, waitMs: 0, targetAction: "",
+            buttonIndex: buttonIndex, targetOutputId: targetOutputId, label: label });
+        return true;
+    }
+
     /// Deletes index from stepsModel - and, if it's one half of a Press/
     /// Release pair (see findPairedStepIndex()), its partner too, in one
     /// click, so the "×" button can never leave a dangling unpaired step
@@ -404,19 +496,19 @@ Popup {
         /// steps at a *different* device than one already locked in - see
         /// the file-level comment on why MacroHandler can't represent that.
         function onButtonStepRecorded(kind, targetOutputId, isVigemTarget, buttonIndex, label) {
-            if (root.macroTargetOutputId !== 0 && root.macroTargetOutputId !== targetOutputId) {
-                root.recorderWarning = qsTr("That button targets a different vJoy device than this macro already uses - not recorded.");
-                recorderWarningTimer.restart();
-                return;
-            }
-            root.macroTargetOutputId = targetOutputId;
-            root.macroTargetIsVigem = isVigemTarget;
-            stepsModel.append({ type: kind, scanCode: 0, waitMs: 0, targetAction: "",
-                buttonIndex: buttonIndex, targetOutputId: targetOutputId, label: label });
+            root.tryInsertButtonStep(kind, targetOutputId, isVigemTarget, buttonIndex, label);
         }
 
+        /// Most commonly reached when the physical button under test is the
+        /// SAME one this whole binding is being configured on (recording
+        /// "what should this button's own macro do?" by pressing it) - that
+        /// button is never a plain ButtonRemapHandler while it's mid-edit,
+        /// so live recording can't capture it no matter which macro editor
+        /// this is. "+ Button" below (manual insert) is the way out of that
+        /// specific case - point users at it instead of leaving them
+        /// guessing why nothing happened.
         function onButtonRecordSkipped(reason) {
-            root.recorderWarning = reason;
+            root.recorderWarning = reason + " " + qsTr("Use \"+ Button\" below to add it manually instead.");
             recorderWarningTimer.restart();
         }
     }
@@ -506,7 +598,8 @@ Popup {
                         ? qsTr("Recording… press keys or joystick buttons now")
                         : qsTr("Click Record, then press keys or joystick buttons for this macro")
                 color: root.recorderWarning !== "" ? Theme.warning : (macroRecorder.recording ? Theme.success : Theme.subtext0)
-                font.pixelSize: 12
+                font.pixelSize: root.recorderWarning !== "" ? 13 : 12
+                font.weight: root.recorderWarning !== "" ? Font.DemiBold : Font.Normal
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
             }
@@ -669,7 +762,10 @@ Popup {
                                     border.width: 1
                                     border.color: Qt.rgba(1, 1, 1, 0.08)
                                 }
-                                onEditingFinished: stepsModel.setProperty(stepRow.index, "waitMs", parseInt(text) || 0)
+                                onEditingFinished: {
+                                    stepsModel.setProperty(stepRow.index, "waitMs", parseInt(text) || 0);
+                                    focus = false;
+                                }
                             }
                             Text { text: qsTr("ms"); color: Theme.subtext0; font.pixelSize: 12 }
                         }
@@ -705,6 +801,11 @@ Popup {
                 label: qsTr("+ Mouse")
                 Layout.fillWidth: true
                 onClicked: insertMousePopup.open()
+            }
+            ToolButton {
+                label: qsTr("+ Button")
+                Layout.fillWidth: true
+                onClicked: insertButtonPopup.open()
             }
         }
 
@@ -938,6 +1039,107 @@ Popup {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }
                 ToolButton { label: qsTr("Cancel"); onClicked: insertMousePopup.close() }
+            }
+        }
+    }
+
+    /// Manual "+ Button" insertion (feature request): builds a vJoy
+    /// PressButton/ReleaseButton step without needing to physically press
+    /// an already-remapped button - the live recorder (onButtonStepRecorded
+    /// above) can only capture a button that's *already* a plain vJoy
+    /// remap elsewhere, which most commonly excludes the exact button this
+    /// whole binding is being configured on (see onButtonRecordSkipped's
+    /// own docs). Always inserts a matched Press+Release pair together (same
+    /// "tap" convention "+ Key"/"+ Mouse" above already use) rather than
+    /// letting either half be added alone - a lone Press with no Release
+    /// would leave that vJoy button permanently stuck "held" the moment this
+    /// macro runs, with no way back short of another macro/binding
+    /// explicitly releasing it. Drag-and-drop reordering plus a manually
+    /// inserted "+ Wait" already cover spacing the pair apart afterward
+    /// (same as any "+ Key" tap). Goes through the same tryInsertButtonStep()
+    /// single-target-device enforcement the live recorder uses, so the two
+    /// paths can never disagree about whether a given device/button
+    /// combination is acceptable.
+    Popup {
+        id: insertButtonPopup
+        modal: true
+        focus: true
+        parent: Overlay.overlay
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        width: 320
+        padding: Theme.spacingLg
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        // Pre-selects whatever device this macro's button steps are
+        // already locked into (if any), so the common case (adding a
+        // second/third step to an already-started macro) doesn't require
+        // re-picking the same device every time.
+        onOpened: insertButtonDeviceCombo.setFromTarget(
+            root.macroTargetOutputId !== 0
+                ? { targetDeviceType: root.macroTargetIsVigem ? "vigem" : "vjoy", targetOutputId: root.macroTargetOutputId }
+                : null)
+
+        background: Rectangle {
+            color: Theme.surface0
+            radius: Theme.radiusMedium
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.08)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Theme.spacingSm
+
+            Text {
+                text: qsTr("Insert vJoy Button Step")
+                color: Theme.text
+                font.pixelSize: 14
+                font.weight: Font.DemiBold
+                Layout.bottomMargin: Theme.spacingXs
+            }
+            Text {
+                visible: root.macroTargetOutputId !== 0
+                text: qsTr("This macro's button steps already target a locked-in device - picking a different one here will be rejected.")
+                color: Theme.subtext0
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingSm
+                Text { text: qsTr("Device:"); color: Theme.subtext0; font.pixelSize: 12 }
+                Item { Layout.fillWidth: true }
+                OutputDeviceCombo { id: insertButtonDeviceCombo }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingSm
+                Text { text: qsTr("Button:"); color: Theme.subtext0; font.pixelSize: 12 }
+                Item { Layout.fillWidth: true }
+                IntStepper { id: insertButtonNumber; from: 1; to: 128; value: 1 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.spacingSm
+                spacing: Theme.spacingSm
+                Item { Layout.fillWidth: true }
+                ToolButton { label: qsTr("Cancel"); onClicked: insertButtonPopup.close() }
+                ToolButton {
+                    label: qsTr("Add")
+                    onClicked: {
+                        const label = qsTr("Button ") + insertButtonNumber.value;
+                        const targetOutputId = insertButtonDeviceCombo.targetOutputId;
+                        const isVigem = insertButtonDeviceCombo.isXbox;
+                        const buttonIndex = insertButtonNumber.value - 1;
+                        if (root.tryInsertButtonStep("PressButton", targetOutputId, isVigem, buttonIndex, label)) {
+                            root.tryInsertButtonStep("ReleaseButton", targetOutputId, isVigem, buttonIndex, label);
+                            insertButtonPopup.close();
+                        }
+                    }
+                }
             }
         }
     }

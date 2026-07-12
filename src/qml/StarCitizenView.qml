@@ -118,7 +118,10 @@ Item {
                         border.width: 1
                         border.color: Qt.rgba(1, 1, 1, 0.08)
                     }
-                    onEditingFinished: root.refreshXmlFiles()
+                    onEditingFinished: {
+                        root.refreshXmlFiles();
+                        focus = false;
+                    }
                 }
             }
 

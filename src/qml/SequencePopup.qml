@@ -334,6 +334,7 @@ Popup {
                                 const arr = root.steps.slice();
                                 arr[index] = Object.assign({}, arr[index], {targetButton: parseInt(text) || 0});
                                 root.steps = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -513,6 +514,7 @@ Popup {
                                 const arr = root.steps.slice();
                                 arr[index] = Object.assign({}, arr[index], {filePath: text});
                                 root.steps = arr;
+                                focus = false;
                             }
                         }
                         ToolButton {
@@ -546,6 +548,7 @@ Popup {
                                 const arr = root.steps.slice();
                                 arr[index] = Object.assign({}, arr[index], {text: text});
                                 root.steps = arr;
+                                focus = false;
                             }
                         }
                     }

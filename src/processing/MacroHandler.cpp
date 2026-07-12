@@ -1,5 +1,6 @@
 #include "MacroHandler.h"
 
+#include <QDebug>
 #include <QJsonArray>
 #include <QLatin1String>
 #include <QTimer>
@@ -9,6 +10,16 @@
 
 namespace {
 constexpr int kMacroScrollDelta = 120; // Win32's own WHEEL_DELTA - one scroll notch, same as MouseButtonHandler's kWheelDelta.
+
+// Feedback-loop guard (see MacroHandler.h's own docs on m_lastTriggerTimer/
+// m_rapidRetriggerCount): no human can physically re-press the same button
+// this fast, so a burst of triggers under this interval is machine-speed -
+// either a recursive vJoy-output-as-input wiring loop, or a hardware fault.
+constexpr qint64 kMinRetriggerIntervalMs = 15;
+// How many CONSECUTIVE machine-speed retriggers are tolerated before
+// playback is suppressed - a couple of legitimately-close double-taps
+// shouldn't trip this, only a sustained rapid-fire pattern.
+constexpr int kMaxRapidRetriggers = 6;
 } // namespace
 
 MacroHandler::MacroHandler(std::shared_ptr<IVirtualOutputDevice> target,
@@ -32,6 +43,20 @@ void MacroHandler::processAxis(const AxisEvent & /*evt*/)
 void MacroHandler::processButton(const ButtonEvent &evt)
 {
     if (!evt.pressed || m_running || m_steps.empty()) {
+        return;
+    }
+
+    // Feedback-loop guard - see MacroHandler.h's own docs on
+    // m_lastTriggerTimer/m_rapidRetriggerCount.
+    const bool rapid = m_lastTriggerTimer.isValid() && m_lastTriggerTimer.elapsed() < kMinRetriggerIntervalMs;
+    m_lastTriggerTimer.restart();
+    m_rapidRetriggerCount = rapid ? (m_rapidRetriggerCount + 1) : 0;
+    if (m_rapidRetriggerCount >= kMaxRapidRetriggers) {
+        qWarning() << "MacroHandler: retriggered" << m_rapidRetriggerCount + 1 << "times faster than"
+                    << kMinRetriggerIntervalMs
+                    << "ms apart - likely a recursive binding loop (e.g. this macro's own vJoy button output "
+                        "wired back in, elsewhere, as the input that re-triggers it). Playback suppressed until "
+                        "it slows down.";
         return;
     }
 

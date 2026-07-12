@@ -260,13 +260,37 @@ Popup {
             Layout.preferredWidth: 28
             onClicked: stepper.value = Math.max(stepper.from, stepper.value - stepper.stepSize)
         }
-        Text {
+        TextField {
+            id: stepperField
             text: stepper.value
+            Layout.preferredWidth: 48
+            implicitHeight: 28
+            horizontalAlignment: Text.AlignHCenter
             color: Theme.text
             font.pixelSize: 13
             font.weight: Font.DemiBold
-            Layout.preferredWidth: 40
-            horizontalAlignment: Text.AlignHCenter
+            validator: IntValidator { bottom: stepper.from; top: stepper.to }
+            background: Rectangle {
+                color: Theme.surface0
+                radius: Theme.radiusSmall
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.08)
+            }
+            // Typing a value (e.g. "101") beats clicking +/- up to 100
+            // times - clamped to [from, to] rather than rejected outright,
+            // and snapped back to stepper.value's own text if left empty/
+            // non-numeric, so this field can never desync from the value
+            // every other part of the popup reads.
+            onEditingFinished: {
+                const parsed = parseInt(stepperField.text);
+                stepper.value = isNaN(parsed) ? stepper.value : Math.max(stepper.from, Math.min(stepper.to, parsed));
+                stepperField.text = stepper.value;
+                // Pressing Enter fires editingFinished without dropping
+                // focus on its own (unlike clicking away, which already
+                // moves focus elsewhere) - without this the caret keeps
+                // blinking in an already-committed field.
+                stepperField.focus = false;
+            }
         }
         ToolButton {
             label: qsTr("+")
@@ -1348,6 +1372,7 @@ Popup {
                                 const arr = root.tempoShortActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {targetButton: (parseInt(text) || 1) - 1});
                                 root.tempoShortActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1375,6 +1400,7 @@ Popup {
                                 const arr = root.tempoShortActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {delayMs: parseInt(text) || 0});
                                 root.tempoShortActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1401,6 +1427,7 @@ Popup {
                                 const arr = root.tempoShortActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {filePath: text});
                                 root.tempoShortActions = arr;
+                                focus = false;
                             }
                         }
                         ToolButton {
@@ -1435,6 +1462,7 @@ Popup {
                                 const arr = root.tempoShortActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {text: text});
                                 root.tempoShortActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1648,6 +1676,7 @@ Popup {
                                 const arr = root.tempoLongActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {targetButton: (parseInt(text) || 1) - 1});
                                 root.tempoLongActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1675,6 +1704,7 @@ Popup {
                                 const arr = root.tempoLongActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {delayMs: parseInt(text) || 0});
                                 root.tempoLongActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1701,6 +1731,7 @@ Popup {
                                 const arr = root.tempoLongActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {filePath: text});
                                 root.tempoLongActions = arr;
+                                focus = false;
                             }
                         }
                         ToolButton {
@@ -1735,6 +1766,7 @@ Popup {
                                 const arr = root.tempoLongActions.slice();
                                 arr[index] = Object.assign({}, arr[index], {text: text});
                                 root.tempoLongActions = arr;
+                                focus = false;
                             }
                         }
                     }
@@ -1923,6 +1955,7 @@ Popup {
                     onEditingFinished: {
                         root.toggleWrappedAction =
                             Object.assign({}, root.toggleWrappedAction, {targetButton: (parseInt(text) || 1) - 1});
+                        focus = false;
                     }
                 }
             }

@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 
@@ -130,4 +131,20 @@ private:
     std::size_t m_currentStep = 0;
     bool m_running = false;
     QTimer *m_timer = nullptr;
+
+    /// Feedback-loop guard: DeviceManager treats vJoy/ViGEm virtual devices
+    /// as regular bindable *inputs* (needed for legitimate vJoy-to-vJoy
+    /// setups - see its own HID-descriptor-parsing docs), so nothing stops
+    /// a PressButton step's own vJoy output from being wired, elsewhere in
+    /// the profile, back into a binding that re-triggers this same macro
+    /// (directly) or another one that eventually loops back to it
+    /// (indirectly). m_running already blocks a macro re-entering *itself*
+    /// mid-playback, but a full playback (especially one with no Wait
+    /// steps) can finish and restart fast enough, driven purely by the
+    /// polling/dispatch loop, that a two-macro (or longer) cycle could spin
+    /// indefinitely with no single re-entrant call stack to catch. Tracks
+    /// consecutive triggers arriving faster than a human could physically
+    /// re-press the same button - see processButton()'s own use of these.
+    QElapsedTimer m_lastTriggerTimer;
+    int m_rapidRetriggerCount = 0;
 };

@@ -145,6 +145,7 @@ Popup {
                             const v = Math.max(0, Math.min(100, parseFloat(text) || 0)) / 100.0;
                             arr[index] = Object.assign({}, arr[index], {min: v});
                             root.zones = arr;
+                            focus = false;
                         }
                     }
 
@@ -165,6 +166,7 @@ Popup {
                             const v = Math.max(0, Math.min(100, parseFloat(text) || 0)) / 100.0;
                             arr[index] = Object.assign({}, arr[index], {max: v});
                             root.zones = arr;
+                            focus = false;
                         }
                     }
 
@@ -184,6 +186,7 @@ Popup {
                             const arr = root.zones.slice();
                             arr[index] = Object.assign({}, arr[index], {targetButton: parseInt(text) || 0});
                             root.zones = arr;
+                            focus = false;
                         }
                     }
 
