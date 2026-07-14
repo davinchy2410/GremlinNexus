@@ -510,6 +510,28 @@ private:
         }
         const QString devicePath = QString::fromWCharArray(nameBuffer.data());
 
+        // vJoy's own virtual joystick(s) are, deliberately, real enough HID
+        // devices to be picked up by this exact scan (that's the whole point
+        // of vJoy - games need to see it as a real joystick) - without this
+        // check, GremlinNexus's own vJoy OUTPUT device(s) show up as
+        // selectable INPUT sources in the Profiles/Device Tester screens, and
+        // a profile that (accidentally or otherwise) binds one of vJoy's own
+        // axes/buttons back into itself creates a routing loop with nothing
+        // to break it (MacroHandler has its own narrow rate-limit guard
+        // against exactly this "recursive vJoy-output-as-input" pattern, but
+        // no other handler type does). 1234/BEAD is vJoy's own
+        // driver-assigned VID/PID, not shared with any real hardware family,
+        // so filtering on it can't exclude a genuine physical device the way
+        // filtering on, say, an Xbox 360 controller's VID/PID would (see
+        // ViGEmDevice's own docs - ViGEmBus deliberately emulates that exact
+        // real VID/PID, indistinguishable from a real pad by design, so that
+        // class of virtual device is NOT filtered here).
+        QString vjoyCheckVendorId, vjoyCheckProductId;
+        parseVidPid(devicePath, vjoyCheckVendorId, vjoyCheckProductId);
+        if (vjoyCheckVendorId == QLatin1String("1234") && vjoyCheckProductId == QLatin1String("BEAD")) {
+            return;
+        }
+
         // Preparsed HID data, needed for capability + report parsing.
         UINT preparsedSize = 0;
         GetRawInputDeviceInfoW(hDevice, RIDI_PREPARSEDDATA, nullptr, &preparsedSize);
@@ -1190,8 +1212,17 @@ private:
         if (m_pendingAxisValues.isEmpty()) {
             return;
         }
-        const auto pending = m_pendingAxisValues;
-        m_pendingAxisValues.clear();
+        // QHash is implicitly shared/COW, so the previous copy-then-clear
+        // here was never the deep-copy-every-4ms it might look like: clear()
+        // on a still-shared instance just detaches to a fresh empty hash
+        // rather than duplicating the data pending still holds a reference
+        // to. swap() is a strict improvement anyway - a pointer exchange
+        // with no allocation at all, not even that fresh-empty-hash one -
+        // and more directly states the intent ("hand off what's pending,
+        // reset to receive more"), so it's worth taking, just not because
+        // the old form was actually copying axis data on every tick.
+        QHash<QString, QHash<int, int>> pending;
+        pending.swap(m_pendingAxisValues);
 
         for (auto pathIt = pending.constBegin(); pathIt != pending.constEnd(); ++pathIt) {
             for (auto axisIt = pathIt.value().constBegin(); axisIt != pathIt.value().constEnd(); ++axisIt) {

@@ -72,6 +72,18 @@ class ProfileEditorViewModel : public QAbstractListModel
     // re-evaluates its binding whenever clipboardChanged() fires instead.
     Q_PROPERTY(bool hasCopiedAxis READ hasCopiedAxis NOTIFY clipboardChanged)
     Q_PROPERTY(bool hasCopiedButton READ hasCopiedButton NOTIFY clipboardChanged)
+    /// Non-empty only when the currently-copied action (or something nested
+    /// inside it - a ConditionHandler/MergeAxisHandler wrapped in a Tempo
+    /// gesture or Sequence step, say) references ANOTHER input's identity as
+    /// part of its own live logic - a Modifier's gating button, or a
+    /// MergeAxisHandler's "other" axis - rather than just an output target.
+    /// Pasting such a copy onto a different input does NOT give it its own
+    /// independent reference: both copies keep reading the exact same
+    /// external (systemPath, index) live, at dispatch time - see
+    /// copyAction()'s own docs. ActionPickerPopup.qml shows this string as an
+    /// inline caption next to Paste so that surprise is explained up front
+    /// instead of discovered after the fact.
+    Q_PROPERTY(QString clipboardWarning READ clipboardWarning NOTIFY clipboardChanged)
     Q_PROPERTY(QString currentMode READ currentMode WRITE setCurrentMode NOTIFY currentModeChanged)
     Q_PROPERTY(QString currentProfileName READ currentProfileName NOTIFY currentProfileNameChanged)
     // Fase (Curves nav rework): which device row CurveEditorView.qml's own
@@ -128,6 +140,17 @@ public:
     /// the DeviceManager-unique key other ViewModels key their state off
     /// of. Returns an empty string for an out-of-range deviceRow.
     Q_INVOKABLE QString systemPathForDevice(int deviceRow) const;
+
+    /// Fase (drag-to-reorder device tabs): moves the device tab currently at
+    /// fromRow to toRow (both plain row indices into this model, matching
+    /// the Profiles screen's own TabBar order) and persists the resulting
+    /// full tab order to QSettings, keyed per-device by deviceOrderKey()
+    /// (VID:PID, not row index or systemPath - see that function's own
+    /// docs) - so a user's chosen layout survives a replug/relaunch even
+    /// though m_devices itself gets rebuilt from scratch as each device is
+    /// rediscovered (see onDeviceAdded()). A no-op for an out-of-range index
+    /// or a same-position "move".
+    Q_INVOKABLE void moveDeviceTab(int fromRow, int toRow);
 
     /// Loads filePath (a local path or a "file:///..." URL, as produced by
     /// QML's FileDialog.selectedFile) via ProfileManager - clearing and
@@ -351,6 +374,14 @@ public:
     /// SC-7.10) - thin wrappers around hasCopiedAction("axis")/("button").
     bool hasCopiedAxis() const;
     bool hasCopiedButton() const;
+
+    /// clipboardWarning Q_PROPERTY READ function - "" if nothing's copied or
+    /// the copied action is a plain self-contained remap/curve, otherwise a
+    /// user-facing sentence explaining that pasting will share a live
+    /// reference to another input (a Modifier's gating button, or a
+    /// MergeAxisHandler's "other" axis) rather than copying it - set by
+    /// copyAction(), computed via bindingReferencesExternalInput().
+    QString clipboardWarning() const { return m_clipboardWarning; }
 
     /// Applies the clipboard's copied binding (see copyAction()) onto
     /// devicePath/inputName/mode via bindAction(), which re-parses the
@@ -591,6 +622,25 @@ private:
     /// which is what made the Profiles screen show "Unbound" for real bindings.
     DeviceEntry makeDeviceEntry(const DeviceInfo &device, EventRouter &router);
 
+    /// Fase (drag-to-reorder device tabs): where a newly-discovered device
+    /// (vendorProduct/systemPath - see deviceOrderKey()'s own docs) should
+    /// land among the rows already in m_devices, honoring m_deviceTabOrder
+    /// (the user's saved drag order, loaded from QSettings) if this device -
+    /// or any device already present - has an entry in it. A device with no
+    /// saved position (nothing was ever dragged this project, or this
+    /// specific device is new since the last drag) falls back to
+    /// m_devices.size() - the plain "always append" behavior this had before
+    /// tab reordering existed, unchanged until the user actually drags a tab
+    /// at least once.
+    int deviceInsertionIndex(const QString &vendorProduct, const QString &systemPath) const;
+
+    /// Fase (drag-to-reorder device tabs): serializes m_devices' current
+    /// on-screen order (every row, not just ones the user has explicitly
+    /// dragged - see moveDeviceTab()) as a comma-joined list of
+    /// deviceOrderKey() keys into QSettings, for deviceInsertionIndex() to
+    /// read back on a future launch/replug.
+    void persistDeviceTabOrder();
+
     /// Appends the two illustrative placeholder devices (see class docs),
     /// with proper begin/endInsertRows - safe to call whenever the real
     /// device list becomes empty, not just from the constructor.
@@ -687,6 +737,14 @@ private:
 
     QList<DeviceEntry> m_devices;
 
+    /// Fase (drag-to-reorder device tabs): user's saved tab order, loaded
+    /// once from QSettings in the constructor - a list of deviceOrderKey()
+    /// keys (VID:PID, or systemPath as a fallback) in the order the user
+    /// last dragged them into. Empty until the user drags a tab for the
+    /// first time ever, in which case every device tab still falls back to
+    /// plain discovery-order appending (see deviceInsertionIndex()).
+    QStringList m_deviceTabOrder;
+
     /// Fase SC-7.7: single-slot app-wide Copy/Paste clipboard - m_clipboardJson
     /// is whatever getActionDataJson() returned for the most recently
     /// copyAction()-ed input (empty if nothing's been copied yet this
@@ -694,4 +752,8 @@ private:
     /// pasteAction()/hasCopiedAction() can refuse a kind-mismatched paste.
     QString m_clipboardJson;
     QString m_clipboardKind;
+
+    /// clipboardWarning Q_PROPERTY's backing store - see its own docs.
+    /// Recomputed by copyAction() every time m_clipboardJson changes.
+    QString m_clipboardWarning;
 };

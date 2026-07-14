@@ -22,7 +22,18 @@
 class AxisToButtonHandler : public IActionHandler
 {
 public:
-    AxisToButtonHandler(int threshold, bool invert, std::shared_ptr<IActionHandler> wrapped);
+    /// inputMin/inputMax: the source axis' raw HID logical range (defaults
+    /// [0, 65535] to reproduce the previous unnormalized behavior exactly
+    /// for an already-16-bit axis or a profile saved before this existed) -
+    /// threshold is always authored/compared on the canonical [0, 65535]
+    /// scale, same convention CurveHandler/SplitAxisHandler/etc. already
+    /// use, so processAxis() normalizes the raw incoming evt.value into that
+    /// scale before comparing against threshold. Without this, a device
+    /// reporting a narrower native range (e.g. a 12-bit stick topping out at
+    /// 4095) could never reach a threshold authored assuming the full
+    /// 16-bit scale.
+    AxisToButtonHandler(int threshold, bool invert, std::shared_ptr<IActionHandler> wrapped, int inputMin = 0,
+                         int inputMax = 65535);
 
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
@@ -41,4 +52,6 @@ private:
     bool m_invert;
     std::shared_ptr<IActionHandler> m_wrapped;
     bool m_wasPressed = false;
+    int m_inputMin;
+    int m_inputMax;
 };

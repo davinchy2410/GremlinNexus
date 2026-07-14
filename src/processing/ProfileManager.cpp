@@ -710,8 +710,27 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateMouseRelativeAxisHand
         return nullptr;
     }
 
-    const int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
-    const int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    // Fase (bugfix): MouseRelativeAxisHandler's own class docs already
+    // documented normalizing against the source axis' real HID logical
+    // range (same convention CurveHandler/AxisSplitterHandler take) - but
+    // this constructor call never actually resolved that range, so every
+    // Mouse Axis binding silently stayed at the [0, 65535] default,
+    // regardless of the source device's true bit depth. A 12-bit stick
+    // (0-4095) bound this way could never reach full cursor speed in one
+    // direction. Wired up now, same pattern as every other axis handler.
+    int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
+    int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    const QString sourceDevice = binding.value(QLatin1String("sourceDevice")).toString();
+    const int sourceAxis = binding.value(QLatin1String("sourceAxis")).toInt(-1);
+    applyAxisLogicalRange(sourceDevice, sourceAxis, inputMin, inputMax);
+    if (sourceAxis >= 0) {
+        int calMin = 0, calMax = 0;
+        if (getAxisCalibration(sourceDevice, sourceAxis, calMin, calMax)) {
+            inputMin = calMin;
+            inputMax = calMax;
+        }
+    }
+
     const double sensitivity = parameters.value(QLatin1String("sensitivity")).toDouble(20.0);
     const double deadzone = parameters.value(QLatin1String("deadzone")).toDouble(0.1);
 
@@ -868,7 +887,27 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateAxisToButtonHandler(c
         return nullptr;
     }
 
-    return std::make_shared<AxisToButtonHandler>(threshold, invert, std::move(wrapped));
+    // threshold above is always authored/compared on the canonical
+    // [0, 65535] scale - resolve the source axis' real HID logical range
+    // (falling back to the JSON-stored / [0, 65535] default, then a manual
+    // calibration override if one exists) so AxisToButtonHandler::
+    // processAxis() can normalize into that scale before comparing, same
+    // pattern instantiateCurveHandler()/instantiateAxisSplitterHandler()
+    // already use.
+    int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
+    int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    const QString sourceDevice = binding.value(QLatin1String("sourceDevice")).toString();
+    const int sourceAxis = binding.value(QLatin1String("sourceAxis")).toInt(-1);
+    applyAxisLogicalRange(sourceDevice, sourceAxis, inputMin, inputMax);
+    if (sourceAxis >= 0) {
+        int calMin = 0, calMax = 0;
+        if (getAxisCalibration(sourceDevice, sourceAxis, calMin, calMax)) {
+            inputMin = calMin;
+            inputMax = calMax;
+        }
+    }
+
+    return std::make_shared<AxisToButtonHandler>(threshold, invert, std::move(wrapped), inputMin, inputMax);
 }
 
 std::shared_ptr<IActionHandler> ProfileManager::instantiateMergeAxisHandler(const QJsonObject &binding,
@@ -891,8 +930,27 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateMergeAxisHandler(cons
     const QString otherSystemPath = parameters.value(QLatin1String("otherSystemPath")).toString();
     const bool isSubtraction = parameters.value(QLatin1String("isSubtraction")).toBool(true);
 
+    // Each side of the merge is normalized from its OWN device's true HID
+    // logical range (see MergeAxisHandler's own class docs) rather than
+    // assumed to already be [0, 65535] - "self" comes from this binding's
+    // own sourceDevice/sourceAxis (same fields/helper instantiateCurveHandler()
+    // already uses), "other" from the otherSystemPath/otherAxisIndex parsed
+    // above. Falls back to whatever was last saved in the JSON (defaulting
+    // to the old unnormalized [0, 65535] assumption) if that device isn't
+    // currently connected to query live.
+    int selfInputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
+    int selfInputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    const QString sourceDevice = binding.value(QLatin1String("sourceDevice")).toString();
+    const int sourceAxis = binding.value(QLatin1String("sourceAxis")).toInt(-1);
+    applyAxisLogicalRange(sourceDevice, sourceAxis, selfInputMin, selfInputMax);
+
+    int otherInputMin = parameters.value(QLatin1String("otherInputMin")).toInt(0);
+    int otherInputMax = parameters.value(QLatin1String("otherInputMax")).toInt(65535);
+    applyAxisLogicalRange(otherSystemPath, otherAxisIndex, otherInputMin, otherInputMax);
+
     return std::make_shared<MergeAxisHandler>(router, device, targetAxis, otherSystemPath, otherAxisIndex,
-                                               isSubtraction);
+                                               isSubtraction, selfInputMin, selfInputMax, otherInputMin,
+                                               otherInputMax);
 }
 
 std::shared_ptr<IActionHandler> ProfileManager::instantiateSplitAxisHandler(const QJsonObject &binding,
@@ -929,8 +987,18 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateSplitAxisHandler(cons
     const auto splitMode =
         static_cast<SplitAxisHandler::SplitMode>(parameters.value(QLatin1String("splitMode")).toInt(0));
 
+    // BUG-002 fix: resolve the source axis' real HID logical range (falling
+    // back to the JSON-stored / [0, 65535] default if the device isn't
+    // currently connected) so the split normalizes across the axis' full
+    // travel - same helper CurveHandler/MergeAxisHandler already use.
+    int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
+    int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
+    const QString sourceDevice = binding.value(QLatin1String("sourceDevice")).toString();
+    const int sourceAxis = binding.value(QLatin1String("sourceAxis")).toInt(-1);
+    applyAxisLogicalRange(sourceDevice, sourceAxis, inputMin, inputMax);
+
     return std::make_shared<SplitAxisHandler>(lowerDevice, lowerTargetAxis, lowerInvert, upperDevice, upperTargetAxis,
-                                               upperInvert, splitMode);
+                                               upperInvert, splitMode, inputMin, inputMax);
 }
 
 std::shared_ptr<IActionHandler> ProfileManager::instantiateMacroHandler(const QJsonObject &binding,
@@ -1435,13 +1503,6 @@ bool ProfileManager::exportCheatsheetPdf(const QString &filePath, const EventRou
         return false;
     }
 
-    const int pageWidth = painter.window().width();
-    const int pageBottom = painter.window().height() - 40;
-    const int col1 = 0;
-    const int col2 = static_cast<int>(pageWidth * 0.45);
-    const int col3 = static_cast<int>(pageWidth * 0.68);
-    const int rowHeight = 34;
-
     QFont titleFont = painter.font();
     titleFont.setPointSize(16);
     titleFont.setBold(true);
@@ -1454,10 +1515,44 @@ bool ProfileManager::exportCheatsheetPdf(const QString &filePath, const EventRou
     rowFont.setPointSize(10);
     rowFont.setBold(false);
 
-    int y = 40;
+    // Row/margin metrics are derived from each font's own line spacing,
+    // measured against this exact QPdfWriter (not the screen) - QPdfWriter's
+    // device units scale with its resolution() (DPI), so a fixed pixel
+    // constant that happened to look right at one resolution silently
+    // overlaps every row into an unreadable smear at another. The 1.5x
+    // factor leaves air between lines instead of packing them edge to edge.
+    const QFontMetrics titleMetrics(titleFont, &writer);
+    const QFontMetrics rowMetrics(rowFont, &writer);
+    const int rowHeight = static_cast<int>(rowMetrics.lineSpacing() * 1.5);
+    const int topMargin = rowHeight;
+    const int bottomMargin = rowHeight;
+
+    const int pageWidth = painter.window().width();
+    const int pageBottom = painter.window().height() - bottomMargin;
+    const int col1 = 0;
+    const int col2 = static_cast<int>(pageWidth * 0.45);
+    const int col3 = static_cast<int>(pageWidth * 0.68);
+    // Small gap kept clear before the next column starts, so an elided
+    // "…" never sits flush against the following column's text.
+    const int colGap = rowHeight / 3;
+    const int col1Width = col2 - col1 - colGap;
+    const int col2Width = col3 - col2 - colGap;
+    const int col3Width = pageWidth - col3 - colGap;
+
+    // systemPath (a raw, very long Windows device path - see
+    // DeviceInfo::systemPath's own docs) is meaningless to a human reading
+    // a printed cheatsheet and, worse, was wide enough to overrun the
+    // "Input" column into "Action Type"/"Details" - swap in the same
+    // human-readable device name the Profiles screen itself shows.
+    QHash<QString, QString> deviceNamesByPath;
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        deviceNamesByPath.insert(device.systemPath, device.deviceName);
+    }
+
+    int y = topMargin;
     painter.setFont(titleFont);
     painter.drawText(col1, y, profileName + QStringLiteral(" - Binding Cheatsheet"));
-    y += rowHeight;
+    y += static_cast<int>(titleMetrics.lineSpacing() * 1.5);
 
     const auto drawHeaderRow = [&]() {
         painter.setFont(headerFont);
@@ -1475,13 +1570,14 @@ bool ProfileManager::exportCheatsheetPdf(const QString &filePath, const EventRou
     for (const EventRouter::RouteDescriptor &route : router.allRoutes()) {
         if (y > pageBottom) {
             writer.newPage();
-            y = 40;
+            y = topMargin;
             drawHeaderRow();
             painter.setFont(rowFont);
         }
 
-        const QString deviceLabel =
-            route.systemPath.isEmpty() ? QStringLiteral("(any device)") : route.systemPath;
+        const QString deviceLabel = route.systemPath.isEmpty()
+            ? QStringLiteral("(any device)")
+            : deviceNamesByPath.value(route.systemPath, route.systemPath);
         const QString inputLabel = QStringLiteral("%1 \xC2\xB7 %2 %3 (mode: %4)")
                                         .arg(deviceLabel)
                                         .arg(route.isAxis ? QStringLiteral("Axis") : QStringLiteral("Button"))
@@ -1517,9 +1613,13 @@ bool ProfileManager::exportCheatsheetPdf(const QString &filePath, const EventRou
             details = detailParts.join(QStringLiteral(", "));
         }
 
-        painter.drawText(col1, y, inputLabel);
-        painter.drawText(col2, y, actionType);
-        painter.drawText(col3, y, details);
+        // Elided (not just clipped) so a still-too-long value shows a
+        // trailing "…" instead of running straight into the next column -
+        // same defensive measure regardless of how long a device name,
+        // action type, or details string happens to be.
+        painter.drawText(col1, y, rowMetrics.elidedText(inputLabel, Qt::ElideRight, col1Width));
+        painter.drawText(col2, y, rowMetrics.elidedText(actionType, Qt::ElideRight, col2Width));
+        painter.drawText(col3, y, rowMetrics.elidedText(details, Qt::ElideRight, col3Width));
         y += rowHeight;
     }
 

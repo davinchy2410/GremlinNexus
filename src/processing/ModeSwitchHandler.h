@@ -27,6 +27,7 @@ public:
 
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
+    bool isModeSwitch() const override { return true; }
 
     /// Rebuilds this handler's "ModeSwitch" binding JSON,
     /// matching ProfileManager::instantiateModeSwitchHandler()'s schema.

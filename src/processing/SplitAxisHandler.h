@@ -40,7 +40,7 @@ public:
 
     SplitAxisHandler(std::shared_ptr<IVirtualOutputDevice> lowerTarget, int lowerAxis, bool lowerInvert,
                       std::shared_ptr<IVirtualOutputDevice> upperTarget, int upperAxis, bool upperInvert,
-                      SplitMode mode = SplitMode::CenterToEdges);
+                      SplitMode mode = SplitMode::CenterToEdges, int inputMin = 0, int inputMax = 65535);
 
     void processAxis(const AxisEvent &evt) override;
     void processButton(const ButtonEvent &evt) override;
@@ -59,4 +59,11 @@ private:
     bool m_upperInvert;
 
     SplitMode m_mode;
+
+    /// Raw HID logical range of the source axis (Fase - BUG-002 fix). Not a
+    /// fixed [0, 65535]: a 12-bit device (e.g. VKBsim, 0-4095) reports a
+    /// narrower range, so processAxis() normalizes to [0, 65535] against these
+    /// before the split math - same pattern as CurveHandler/MergeAxisHandler.
+    int m_inputMin;
+    int m_inputMax;
 };

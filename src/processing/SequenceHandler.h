@@ -58,18 +58,25 @@ private:
     /// press used to always advance m_currentIndex, that bounce silently
     /// consumed two steps per physical press instead of one (the reported
     /// "it skips by twos and alternates between two buttons" symptom). A
-    /// press arriving under 50ms after the last real advance is treated as
-    /// that same bounce - forwarded to m_activeAction so the game/vJoy
-    /// target still sees a clean press, but m_currentIndex does not move.
+    /// press arriving under kBounceThresholdMs after the last real advance
+    /// is treated as that same bounce - forwarded to m_activeAction so the
+    /// game/vJoy target still sees a clean press, but m_currentIndex does
+    /// not move.
     QElapsedTimer m_advanceTimer;
 
     /// Fase 20.24: started on every real release, checked on the next
     /// press - a mechanical switch's spring can also bounce on the way
-    /// *up*, producing a phantom 2ms release-then-press well after the
-    /// press that m_advanceTimer above already guards. Since that release
+    /// *up*, producing a phantom release-then-press well after the press
+    /// that m_advanceTimer above already guards. Since that release
     /// already reset m_activeAction to null (a real release), the
     /// re-press's bounce filter can't just forward to m_activeAction - it
     /// has to logically step back to whichever action the release just
     /// closed out, re-press it, and still not advance m_currentIndex.
     QElapsedTimer m_releaseTimer;
+
+    /// Bounce window for both m_advanceTimer and m_releaseTimer above -
+    /// tuned against real hardware (a plain 50ms guess proved too tight for
+    /// the physical rotary switch this was built against; contact bounce on
+    /// that switch can run up to ~150ms).
+    static constexpr qint64 kBounceThresholdMs = 150;
 };

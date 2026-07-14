@@ -26,6 +26,15 @@ Popup {
     property string titleText: ""
     property string messageText: ""
 
+    /// Confirm button's accent color - defaults to Theme.danger (a real
+    /// "are you sure you want to destroy something" tone) so every existing
+    /// caller (e.g. DeviceCard's "Clear All") keeps looking exactly the same.
+    /// A caller confirming a non-destructive structural decision (e.g.
+    /// ProfileEditorView.qml's merge-root-mode-into-Global prompt) can
+    /// override this to Theme.accent instead, so the button doesn't visually
+    /// imply data loss for an action that isn't one.
+    property color confirmAccentColor: Theme.danger
+
     /// Fired when the user picks "Confirm" - the caller (not this popup)
     /// owns whatever destructive action that implies.
     signal accepted()
@@ -95,8 +104,8 @@ Popup {
             }
             GremblingButton {
                 text: qsTr("Confirm")
-                accentColor: Theme.danger
-                accentHoverColor: Theme.danger
+                accentColor: root.confirmAccentColor
+                accentHoverColor: root.confirmAccentColor
                 onClicked: {
                     root.accepted();
                     root.close();

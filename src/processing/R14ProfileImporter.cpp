@@ -16,7 +16,7 @@ namespace {
 constexpr int kMaxResolveDepth = 32;
 }
 
-QJsonObject R14ProfileImporter::importFromXml(const QString &xmlFilePath)
+QJsonObject R14ProfileImporter::importFromXml(const QString &xmlFilePath, QStringList *outRootModes)
 {
     QFile file(xmlFilePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -61,6 +61,26 @@ QJsonObject R14ProfileImporter::importFromXml(const QString &xmlFilePath)
                               .arg(xml.lineNumber())
                               .arg(xml.columnNumber())
                               .arg(xml.errorString()));
+    }
+
+    // See this method's own header docs: a "root" mode here is any mode name
+    // an <input> references that never appears as a KEY in modeParents (i.e.
+    // <modes> never declared a parent for it) - the same definition
+    // ProfileManager::loadProfile()'s backward-compat fallback uses when
+    // defaulting a parent-less mode's hierarchy parent to Global.
+    if (outRootModes) {
+        outRootModes->clear();
+        for (const RawInput &input : rawInputs) {
+            if (input.mode.isEmpty() || input.mode == QLatin1String("Global")) {
+                continue;
+            }
+            if (modeParents.contains(input.mode)) {
+                continue; // Has a known parent elsewhere in <modes> - not a root.
+            }
+            if (!outRootModes->contains(input.mode)) {
+                outRootModes->append(input.mode);
+            }
+        }
     }
 
     QJsonArray bindings;

@@ -54,6 +54,15 @@ public:
     /// keeps the output layer from depending on Qt networking/PwaServer.
     static void setTelemetryCallback(std::function<void(unsigned int deviceId, int buttonIndex, bool pressed)> callback);
 
+    /// Clears s_telemetryCallback back to empty. main.cpp's own callback
+    /// captures a reference to a local `PwaServer pwaServer` by reference -
+    /// this static std::function member otherwise has no way to know that
+    /// reference is about to dangle once main() returns and its own locals
+    /// unwind, so main.cpp calls this explicitly, right before pwaServer
+    /// goes out of scope, severing the reference while it's still valid
+    /// rather than leaving a static holding a soon-to-dangle capture behind.
+    static void clearTelemetryCallback();
+
 private:
     // vJoy C API function signatures (vJoyInterface.dll / public.h). vJoy's
     // API is declared __stdcall; on x64 this has no ABI effect but is kept
@@ -110,6 +119,23 @@ private:
     int64_t m_lastReacquireAttemptMs = 0;
     int m_failuresSinceLastLog = 0;
     bool m_isCurrentlyFailing = false;
+
+    /// Set whenever setAxis()/setButton()/setHat() actually flips a field in
+    /// m_state (not on every call - a handler re-staging an already-held
+    /// value every tick, e.g. a momentary button's own handler, must not
+    /// keep this set forever); cleared by update() once it has successfully
+    /// pushed the current m_state to the driver. Lets update() skip the
+    /// UpdateVJD() call entirely on a tick where nothing changed since the
+    /// last successful one - a pure CPU/driver-call-count saving (an idle
+    /// device previously called UpdateVJD 200 times/sec with byte-identical
+    /// data), NOT a fix for the documented VJD_STAT_FREE bug above, which
+    /// this file's own history traces to the driver not surviving a PC
+    /// sleep/resume cycle - a call-frequency reduction has no bearing on
+    /// that. Starts true so the very first update() after construction
+    /// always attempts a push. acquire() below sets this explicitly before
+    /// its own centering push, since it writes m_state's axis fields
+    /// directly rather than through setAxis() (see acquire()'s own comment).
+    bool m_dirty = true;
 
     /// Binary layout of a vJoy report, matching the vJoy SDK's
     /// JOYSTICK_POSITION_V2 struct field-for-field: this is wire ABI shared

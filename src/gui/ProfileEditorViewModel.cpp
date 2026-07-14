@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
 #include <QUrl>
@@ -19,6 +20,7 @@
 #include "DeviceInfo.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
+#include "KeyboardHandler.h"
 #include "PwaServer.h"
 #include "SCIntegrationManager.h"
 
@@ -29,6 +31,29 @@ namespace {
 /// registered under it keeps EventRouter's "always active regardless of
 /// the selected mode" special-casing instead of silently becoming a
 /// different, non-special-cased mode that just happens to look similar.
+
+/// Stable per-device identity key for device-tab-order persistence (Fase -
+/// drag-to-reorder device tabs): VID:PID, parsed back out of vendorProduct's
+/// own "VID:xxxx PID:xxxx" display format (see makeDeviceEntry()) rather than
+/// a redundant new DeviceEntry field. Falls back to systemPath for a device
+/// with no real VID/PID to key on (an R14/Legacy import's synthetic offline
+/// placeholder, or a Curves-screen mock device - both hardcode vendorProduct
+/// to a fixed literal string instead - see makeDeviceEntry()'s orphan-row
+/// construction and seedMockDevices()), so those still get a distinct key of
+/// their own rather than colliding under one shared literal.
+///
+/// Ambiguous for two physically-identical devices sharing the exact same
+/// VID/PID (both resolve to the same key, so only the last one processed
+/// keeps its saved position) - the same known limitation
+/// ProfileManager::loadProfile()'s own resolveMigratedPath() already
+/// documents and accepts for orphaned-device path migration; not worth
+/// solving twice for a corner case this project already lives with elsewhere.
+QString deviceOrderKey(const QString &vendorProduct, const QString &systemPath)
+{
+    static const QRegularExpression pattern(QStringLiteral("VID:(\\S+) PID:(\\S+)"));
+    const QRegularExpressionMatch match = pattern.match(vendorProduct);
+    return match.hasMatch() ? (match.captured(1) + QLatin1Char(':') + match.captured(2)) : systemPath;
+}
 
 /// Display name for buttonIndex out of a device with numButtons total
 /// buttons and numHats POV hats (Fase 16.7). The last numHats*4 buttons are
@@ -105,9 +130,63 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
                                                  .arg(binding.value(QStringLiteral("targetHat")).toInt() + 1)
                                                  .arg(directionLabel);
     } else if (label == QStringLiteral("KeyboardHandler")) {
-        label = QStringLiteral("Keyboard");
+        const int scanCode =
+            binding.value(QStringLiteral("parameters")).toObject().value(QStringLiteral("scanCode")).toInt();
+        label = QStringLiteral("Keyboard: %1").arg(KeyboardHandler::scanCodeToKeyName(static_cast<uint16_t>(scanCode)));
     } else if (label == QStringLiteral("MacroHandler")) {
-        label = QStringLiteral("Macro");
+        // Fase (Macro binding preview): a compact per-step summary instead
+        // of just the bare word "Macro", same "abbreviate + join" idiom
+        // SequenceHandler's own preview uses below - so a multi-step macro
+        // still fits the Pill's width. PressButton/ReleaseButton steps are
+        // rendered by synthesizing a ButtonRemapHandler fragment and
+        // recursing into THIS SAME function, so a macro button step reads
+        // exactly like any other button reference in the app (e.g. "vJ1 B3")
+        // instead of duplicating that formatting; Wait steps borrow
+        // DelayAction's own "Delay %1ms" label the same way. Key/mouse steps
+        // have no existing top-level handler shape to borrow from, so
+        // they're formatted directly here. A trailing "+"/"-" marks a
+        // press/release half of a discrete step (Wait/MouseScroll have
+        // neither - they're not press/release pairs).
+        const QJsonArray steps =
+            binding.value(QStringLiteral("parameters")).toObject().value(QStringLiteral("steps")).toArray();
+        QStringList stepLabels;
+        for (const QJsonValue &stepValue : steps) {
+            const QJsonObject step = stepValue.toObject();
+            const QString stepType = step.value(QStringLiteral("type")).toString();
+            QString stepLabel;
+            if (stepType == QStringLiteral("PressButton") || stepType == QStringLiteral("ReleaseButton")) {
+                QJsonObject fragment;
+                fragment[QStringLiteral("actionType")] = QStringLiteral("ButtonRemapHandler");
+                fragment[QStringLiteral("targetButton")] = step.value(QStringLiteral("buttonIndex"));
+                fragment[QStringLiteral("targetOutputId")] = binding.value(QStringLiteral("targetOutputId"));
+                fragment[QStringLiteral("targetDeviceType")] = binding.value(QStringLiteral("targetDeviceType"));
+                stepLabel = bindingLabelForActionJson(fragment);
+                stepLabel.replace(QStringLiteral("vJoy "), QStringLiteral("vJ"));
+                stepLabel.replace(QStringLiteral(" : Btn "), QStringLiteral(" B"));
+                stepLabel += stepType == QStringLiteral("PressButton") ? QStringLiteral("+") : QStringLiteral("-");
+            } else if (stepType == QStringLiteral("PressKey") || stepType == QStringLiteral("ReleaseKey")) {
+                const int scanCode = step.value(QStringLiteral("scanCode")).toInt();
+                stepLabel = KeyboardHandler::scanCodeToKeyName(static_cast<uint16_t>(scanCode));
+                stepLabel += stepType == QStringLiteral("PressKey") ? QStringLiteral("+") : QStringLiteral("-");
+            } else if (stepType == QStringLiteral("PressMouseButton") ||
+                       stepType == QStringLiteral("ReleaseMouseButton")) {
+                stepLabel = step.value(QStringLiteral("targetAction")).toString();
+                stepLabel +=
+                    stepType == QStringLiteral("PressMouseButton") ? QStringLiteral("+") : QStringLiteral("-");
+            } else if (stepType == QStringLiteral("MouseScroll")) {
+                stepLabel = step.value(QStringLiteral("targetAction")).toString();
+            } else if (stepType == QStringLiteral("Wait")) {
+                QJsonObject fragment;
+                fragment[QStringLiteral("actionType")] = QStringLiteral("DelayAction");
+                QJsonObject fragmentParameters;
+                fragmentParameters[QStringLiteral("delayMs")] = step.value(QStringLiteral("waitMs"));
+                fragment[QStringLiteral("parameters")] = fragmentParameters;
+                stepLabel = bindingLabelForActionJson(fragment);
+            }
+            stepLabels.append(stepLabel.isEmpty() ? QStringLiteral("?") : stepLabel);
+        }
+        label = stepLabels.isEmpty() ? QStringLiteral("Macro")
+                                      : QStringLiteral("Macro: %1").arg(stepLabels.join(QStringLiteral(" > ")));
     } else if (label == QStringLiteral("DelayAction")) {
         const int delayMs = binding.value(QStringLiteral("parameters")).toObject()
                                     .value(QStringLiteral("delayMs")).toInt();
@@ -203,6 +282,72 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
                     .arg(getAxisName(upperTargetAxis));
     }
     return label;
+}
+
+/// Recursively checks whether binding (or anything nested inside it - a
+/// ConditionHandler/MergeAxisHandler wrapped in a Tempo gesture or Sequence
+/// step, say) references ANOTHER input's identity as part of its own live
+/// logic, rather than just an output target - "ConditionHandler" (gated on a
+/// specific modifier button, read live via EventRouter::isButtonPressed() -
+/// see that class' own docs) and "MergeAxisHandler" (reads a second "other"
+/// axis live via EventRouter::getAxisValue()) are the two kinds that do this
+/// today. copyAction() uses this to warn up front that pasting such a copy
+/// onto a different input does NOT give it its own independent modifier/
+/// other-axis - both copies keep reading the exact same external
+/// (systemPath, index) live, at dispatch time, same as if the user had
+/// bound the SAME modifier/other-axis to both inputs by hand.
+///
+/// Same wrapper/cascade traversal shape as ProfileManager's own (internal,
+/// mutating) renameModeInBinding() - wrappedAction; TempoHandler's
+/// shortActions/longActions/doubleActions and their pre-cascade legacy
+/// singular form; SequenceHandler's parameters.actions - kept in sync with
+/// that function's depth guard (32) for the same "corrupt/malicious profile
+/// nesting a reference cycle" reasoning, though this side only ever walks a
+/// single already-in-memory clipboard entry, never untrusted disk JSON.
+bool bindingReferencesExternalInput(const QJsonObject &binding, int depth = 0)
+{
+    if (depth > 32) {
+        return false;
+    }
+
+    const QString actionType = binding.value(QStringLiteral("actionType")).toString();
+    if (actionType == QStringLiteral("ConditionHandler") || actionType == QStringLiteral("MergeAxisHandler")) {
+        return true;
+    }
+
+    if (binding.contains(QStringLiteral("wrappedAction")) &&
+        bindingReferencesExternalInput(binding.value(QStringLiteral("wrappedAction")).toObject(), depth + 1)) {
+        return true;
+    }
+
+    static const QStringList kActionListKeys{
+        QStringLiteral("shortActions"), QStringLiteral("longActions"), QStringLiteral("doubleActions")};
+    for (const QString &key : kActionListKeys) {
+        const QJsonArray list = binding.value(key).toArray();
+        for (const QJsonValue &actionValue : list) {
+            if (bindingReferencesExternalInput(actionValue.toObject(), depth + 1)) {
+                return true;
+            }
+        }
+    }
+
+    static const QStringList kLegacySingularKeys{
+        QStringLiteral("shortAction"), QStringLiteral("longAction"), QStringLiteral("doubleAction")};
+    for (const QString &key : kLegacySingularKeys) {
+        if (binding.contains(key) && bindingReferencesExternalInput(binding.value(key).toObject(), depth + 1)) {
+            return true;
+        }
+    }
+
+    const QJsonArray sequenceActions =
+        binding.value(QStringLiteral("parameters")).toObject().value(QStringLiteral("actions")).toArray();
+    for (const QJsonValue &actionValue : sequenceActions) {
+        if (bindingReferencesExternalInput(actionValue.toObject(), depth + 1)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /// Sprint QoL Part 2: a binding's optional free-text "parameters.note" -
@@ -433,9 +578,20 @@ ProfileEditorViewModel::ProfileEditorViewModel(EventRouter &router, AutoSwitchMa
 
     m_modes.append(EventRouter::kGlobalMode);
 
+    // Fase (drag-to-reorder device tabs): loaded before the initial device
+    // population loop below so that loop's own deviceInsertionIndex() calls
+    // already honor whatever order the user last dragged into, instead of
+    // plain discovery order on every subsequent launch.
+    m_deviceTabOrder = QSettings()
+                           .value(QStringLiteral("DeviceTabOrder"))
+                           .toString()
+                           .split(QLatin1Char(','), Qt::SkipEmptyParts);
+
     const QList<DeviceInfo> connected = DeviceManager::instance().getConnectedDevices();
     for (const DeviceInfo &device : connected) {
-        m_devices.append(makeDeviceEntry(device, m_router));
+        DeviceEntry entry = makeDeviceEntry(device, m_router);
+        const int insertAt = deviceInsertionIndex(entry.vendorProduct, entry.systemPath);
+        m_devices.insert(insertAt, std::move(entry));
     }
     if (m_devices.isEmpty()) {
         seedMockDevices();
@@ -580,7 +736,14 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
     // "profileName" (currentProfileName(), saveProfileToPath(),
     // exportCheatsheetPdf(), quickSave()'s Save dialog default, ...) sees a
     // real name instead of silently inheriting an empty one.
-    QString importedName = QFileInfo(localPath).baseName().trimmed();
+    // Bugfix: baseName() truncates at the FIRST '.' in the filename, not just
+    // the extension - a profile named "...[ENH][NXT][4.8.0][LIVE][R14].json"
+    // was being shown as "...[ENH][NXT][4" (everything after the "4.8.0"
+    // version string's own dot got silently dropped). completeBaseName()
+    // only strips the last '.' onward (the actual extension), matching what
+    // LegacyProfileImporter/R14ProfileImporter already do for their own
+    // "Imported: %1" name.
+    QString importedName = QFileInfo(localPath).completeBaseName().trimmed();
     if (importedName.isEmpty()) {
         importedName = QStringLiteral("Untitled");
     }
@@ -1206,6 +1369,20 @@ void ProfileEditorViewModel::copyAction(const QString &devicePath, const QString
 {
     m_clipboardJson = getActionDataJson(devicePath, inputName, mode);
     m_clipboardKind = inputKind;
+
+    // See clipboardWarning's own Q_PROPERTY docs and
+    // bindingReferencesExternalInput()'s own docs on exactly what this
+    // catches (ConditionHandler/MergeAxisHandler, anywhere in the copied
+    // action's nesting) and why it matters.
+    m_clipboardWarning.clear();
+    if (!m_clipboardJson.isEmpty()) {
+        const QJsonDocument doc = QJsonDocument::fromJson(m_clipboardJson.toUtf8());
+        if (doc.isObject() && bindingReferencesExternalInput(doc.object())) {
+            m_clipboardWarning = tr("Pasting will share the SAME modifier button / other axis as the original - "
+                                     "it won't get its own independent copy.");
+        }
+    }
+
     emit clipboardChanged();
 }
 
@@ -1342,11 +1519,20 @@ bool ProfileEditorViewModel::renameMode(const QString &oldName, const QString &n
     if (trimmedNewName.isEmpty() || trimmedNewName == oldName) {
         return false;
     }
-    if (m_modes.contains(trimmedNewName)) {
-        qWarning() << "ProfileEditorViewModel: refusing to rename mode" << oldName << "->" << trimmedNewName
-                    << "- that name is already in use by another mode";
-        return false;
-    }
+
+    // trimmedNewName may already be a known mode name - most notably Global
+    // itself, always present in m_modes (see the constructor's own
+    // m_modes.append(kGlobalMode)) even when it has no bindings of its own.
+    // That's exactly the shape a legacy import leaves behind: the imported
+    // profile's own root mode (never literally named "Global") comes in as
+    // a brand new mode, while Global sits empty with no bindings and no way
+    // to fold the import back into it. ProfileManager::renameMode() below
+    // is the actual authority on whether a merge into an existing mode name
+    // is safe - it refuses if trimmedNewName already has bindings of its
+    // own (avoiding a silent route collision), not merely if the name is
+    // already known - so an empty existing mode (Global or otherwise) is a
+    // legitimate merge target, not just a plain "swap this mode's name" one.
+    const bool mergingIntoExistingMode = m_modes.contains(trimmedNewName);
 
     if (!m_profileManager.renameMode(oldName, trimmedNewName, m_router)) {
         return false;
@@ -1354,7 +1540,16 @@ bool ProfileEditorViewModel::renameMode(const QString &oldName, const QString &n
 
     const int modeIndex = m_modes.indexOf(oldName);
     if (modeIndex >= 0) {
-        m_modes[modeIndex] = trimmedNewName;
+        if (mergingIntoExistingMode) {
+            // trimmedNewName already has its own entry in m_modes (e.g.
+            // Global's, always present) - oldName's bindings now live under
+            // that existing entry, so drop oldName's rather than also
+            // writing trimmedNewName into its slot, which would otherwise
+            // leave two duplicate entries for the same mode name.
+            m_modes.removeAt(modeIndex);
+        } else {
+            m_modes[modeIndex] = trimmedNewName;
+        }
     }
     emit modesChanged();
 
@@ -1424,8 +1619,10 @@ void ProfileEditorViewModel::onDeviceAdded(const DeviceInfo &device)
         return;
     }
 
-    beginInsertRows(QModelIndex(), m_devices.size(), m_devices.size());
-    m_devices.append(makeDeviceEntry(device, m_router));
+    DeviceEntry entry = makeDeviceEntry(device, m_router);
+    const int insertAt = deviceInsertionIndex(entry.vendorProduct, entry.systemPath);
+    beginInsertRows(QModelIndex(), insertAt, insertAt);
+    m_devices.insert(insertAt, std::move(entry));
     endInsertRows();
 }
 
@@ -1773,6 +1970,61 @@ ProfileEditorViewModel::DeviceEntry ProfileEditorViewModel::makeDeviceEntry(cons
     entry.inputs = inputs;
 
     return entry;
+}
+
+int ProfileEditorViewModel::deviceInsertionIndex(const QString &vendorProduct, const QString &systemPath) const
+{
+    const QString key = deviceOrderKey(vendorProduct, systemPath);
+    const int savedRank = m_deviceTabOrder.indexOf(key);
+    if (savedRank < 0) {
+        return m_devices.size(); // Never explicitly ordered - append, same as before tab reordering existed.
+    }
+
+    // First already-present device whose OWN saved rank comes after ours -
+    // insert right before it. A device with no saved rank of its own isn't a
+    // useful anchor (its position doesn't reflect a user choice) and is
+    // skipped rather than treated as "comes after everything".
+    for (int i = 0; i < m_devices.size(); ++i) {
+        const DeviceEntry &existing = m_devices.at(i);
+        const int otherRank = m_deviceTabOrder.indexOf(deviceOrderKey(existing.vendorProduct, existing.systemPath));
+        if (otherRank >= 0 && otherRank > savedRank) {
+            return i;
+        }
+    }
+    return m_devices.size();
+}
+
+void ProfileEditorViewModel::persistDeviceTabOrder()
+{
+    QStringList order;
+    order.reserve(m_devices.size());
+    for (const DeviceEntry &entry : m_devices) {
+        order.append(deviceOrderKey(entry.vendorProduct, entry.systemPath));
+    }
+    // Kept in sync in-memory too (not just QSettings) so a device added
+    // later THIS session - after a drag already happened - still inserts
+    // relative to the freshly-dragged order, not the stale one loaded at
+    // startup.
+    m_deviceTabOrder = order;
+    QSettings().setValue(QStringLiteral("DeviceTabOrder"), order.join(QLatin1Char(',')));
+}
+
+void ProfileEditorViewModel::moveDeviceTab(int fromRow, int toRow)
+{
+    if (fromRow == toRow || fromRow < 0 || fromRow >= m_devices.size() || toRow < 0 || toRow >= m_devices.size()) {
+        return;
+    }
+
+    // Canonical Qt idiom for QAbstractItemModel::beginMoveRows() +
+    // QList::move(): the destination argument is "insert before this row,
+    // indexed against the ORIGINAL (pre-move) array" - for a forward move
+    // that has to be toRow+1 (toRow itself, pre-move, still holds the row
+    // this one needs to land AFTER), a backward move uses toRow directly.
+    beginMoveRows(QModelIndex(), fromRow, fromRow, QModelIndex(), toRow > fromRow ? toRow + 1 : toRow);
+    m_devices.move(fromRow, toRow);
+    endMoveRows();
+
+    persistDeviceTabOrder();
 }
 
 void ProfileEditorViewModel::seedMockDevices()

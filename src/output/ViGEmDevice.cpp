@@ -113,6 +113,12 @@ bool ViGEmDevice::acquire()
     // a prior relinquish() also starts from this same known-centered state,
     // not whatever m_state was left holding beforehand.
     m_state = XusbReport{};
+    // Force a push on the next update() even on a re-acquire where m_dirty
+    // might otherwise still read false (from a successful update() in a
+    // prior acquired session, untouched by relinquish()) - the target just
+    // added is a brand new ViGEmBus object that has never received a
+    // report at all, so update()'s dirty-gate must not skip its first one.
+    m_dirty = true;
     m_acquired = true;
     return true;
 }
@@ -146,12 +152,36 @@ void ViGEmDevice::relinquish()
 void ViGEmDevice::setAxis(int axisIndex, int value)
 {
     switch (axisIndex) {
-    case 0: m_state.sThumbLX = static_cast<int16_t>(value); break;
-    case 1: m_state.sThumbLY = static_cast<int16_t>(value); break;
-    case 2: m_state.sThumbRX = static_cast<int16_t>(value); break;
-    case 3: m_state.sThumbRY = static_cast<int16_t>(value); break;
-    case 4: m_state.bLeftTrigger = static_cast<uint8_t>(value); break;
-    case 5: m_state.bRightTrigger = static_cast<uint8_t>(value); break;
+    case 0: {
+        const auto v = static_cast<int16_t>(value);
+        if (m_state.sThumbLX != v) { m_state.sThumbLX = v; m_dirty = true; }
+        break;
+    }
+    case 1: {
+        const auto v = static_cast<int16_t>(value);
+        if (m_state.sThumbLY != v) { m_state.sThumbLY = v; m_dirty = true; }
+        break;
+    }
+    case 2: {
+        const auto v = static_cast<int16_t>(value);
+        if (m_state.sThumbRX != v) { m_state.sThumbRX = v; m_dirty = true; }
+        break;
+    }
+    case 3: {
+        const auto v = static_cast<int16_t>(value);
+        if (m_state.sThumbRY != v) { m_state.sThumbRY = v; m_dirty = true; }
+        break;
+    }
+    case 4: {
+        const auto v = static_cast<uint8_t>(value);
+        if (m_state.bLeftTrigger != v) { m_state.bLeftTrigger = v; m_dirty = true; }
+        break;
+    }
+    case 5: {
+        const auto v = static_cast<uint8_t>(value);
+        if (m_state.bRightTrigger != v) { m_state.bRightTrigger = v; m_dirty = true; }
+        break;
+    }
     default:
         qWarning() << "ViGEmDevice: axisIndex" << axisIndex << "out of range [0," << kMaxAxes << ")";
         break;
@@ -187,10 +217,14 @@ void ViGEmDevice::setButton(int buttonIndex, bool pressed)
     }
 
     const uint16_t mask = kButtonBits[buttonIndex];
+    const uint16_t before = m_state.wButtons;
     if (pressed) {
         m_state.wButtons |= mask;
     } else {
         m_state.wButtons &= static_cast<uint16_t>(~mask);
+    }
+    if (m_state.wButtons != before) {
+        m_dirty = true;
     }
 }
 
@@ -230,5 +264,12 @@ bool ViGEmDevice::update()
     if (!m_acquired || !m_vigemTargetX360Update) {
         return false;
     }
-    return m_vigemTargetX360Update(m_client, m_target, m_state) == kVigemErrorNone;
+    if (!m_dirty) {
+        return true;
+    }
+    const bool ok = m_vigemTargetX360Update(m_client, m_target, m_state) == kVigemErrorNone;
+    if (ok) {
+        m_dirty = false;
+    }
+    return ok;
 }

@@ -443,6 +443,54 @@ Item {
                             Behavior on opacity { NumberAnimation { duration: Theme.animMedium } }
                         }
                     }
+
+                    // Fase (reorder device tabs): hover-revealed nudge arrows
+                    // swap this tab with its immediate left/right neighbor,
+                    // one position at a time, via
+                    // ProfileEditorViewModel::moveDeviceTab() - lets a user
+                    // put e.g. their left stick's tab on the left and their
+                    // right stick's tab on the right, matching their
+                    // physical rig instead of whatever order Windows
+                    // happened to discover them in. A plain extra child
+                    // (not assigned to background:/contentItem:) renders on
+                    // top of both by default. Each MouseArea accepts its own
+                    // press (MouseArea's normal default), which keeps that
+                    // click from also reaching deviceTab's own tab-switch
+                    // handling underneath it.
+                    RowLayout {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 3
+                        anchors.rightMargin: 3
+                        visible: deviceTab.hovered
+
+                        Text {
+                            text: "◀"
+                            visible: index > 0
+                            color: Theme.subtext0
+                            font.pixelSize: 10
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -5
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: profileEditorViewModel.moveDeviceTab(index, index - 1)
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: "▶"
+                            visible: index < deviceTabsRepeater.count - 1
+                            color: Theme.subtext0
+                            font.pixelSize: 10
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -5
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: profileEditorViewModel.moveDeviceTab(index, index + 1)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -660,8 +708,48 @@ Item {
             const newPath = oldPath.toString().replace(".xml", "_migrated.json");
             if (legacyMigrator.importLegacyProfile(oldPath, newPath)) {
                 profileEditorViewModel.loadProfileFromPath(newPath);
+
+                // Fase (R14 root-mode merge prompt): only ever non-empty
+                // right after a successful R14 import - see
+                // LegacyMigrator::detectedRootModes()'s own docs. Offers the
+                // same merge ProfileEditorViewModel::renameMode(mode,
+                // "Global") already does (the manual "rename this mode to
+                // Global" trick a user would otherwise have to discover on
+                // their own via ModeManagerPopup) right up front, instead of
+                // silently leaving the imported profile's base layer as a
+                // separate mode next to whatever's already in Global.
+                const rootModes = legacyMigrator.detectedRootModes;
+                if (rootModes.length > 0) {
+                    mergeRootModePopup.pendingModes = rootModes;
+                    mergeRootModePopup.titleText = qsTr("Merge into Global?");
+                    mergeRootModePopup.messageText = rootModes.length === 1
+                        ? qsTr("This profile's base mode is \"%1\" (no parent mode of its own). Merge its bindings directly into Global so they apply in every mode, instead of keeping \"%1\" as a separate mode?").arg(rootModes[0])
+                        : qsTr("This profile has %1 base modes with no parent of their own (%2). Merge their bindings directly into Global so they apply in every mode?").arg(rootModes.length).arg(rootModes.join(", "));
+                    mergeRootModePopup.open();
+                }
             }
         }
+    }
+
+    // See importLegacyDialog.onAccepted above - opened right after a
+    // successful R14 import that detected at least one parent-less "root"
+    // mode. Confirming loops pendingModes through
+    // ProfileEditorViewModel::renameMode(mode, "Global") - the exact same
+    // merge-by-rename ModeManagerPopup's own double-click-to-rename already
+    // performs when the target name is an existing mode (see that
+    // ViewModel's own docs), just triggered automatically instead of the
+    // user having to find and do it manually.
+    ConfirmationPopup {
+        id: mergeRootModePopup
+        property var pendingModes: []
+        confirmAccentColor: Theme.accent
+        onAccepted: {
+            for (const modeName of pendingModes) {
+                profileEditorViewModel.renameMode(modeName, "Global");
+            }
+            pendingModes = [];
+        }
+        onRejected: pendingModes = []
     }
 
     // Fase 20.6/20.9 (ported to Tabs): debounces Quick Bind's highlight+

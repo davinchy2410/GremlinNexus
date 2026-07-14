@@ -1,6 +1,6 @@
 #include "EventRouter.h"
 
-#include <chrono>
+#include <algorithm>
 #include <iterator>
 #include <utility>
 
@@ -105,6 +105,17 @@ void EventRouter::clearRoutes()
     m_axisRoutesByMode.clear();
     m_buttonRoutesByMode.clear();
     m_modeParents.clear();
+
+    // BUG-001 fix: reset mouse velocity to zero so a deflected axis mapped to
+    // mouse motion doesn't keep moving the cursor forever after the handler
+    // that was writing that velocity is destroyed by this clear. Unlike the
+    // vJoy/ViGEm output devices below, the MouseWorkerThread has no
+    // relinquish() equivalent in this path - it stays alive across profile
+    // reloads and simply retains the last velocity written to it.
+    if (m_mouseWorker) {
+        m_mouseWorker->setVelocityX(0.0f);
+        m_mouseWorker->setVelocityY(0.0f);
+    }
 
     for (const auto &device : m_outputDevices) {
         device->relinquish();
@@ -215,29 +226,51 @@ void EventRouter::reevaluateHeldState(const QString &excludeSystemPath, int excl
     for (const auto &[key, pressed] : m_buttonStates) {
         if (!pressed || key == excludeKey) continue;
 
+        // Diff old vs. new handler(s) by pointer identity instead of
+        // unconditionally releasing-then-re-pressing: a held button whose
+        // route falls back to the same Global-bound handler both before and
+        // after this mode change (the common case - most bindings aren't
+        // overridden per-mode) would otherwise get a spurious release+press
+        // pair against a handler that never actually changed. Harmless for
+        // a plain ButtonRemapHandler (it just re-writes the same vJoy bit),
+        // but a ToggleHandler-wrapped binding would silently flip its
+        // toggle state a second time, and a TempoHandler-wrapped one would
+        // restart its gesture - on every mode switch, even one unrelated to
+        // that specific button's own binding.
         auto it = m_activeButtonHandlers.find(key);
+        std::vector<std::shared_ptr<IActionHandler>> oldHandlers;
         if (it != m_activeButtonHandlers.end()) {
-            qInfo() << "EventRouter: reevaluateHeldState re-releasing button" << key.second << "on" << key.first
-                     << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
-                     << excludeSystemPath << ")";
-            const ButtonEvent releaseEvt{key.first, key.second, false};
-            for (const auto &handler : it->second) {
-                handler->processButton(releaseEvt);
-            }
+            oldHandlers = std::move(it->second);
             m_activeButtonHandlers.erase(it);
         }
 
-        const ButtonEvent pressEvt{key.first, key.second, true};
-        std::vector<std::shared_ptr<IActionHandler>> handlers;
+        std::vector<std::shared_ptr<IActionHandler>> newHandlers;
         if (const auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, key.first, key.second)) {
-            qInfo() << "EventRouter: reevaluateHeldState re-pressing button" << key.second << "on" << key.first
-                     << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
-                     << excludeSystemPath << ")";
-            handler->processButton(pressEvt);
-            handlers.push_back(handler);
+            newHandlers.push_back(handler);
         }
-        if (!handlers.empty()) {
-            m_activeButtonHandlers[key] = std::move(handlers);
+
+        const ButtonEvent releaseEvt{key.first, key.second, false};
+        for (const auto &oldHandler : oldHandlers) {
+            if (std::find(newHandlers.begin(), newHandlers.end(), oldHandler) == newHandlers.end()) {
+                qInfo() << "EventRouter: reevaluateHeldState re-releasing button" << key.second << "on" << key.first
+                         << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
+                         << excludeSystemPath << ")";
+                oldHandler->processButton(releaseEvt);
+            }
+        }
+
+        const ButtonEvent pressEvt{key.first, key.second, true};
+        for (const auto &newHandler : newHandlers) {
+            if (std::find(oldHandlers.begin(), oldHandlers.end(), newHandler) == oldHandlers.end()) {
+                qInfo() << "EventRouter: reevaluateHeldState re-pressing button" << key.second << "on" << key.first
+                         << "against mode" << activeMode << "(triggered by button" << excludeButtonIndex << "on"
+                         << excludeSystemPath << ")";
+                newHandler->processButton(pressEvt);
+            }
+        }
+
+        if (!newHandlers.empty()) {
+            m_activeButtonHandlers[key] = std::move(newHandlers);
         }
     }
 }
@@ -279,21 +312,7 @@ void EventRouter::onAxisMoved(const QString &systemPath, int axisIndex, int valu
     const QString activeMode = currentMode();
 
     if (const auto handler = resolveHandlerWithFallback(m_axisRoutesByMode, activeMode, systemPath, axisIndex)) {
-        // --- TEMPORARY DIAGNOSTIC (perf investigation - remove once done) ---
-        // Measures a single handler's processAxis() cost on the hot path -
-        // this runs once per axisMoved(), which DeviceManager already caps
-        // at 250 Hz (see DeviceMonitorWorker's own docs), so even a "slow"
-        // handler here is unlikely to be the UI-lag source by itself; this
-        // is to rule it in/out with real numbers rather than guessing.
-        const auto perfStart = std::chrono::high_resolution_clock::now();
         handler->processAxis(evt);
-        const auto perfEnd = std::chrono::high_resolution_clock::now();
-        const auto perfMicros = std::chrono::duration_cast<std::chrono::microseconds>(perfEnd - perfStart).count();
-        if (perfMicros > 500) {
-            qWarning() << "[EventRouter] processAxis for" << systemPath << "axis" << axisIndex
-                       << "took" << perfMicros << "us (>500us threshold)";
-        }
-        // --- END TEMPORARY DIAGNOSTIC ---
     }
 }
 
@@ -310,24 +329,21 @@ void EventRouter::onButtonsChanged(const QVector<ButtonEvent> &events)
         
         if (evt.pressed) {
             auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, evt.systemPath, evt.buttonIndex);
-            if (handler && (std::dynamic_pointer_cast<TemporaryModeSwitchHandler>(handler) ||
-                            std::dynamic_pointer_cast<ModeSwitchHandler>(handler))) {
+            if (handler && handler->isModeSwitch()) {
                 isModeSwitch = true;
             }
         } else {
             auto it = m_activeButtonHandlers.find(RouteKey{evt.systemPath, evt.buttonIndex});
             if (it != m_activeButtonHandlers.end()) {
                 for (const auto &handler : it->second) {
-                    if (std::dynamic_pointer_cast<TemporaryModeSwitchHandler>(handler) ||
-                        std::dynamic_pointer_cast<ModeSwitchHandler>(handler)) {
+                    if (handler->isModeSwitch()) {
                         isModeSwitch = true;
                         break;
                     }
                 }
             } else {
                 auto handler = resolveHandlerWithFallback(m_buttonRoutesByMode, activeMode, evt.systemPath, evt.buttonIndex);
-                if (handler && (std::dynamic_pointer_cast<TemporaryModeSwitchHandler>(handler) ||
-                                std::dynamic_pointer_cast<ModeSwitchHandler>(handler))) {
+                if (handler && handler->isModeSwitch()) {
                     isModeSwitch = true;
                 }
             }
@@ -350,6 +366,25 @@ void EventRouter::onButtonsChanged(const QVector<ButtonEvent> &events)
 void EventRouter::onButtonPressed(const QString &systemPath, int buttonIndex, bool pressed)
 {
     const RouteKey key{systemPath, buttonIndex};
+
+    // Idempotency guard: a genuine hardware transition never reaches here
+    // twice in a row with the same state - DeviceManager::parseHidReport()
+    // only emits buttonPressed/buttonsChanged on an actual bit flip, and a
+    // real mechanical bounce is itself a genuine oscillating transition, not
+    // a repeated identical one, so neither is silently dropped by this
+    // check. What this DOES catch is a source that bypasses that dedup - a
+    // flaky PWA client re-sending "pressed=true" as a keepalive via
+    // DeviceManager::injectButtonPress(), or a mis-wired macro re-firing
+    // without a matching release - which would otherwise re-run the full
+    // route-resolve + handler-dispatch + logging path on every duplicate
+    // for no behavioral effect (UpdateVJD() is already rate-limited to
+    // EventRouter::tick()'s fixed 200 Hz regardless, so this isn't a driver-
+    // saturation fix - it's wasted CPU/log-spam avoidance on a redundant
+    // event that was never going to change any output).
+    const auto previousStateIt = m_buttonStates.find(key);
+    if (previousStateIt != m_buttonStates.end() && previousStateIt->second == pressed) {
+        return;
+    }
     m_buttonStates[key] = pressed;
 
     const ButtonEvent evt{systemPath, buttonIndex, pressed};
@@ -443,6 +478,29 @@ void EventRouter::onDeviceRemoved(const QString &systemPath)
         return; // Never purge the wildcard entry itself.
     }
 
+    // Stuck-ON fix: force-release every handler still tracked as mid-press
+    // for this device *before* discarding the tracking entry - mirrors the
+    // release reevaluateHeldState() already sends on a mode switch. A
+    // handler that reflects a physical hold directly onto persistent output
+    // state (ButtonRemapHandler's vJoy bit, HatRemapHandler's POV angle, a
+    // held keyboard key) would otherwise never see its matching release when
+    // the device is unplugged mid-press, and that output stays stuck exactly
+    // as it was at the moment of disconnection - indefinitely, since no
+    // further event can ever arrive from a device that's gone. Must run
+    // before erasePath(m_activeButtonHandlers, ...) below, which only
+    // discards the tracking - it never dispatches anything itself.
+    for (auto it = m_activeButtonHandlers.begin(); it != m_activeButtonHandlers.end();) {
+        if (it->first.first == systemPath) {
+            const ButtonEvent releaseEvt{systemPath, it->first.second, false};
+            for (const auto &handler : it->second) {
+                handler->processButton(releaseEvt);
+            }
+            it = m_activeButtonHandlers.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
     for (auto &modeEntry : m_axisRoutesByMode) {
         erasePath(modeEntry.second, systemPath);
     }
@@ -451,7 +509,7 @@ void EventRouter::onDeviceRemoved(const QString &systemPath)
     }
     erasePath(m_buttonStates, systemPath);
     erasePath(m_axisStates, systemPath);
-    erasePath(m_activeButtonHandlers, systemPath);
+    // m_activeButtonHandlers already fully purged by the release loop above.
 
     qInfo() << "EventRouter: purged routes/state for disconnected device" << systemPath;
 }

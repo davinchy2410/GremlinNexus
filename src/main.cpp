@@ -407,5 +407,17 @@ int main(int argc, char *argv[])
     // atexit() after qApp has already unwound.
     AsyncLogSink::instance().shutdown();
 
+    // Severs the telemetry callback's captured "&pwaServer" reference while
+    // pwaServer is still alive - the very next thing that happens is main()
+    // returning, which unwinds every local declared above (pwaServer
+    // included) in reverse order. s_telemetryCallback is a plain static
+    // std::function with no way to know on its own that this particular
+    // reference is about to dangle - clearing it explicitly here, one
+    // statement before it would otherwise become a live footgun, costs
+    // nothing and closes off that whole class of use-after-scope risk for
+    // good, regardless of whether any current call path actually reaches it
+    // this late.
+    VJoyDevice::clearTelemetryCallback();
+
     return exitCode;
 }

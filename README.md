@@ -47,12 +47,22 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 
 ## 🛠️ Installation & Usage
 
-For regular users, there is no need to compile the source code. 
+For regular users, there is no need to compile the source code.
 
-1. Download the latest precompiled `setup.exe` from the [Releases](https://github.com/davinchy2410/GremlinNexus/releases) page.
-2. Run the installer and follow the on-screen instructions to complete the installation.
+1. Download the latest release from the [Releases](https://github.com/davinchy2410/GremlinNexus/releases) page — either `GremlinNexus_Installer.exe` (installer) or `GremlinNexus_Portable.zip` (portable, no installation/admin rights needed — just unzip and run).
+2. Install the **required dependencies** below before first launch (the installer no longer bundles them — see why in the section below).
 3. Launch `GremlinNexus.exe`.
 4. Connect your devices, create a new profile, and start routing!
+
+### 📦 Required Dependencies
+
+Gremlin Nexus itself is just the router/profile editor — the actual virtual-device drivers it talks to are separate, official, third-party projects that you need to install yourself:
+
+* **[vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download)** — required. Provides the virtual joystick devices Gremlin Nexus routes your physical inputs into.
+* **[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)** — required if you use virtual Xbox/DS4 gamepad output instead of (or in addition to) vJoy.
+* **[HidHide](https://github.com/nefarius/HidHide/releases)** — optional but recommended, hides your physical controllers from games so they don't double-input alongside the vJoy/ViGEm outputs (see the dedicated section below).
+
+**Why aren't these bundled in the installer anymore?** An installer that silently installs third-party kernel drivers is far more likely to get flagged as "unsafe" by SmartScreen/antivirus tools when downloaded — and in practice, the bundled vJoy install failed silently on at least one real user's machine, which is hard to diagnose or recover from without local access. Installing each driver yourself from its official source is safer, and each project's own installer is the one best equipped to handle its own edge cases.
 
 ## 🔒 Hiding Physical Controllers with HidHide (Recommended)
 

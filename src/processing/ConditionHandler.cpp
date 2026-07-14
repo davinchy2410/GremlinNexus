@@ -31,7 +31,21 @@ void ConditionHandler::processAxis(const AxisEvent &evt)
 
 void ConditionHandler::processButton(const ButtonEvent &evt)
 {
-    if (m_wrapped && conditionMet()) {
+    if (!m_wrapped) {
+        return;
+    }
+
+    if (evt.pressed) {
+        // Live-gated: only forward a press while the condition actually
+        // holds right now.
+        if (conditionMet()) {
+            m_wasPressed = true;
+            m_wrapped->processButton(evt);
+        }
+    } else if (m_wasPressed) {
+        // Guaranteed release for whatever press this closes out, regardless
+        // of the condition's current state - see the class docs.
+        m_wasPressed = false;
         m_wrapped->processButton(evt);
     }
 }

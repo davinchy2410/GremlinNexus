@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include <QDebug>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QLatin1String>
@@ -24,15 +23,19 @@ void SequenceHandler::processButton(const ButtonEvent &evt)
     }
 
     if (evt.pressed) {
-        const qint64 adv = m_advanceTimer.isValid() ? m_advanceTimer.elapsed() : -1;
-        const qint64 rel = m_releaseTimer.isValid() ? m_releaseTimer.elapsed() : -1;
+        const bool isBounce =
+            (m_advanceTimer.isValid() && m_advanceTimer.elapsed() < kBounceThresholdMs) ||
+            (m_releaseTimer.isValid() && m_releaseTimer.elapsed() < kBounceThresholdMs);
 
-        if ((m_advanceTimer.isValid() && adv < 150) || (m_releaseTimer.isValid() && rel < 150)) {
-            qInfo() << "SequenceHandler: Rebote ignorado (press). adv=" << adv << "rel=" << rel;
+        if (isBounce) {
             if (!m_activeAction) {
+                // The release that preceded this bounced press already
+                // closed out and reset m_activeAction (see m_releaseTimer's
+                // own docs) - step back to whichever action that release
+                // just released and re-press it, so the game/vJoy target
+                // still sees a clean, continuous hold instead of a dropout.
                 const std::size_t prevIndex = (m_currentIndex == 0) ? (m_actions.size() - 1) : (m_currentIndex - 1);
                 m_activeAction = m_actions[prevIndex];
-                qInfo() << "SequenceHandler: Restoring prev action for bounce index=" << prevIndex;
             }
             if (m_activeAction) {
                 m_activeAction->processButton(evt);
@@ -40,25 +43,17 @@ void SequenceHandler::processButton(const ButtonEvent &evt)
             return;
         }
 
-        qInfo() << "SequenceHandler: Pulsacion LEGITIMA. adv=" << adv << "rel=" << rel << "currentIndex=" << m_currentIndex;
         m_advanceTimer.start();
         m_activeAction = m_actions[m_currentIndex];
         if (m_activeAction) {
             m_activeAction->processButton(evt);
-        } else {
-            qInfo() << "SequenceHandler: WARNING: m_actions[currentIndex] is null!";
         }
         m_currentIndex = (m_currentIndex + 1) % m_actions.size();
     } else {
-        const qint64 adv = m_advanceTimer.isValid() ? m_advanceTimer.elapsed() : -1;
         m_releaseTimer.start();
-        qInfo() << "SequenceHandler: Release received. adv=" << adv;
         if (m_activeAction) {
-            qInfo() << "SequenceHandler: Passing release to m_activeAction and resetting it.";
             m_activeAction->processButton(evt);
             m_activeAction.reset();
-        } else {
-            qInfo() << "SequenceHandler: WARNING: Release received but m_activeAction is ALREADY NULL!";
         }
     }
 }

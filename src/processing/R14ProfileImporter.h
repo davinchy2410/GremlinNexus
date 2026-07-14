@@ -83,7 +83,24 @@ public:
     /// failure (file unreadable, malformed XML, or no `<profile>` root)
     /// returns a JSON object with a single "error" string property, same
     /// convention as LegacyProfileImporter::importFromXml().
-    static QJsonObject importFromXml(const QString &xmlFilePath);
+    ///
+    /// If outRootModes is non-null, it's filled (on success) with every mode
+    /// name referenced by at least one `<input>` that has no parent anywhere
+    /// in `<modes>` - i.e. a mode this R14 profile treats as its own
+    /// top-level "root", the same definition ProfileManager::loadProfile()'s
+    /// own backward-compat fallback already uses when it defaults a
+    /// parent-less mode's PARENT to Global. That fallback only nests the
+    /// mode under Global in the hierarchy tree - it does NOT merge its
+    /// bindings into Global itself, which is what a user coming from R14
+    /// (where this root mode usually acts as the profile's de-facto base
+    /// layer) actually wants; LegacyMigrator surfaces this list so the
+    /// caller can offer that merge (via
+    /// ProfileEditorViewModel::renameMode(rootMode, "Global")) right after
+    /// import instead of the user having to discover ModeManagerPopup's
+    /// rename-to-merge behavior on their own. A mode already literally named
+    /// "Global" is never included - its bindings already land in Global
+    /// directly, nothing to merge.
+    static QJsonObject importFromXml(const QString &xmlFilePath, QStringList *outRootModes = nullptr);
 
 private:
     /// One `<action id=".." type="..">` node from `<library>`, decoded into

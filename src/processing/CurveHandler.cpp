@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <QDebug>
-#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QLatin1String>
 
@@ -45,18 +44,33 @@ CurveHandler::CurveHandler(std::shared_ptr<IVirtualOutputDevice> target,
     , m_curvePoints(curvePoints)
     , m_invert(invert)
 {
-    // --- TEMPORARY DIAGNOSTIC (perf investigation - remove once done) ---
-    // Measures the one-time LUT bake this constructor does - moved out of
-    // the member-initializer list (where m_lut used to be built directly)
-    // purely so it can be wrapped in a timer; m_lut's own declared type/
-    // position is unchanged.
-    QElapsedTimer lutTimer;
-    lutTimer.start();
     m_lut = curvePoints.empty() ? buildBezierLut(x1, y1, x2, y2) : buildSplineLut(curvePoints);
-    const qint64 lutMicros = lutTimer.nsecsElapsed() / 1000;
-    qDebug() << "[CurveHandler] LUT build (" << (curvePoints.empty() ? "Bezier" : "Spline")
-             << ") for axis" << targetAxis << "took" << lutMicros << "us";
-    // --- END TEMPORARY DIAGNOSTIC ---
+    // Padding entry duplicating the last real one (index kLutSize-1), so
+    // evaluateCurve()'s hot-path interpolation can always read m_lut[i0+1]
+    // unconditionally - idx is scaled by (kLutSize-1), so i0 is guaranteed
+    // in [0, kLutSize-1] and i0+1 in [1, kLutSize], both valid indices into
+    // this now-(kLutSize+1)-entry vector, with no per-call bounds check
+    // needed.
+    m_lut.push_back(m_lut.back());
+
+    // m_inputMin/m_inputMax never change after construction (no setter
+    // exists) - precomputing the reciprocal here, once, turns processAxis()'s
+    // per-event normalization from a division into a multiplication.
+    // m_validInputRange replaces the old per-call "inputRange <= 0.0" guard,
+    // since inputRange itself is no longer recomputed fresh each call.
+    const double inputRange = static_cast<double>(m_inputMax - m_inputMin);
+    m_validInputRange = inputRange > 0.0;
+    m_invInputRange = m_validInputRange ? (2.0 / inputRange) : 0.0;
+
+    // m_deadzone is already clamped to [0.0, 0.99] above, so 1.0 - m_deadzone
+    // is always in [0.01, 1.0] - safe to precompute unconditionally.
+    m_invDeadzoneRange = 1.0 / (1.0 - m_deadzone);
+
+    // m_outputMin/m_outputMax never change after construction either -
+    // same reasoning as m_invInputRange above, applied to the final
+    // output-range mapping at the other end of processAxis().
+    m_outputScale = 0.5 * static_cast<double>(m_outputMax - m_outputMin);
+    m_outputOffset = static_cast<double>(m_outputMin) + m_outputScale;
 }
 
 std::vector<double> CurveHandler::buildBezierLut(double x1, double y1, double x2, double y2)
@@ -209,10 +223,14 @@ std::vector<double> CurveHandler::buildSplineLut(std::vector<QPointF> points)
 double CurveHandler::evaluateCurve(double x) const
 {
     const double clampedX = std::clamp(x, -1.0, 1.0);
-    const double idx = (clampedX + 1.0) * 0.5 * static_cast<double>(m_lut.size() - 1);
+    // Scaled by kLutSize-1 (the number of REAL entries, not m_lut.size()-1 -
+    // m_lut carries one extra padding entry past that, see the constructor)
+    // so i0 always lands in [0, kLutSize-1] and i0+1 in [1, kLutSize] - both
+    // valid indices into m_lut without a bounds check.
+    const double idx = (clampedX + 1.0) * 0.5 * static_cast<double>(CurveHandler::kLutSize - 1);
 
     const int i0 = static_cast<int>(idx);
-    const int i1 = std::min(i0 + 1, static_cast<int>(m_lut.size()) - 1);
+    const int i1 = i0 + 1;
     const double frac = idx - static_cast<double>(i0);
 
     return m_lut[i0] + frac * (m_lut[i1] - m_lut[i0]);
@@ -220,8 +238,7 @@ double CurveHandler::evaluateCurve(double x) const
 
 void CurveHandler::processAxis(const AxisEvent &evt)
 {
-    const double inputRange = static_cast<double>(m_inputMax - m_inputMin);
-    if (inputRange <= 0.0 || !m_target) {
+    if (!m_validInputRange || !m_target) {
         return;
     }
 
@@ -247,7 +264,10 @@ void CurveHandler::processAxis(const AxisEvent &evt)
     }
 
     // Normalize to bipolar [-1, 1] around the input range's midpoint.
-    const double normalized = ((static_cast<double>(value) - m_inputMin) / inputRange) * 2.0 - 1.0;
+    // Algebraically identical to ((value - min) / range) * 2.0 - 1.0, but
+    // m_invInputRange (== 2.0 / range) is precomputed once in the
+    // constructor instead of dividing on every single call.
+    const double normalized = (static_cast<double>(value) - m_inputMin) * m_invInputRange - 1.0;
 
     // Deadzone, applied directly over the bipolar [-1, 1] range: any value
     // whose magnitude falls inside the deadzone collapses to exactly 0.0,
@@ -260,7 +280,7 @@ void CurveHandler::processAxis(const AxisEvent &evt)
     const double sign = normalized < 0.0 ? -1.0 : 1.0;
     const double magnitude = std::abs(normalized);
     const double deadzoneAdjusted = (magnitude > m_deadzone)
-        ? sign * (magnitude - m_deadzone) / (1.0 - m_deadzone)
+        ? sign * (magnitude - m_deadzone) * m_invDeadzoneRange
         : 0.0;
 
     // O(1) LUT lookup: the expensive part (baking the curve) already
@@ -282,9 +302,13 @@ void CurveHandler::processAxis(const AxisEvent &evt)
         adjusted = -adjusted;
     }
 
-    // Map back to the target device's output range.
-    const double outputRange = static_cast<double>(m_outputMax - m_outputMin);
-    const int outputValue = m_outputMin + static_cast<int>(std::lround((adjusted + 1.0) * 0.5 * outputRange));
+    // Map back to the target device's output range. Algebraically identical
+    // to outputMin + lround((adjusted+1)*0.5*outputRange) - m_outputScale/
+    // m_outputOffset just fold outputMin and the range's half-width into two
+    // constants precomputed once in the constructor instead of every call
+    // (adding an exact integer like outputMin before or after rounding
+    // gives the same result, so folding it inside lround() here is safe).
+    const int outputValue = static_cast<int>(std::lround(adjusted * m_outputScale + m_outputOffset));
 
     m_target->setAxis(m_targetAxis, outputValue);
 }

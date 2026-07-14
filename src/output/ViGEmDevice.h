@@ -139,4 +139,13 @@ private:
     PVIGEM_TARGET m_target = nullptr;
 
     XusbReport m_state{};
+
+    /// Set whenever setAxis()/setButton() actually flips a field in
+    /// m_state; cleared by update() once it has successfully pushed the
+    /// current m_state to the driver - same reasoning and pattern as
+    /// VJoyDevice's own m_dirty (see that class's docs): update() previously
+    /// called vigem_target_x360_update() unconditionally every 5ms tick even
+    /// when nothing changed since the last push. Starts true so the very
+    /// first update() after construction always attempts one.
+    bool m_dirty = true;
 };

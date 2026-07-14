@@ -37,6 +37,9 @@ preview_icons.html
 generar_mapa_arquitectura.py
 generate_ico.py
 
+# Grafo de código generado por graphify (regenerable, no versionar)
+graphify-out/
+
 # IA, prompts, notas de desarrollo y logs de error
 .agents/
 .clinerules

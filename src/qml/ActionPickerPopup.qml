@@ -2270,6 +2270,28 @@ Popup {
             color: Qt.rgba(1, 1, 1, 0.1)
         }
 
+        // Fase (Copy/Paste shared-reference warning): only shown when a
+        // Paste button for this exact inputKind would actually be offered
+        // below AND the copied action references another input's identity
+        // live (a Modifier's gating button, a MergeAxisHandler's "other"
+        // axis) rather than being a self-contained remap/curve - see
+        // ProfileEditorViewModel::clipboardWarning()'s own docs. Explains the
+        // surprise (both copies keep pointing at the SAME external input) up
+        // front, right where Paste is about to be clicked, instead of only
+        // after the fact.
+        Text {
+            visible: text.length > 0 && (root.inputKind === "axis" ? profileEditorViewModel.hasCopiedAxis
+                                                                     : profileEditorViewModel.hasCopiedButton)
+            text: profileEditorViewModel.clipboardWarning
+            Layout.fillWidth: true
+            Layout.leftMargin: Theme.spacingLg
+            Layout.rightMargin: Theme.spacingLg
+            Layout.topMargin: Theme.spacingXs
+            color: Theme.warning
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+        }
+
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: Theme.spacingLg

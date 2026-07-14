@@ -2,7 +2,9 @@
 
 #include <QHash>
 #include <QJsonObject>
+#include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 
 class QWebSocket;
@@ -218,6 +220,16 @@ private:
     QWebSocketServer *m_server = nullptr;
     QTcpServer *m_httpServer = nullptr;
     QHash<QWebSocket *, ClientState> m_clients;
+
+    /// Every HTTP socket currently accepted and not yet cleaned up (see
+    /// onNewHttpConnection()) - QPointer so a socket that already went
+    /// through its own disconnected->deleteLater() cycle (the normal path,
+    /// once its one-shot "Connection: close" response finishes) is simply
+    /// null here rather than dangling. stop() aborts and clears this
+    /// directly instead of relying on m_httpServer's own deleteLater() (and
+    /// the parent-child cascade that eventually brings down) to close out
+    /// whatever's still mid-request.
+    QList<QPointer<QTcpSocket>> m_httpSockets;
     QString m_securityToken;
     QString m_serverIp;
 

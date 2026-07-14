@@ -23,6 +23,16 @@ public:
     virtual void processButton(const ButtonEvent &evt) = 0;
 
     /**
+     * @brief Whether this handler is a mode-switch (ModeSwitchHandler /
+     *        TemporaryModeSwitchHandler), which EventRouter::onButtonsChanged()
+     *        needs to identify so it can dispatch mode switches before any
+     *        other button in the same HID report - a plain virtual call
+     *        instead of the two std::dynamic_pointer_cast RTTI lookups that
+     *        used to do this same check.
+     */
+    virtual bool isModeSwitch() const { return false; }
+
+    /**
      * @brief Describes this handler as a JSON binding fragment (Fase 10.8).
      *
      * Returns whatever ProfileManager::instantiateHandler() would need to

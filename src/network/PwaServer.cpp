@@ -1,5 +1,7 @@
 #include "PwaServer.h"
 
+#include <utility>
+
 #include <QAbstractSocket>
 #include <QCoreApplication>
 #include <QDebug>
@@ -90,6 +92,20 @@ void PwaServer::stop()
         m_httpServer->deleteLater();
         m_httpServer = nullptr;
     }
+
+    // Tear down whatever HTTP socket is still mid-request right now
+    // immediately, rather than leaving it for m_httpServer's own deferred
+    // deleteLater() (and the parent-child cascade that eventually follows)
+    // to close out later - abort() is safe to call on one that's already
+    // finished its one-shot response and is simply waiting on its own
+    // disconnected->deleteLater() (QPointer reads null in that case, so
+    // this loop just skips it).
+    for (const QPointer<QTcpSocket> &socketPtr : std::as_const(m_httpSockets)) {
+        if (socketPtr) {
+            socketPtr->abort();
+        }
+    }
+    m_httpSockets.clear();
 
     emit isRunningChanged();
 }
@@ -462,6 +478,7 @@ void PwaServer::onNewHttpConnection()
         QTcpSocket *socket = m_httpServer->nextPendingConnection();
         connect(socket, &QTcpSocket::readyRead, this, &PwaServer::onHttpReadyRead);
         connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
+        m_httpSockets.append(socket);
     }
 }
 

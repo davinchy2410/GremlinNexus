@@ -178,6 +178,29 @@ private:
     double m_deadzone;
     double m_sensitivity;
 
+    /// 2.0 / (inputMax - inputMin), precomputed once in the constructor
+    /// (m_inputMin/m_inputMax never change afterward - no setter exists) so
+    /// processAxis()'s hot-path normalization is a multiply instead of a
+    /// divide. 0.0 (never read) if the range is degenerate - see
+    /// m_validInputRange, which replaces the old per-call "inputRange <=
+    /// 0.0" guard now that inputRange itself is no longer recomputed fresh
+    /// each call.
+    double m_invInputRange = 0.0;
+    bool m_validInputRange = false;
+
+    /// 1.0 / (1.0 - m_deadzone), precomputed once - safe unconditionally
+    /// since the constructor already clamps m_deadzone to [0.0, 0.99], so
+    /// this never divides by zero.
+    double m_invDeadzoneRange = 1.0;
+
+    /// 0.5 * (outputMax - outputMin) and outputMin + m_outputScale,
+    /// precomputed once - m_outputMin/m_outputMax never change afterward
+    /// (no setter exists) - so processAxis()'s final output mapping is
+    /// "adjusted * m_outputScale + m_outputOffset" instead of recomputing
+    /// outputRange from scratch and re-deriving the same offset every call.
+    double m_outputScale = 0.0;
+    double m_outputOffset = 0.0;
+
     /// EMA low-pass filter strength (Fase 13), in [0.0, 0.99] - 0.0 disables
     /// it; see processAxis()'s own comments for the filter itself. Applied
     /// to the raw HID value before normalization/deadzone/curve/sensitivity,

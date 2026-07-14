@@ -15,6 +15,11 @@ void VJoyDevice::setTelemetryCallback(std::function<void(unsigned int, int, bool
     s_telemetryCallback = std::move(callback);
 }
 
+void VJoyDevice::clearTelemetryCallback()
+{
+    s_telemetryCallback = nullptr;
+}
+
 VJoyDevice::VJoyDevice(unsigned int deviceId)
     : m_deviceId(deviceId)
     , m_library(QStringLiteral("vJoyInterface"))
@@ -114,6 +119,13 @@ bool VJoyDevice::acquire()
     m_state.wDial = kVJoyAxisCenter;
 
     m_acquired = true;
+    // The centering writes above went straight to m_state's fields, not
+    // through setAxis() - the only place that normally sets m_dirty - so it
+    // has to be forced here or update() below (now dirty-gated) would
+    // silently skip pushing the just-centered state, resurrecting the
+    // "sits in one corner until the first physical movement" bug this same
+    // centering exists to fix.
+    m_dirty = true;
     update();
     return true;
 }
@@ -128,18 +140,23 @@ void VJoyDevice::relinquish()
 
 void VJoyDevice::setAxis(int axisIndex, int value)
 {
+    int32_t *field = nullptr;
     switch (axisIndex) {
-    case 0: m_state.wAxisX = value; break;
-    case 1: m_state.wAxisY = value; break;
-    case 2: m_state.wAxisZ = value; break;
-    case 3: m_state.wAxisXRot = value; break;
-    case 4: m_state.wAxisYRot = value; break;
-    case 5: m_state.wAxisZRot = value; break;
-    case 6: m_state.wSlider = value; break;
-    case 7: m_state.wDial = value; break;
+    case 0: field = &m_state.wAxisX; break;
+    case 1: field = &m_state.wAxisY; break;
+    case 2: field = &m_state.wAxisZ; break;
+    case 3: field = &m_state.wAxisXRot; break;
+    case 4: field = &m_state.wAxisYRot; break;
+    case 5: field = &m_state.wAxisZRot; break;
+    case 6: field = &m_state.wSlider; break;
+    case 7: field = &m_state.wDial; break;
     default:
         qWarning() << "VJoyDevice: axisIndex" << axisIndex << "out of range [0," << kMaxAxes << ")";
-        break;
+        return;
+    }
+    if (*field != value) {
+        *field = value;
+        m_dirty = true;
     }
 }
 
@@ -177,8 +194,12 @@ void VJoyDevice::setButton(int buttonIndex, bool pressed)
     // may re-set the same state repeatedly, e.g. a held momentary button
     // across several ticks) - so a PWA `indicator` control's own toggle
     // fires exactly once per physical press/release, not once per tick.
-    if (wasPressed != pressed && s_telemetryCallback) {
-        s_telemetryCallback(m_deviceId, buttonIndex, pressed);
+    // Same flip check now also gates m_dirty (see its own docs).
+    if (wasPressed != pressed) {
+        m_dirty = true;
+        if (s_telemetryCallback) {
+            s_telemetryCallback(m_deviceId, buttonIndex, pressed);
+        }
     }
 }
 
@@ -213,18 +234,27 @@ void VJoyDevice::setHat(int hatIndex, int value)
         const int shift = hatIndex * 4;
         const uint32_t mask = ~(0xFu << shift);
 
-        m_state.bHats = (m_state.bHats & mask) | (nibble << shift);
+        const uint32_t newBHats = (m_state.bHats & mask) | (nibble << shift);
+        if (m_state.bHats != newBHats) {
+            m_state.bHats = newBHats;
+            m_dirty = true;
+        }
     } else {
         // Continuous hats use one full DWORD per hat; -1 (neutral) must be
         // written as 0xFFFFFFFF, not passed through as-is.
         const uint32_t finalValue = (value == -1) ? 0xFFFFFFFF : static_cast<uint32_t>(value);
 
+        uint32_t *field = nullptr;
         switch (hatIndex) {
-        case 0: m_state.bHats = finalValue; break;
-        case 1: m_state.bHatsEx1 = finalValue; break;
-        case 2: m_state.bHatsEx2 = finalValue; break;
-        case 3: m_state.bHatsEx3 = finalValue; break;
+        case 0: field = &m_state.bHats; break;
+        case 1: field = &m_state.bHatsEx1; break;
+        case 2: field = &m_state.bHatsEx2; break;
+        case 3: field = &m_state.bHatsEx3; break;
         default: break;
+        }
+        if (field && *field != finalValue) {
+            *field = finalValue;
+            m_dirty = true;
         }
     }
 }
@@ -362,6 +392,19 @@ bool VJoyDevice::update()
         return true; // acquire() already pushed one fresh update() internally.
     }
 
+    // Skip the driver call entirely on a tick where m_state hasn't actually
+    // changed since the last successful push - setAxis()/setButton()/
+    // setHat() only set m_dirty on a real flip (see its own docs), so an
+    // idle device (or one only staging values a handler already staged
+    // last tick) no longer calls UpdateVJD() 200 times/sec with
+    // byte-identical data. Purely a CPU/driver-call-count saving; NOT
+    // related to the silent-disconnect (VJD_STAT_FREE) bug below, which
+    // this file's own history traces to the driver not surviving a PC
+    // sleep/resume cycle, not to call frequency.
+    if (!m_dirty) {
+        return true;
+    }
+
     // Fase (bugfix): the silent-disconnect bug - vJoy quietly stops
     // accepting reports after prolonged use, with no crash and no visible
     // symptom on the RawInput/EventRouter side (this is purely the outbound
@@ -369,6 +412,12 @@ bool VJoyDevice::update()
     // checked. GetVJDStatus() is only queried on failure (not every tick) so
     // the healthy path stays as cheap as before.
     const bool ok = m_updateVJD(m_deviceId, &m_state);
+    if (ok) {
+        // Cleared only on success - a failed push leaves m_dirty set so the
+        // very next tick retries pushing this same state instead of the
+        // change silently being dropped.
+        m_dirty = false;
+    }
     if (!ok) {
         ++m_failuresSinceLastLog;
         const int64_t now = QDateTime::currentMSecsSinceEpoch();

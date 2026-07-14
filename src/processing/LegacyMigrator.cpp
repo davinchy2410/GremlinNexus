@@ -59,18 +59,31 @@ bool LegacyMigrator::importLegacyProfile(const QString &legacyFilePath, const QS
         QUrl(legacyFilePath).isLocalFile() ? QUrl(legacyFilePath).toLocalFile() : legacyFilePath;
     const QString localSavePath = QUrl(saveAsPath).isLocalFile() ? QUrl(saveAsPath).toLocalFile() : saveAsPath;
 
-    const QJsonObject profile = isR14Profile(localLegacyPath) ? R14ProfileImporter::importFromXml(localLegacyPath)
-                                                                : LegacyProfileImporter::importFromXml(localLegacyPath);
+    // Only ever populated for an R14 import - see R14ProfileImporter::
+    // importFromXml()'s own docs. Cleared+emitted on every failure path below
+    // so QML never acts on a stale list left over from a PREVIOUS successful
+    // import if this one fails.
+    QStringList rootModes;
+    const QJsonObject profile = isR14Profile(localLegacyPath)
+        ? R14ProfileImporter::importFromXml(localLegacyPath, &rootModes)
+        : LegacyProfileImporter::importFromXml(localLegacyPath);
     if (profile.contains(QLatin1String("error"))) {
         // The chosen importer's own makeError() already logged the specifics.
+        m_detectedRootModes.clear();
+        emit detectedRootModesChanged();
         return false;
     }
 
     QFile file(localSavePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         qWarning() << "LegacyMigrator: could not write" << localSavePath << ":" << file.errorString();
+        m_detectedRootModes.clear();
+        emit detectedRootModesChanged();
         return false;
     }
     file.write(QJsonDocument(profile).toJson(QJsonDocument::Indented));
+
+    m_detectedRootModes = rootModes;
+    emit detectedRootModesChanged();
     return true;
 }
