@@ -715,6 +715,24 @@ private:
         info.systemPath = devicePath;
         info.deviceName = queryProductName(devicePath);
 
+        // Second-layer vJoy exclusion (bugfix 2026-07-14, see the VID/PID
+        // check above): that check relies on devicePath literally containing
+        // "VID_1234&PID_BEAD", which assumes a standard USB-enumerated HID
+        // instance path. vJoy is a root-enumerated virtual bus device, not a
+        // real USB device, so its actual RawInput device path doesn't
+        // reliably take that shape - confirmed against a real system with
+        // only vJoy connected, where the device slipped past the VID/PID
+        // check entirely and showed up as a normal 152-input bindable
+        // source (with vendorId/productId both falling back to "0000" for
+        // the exact same parsing failure). queryProductName() goes through
+        // HidD_GetProductString - a real Win32 HID API call keyed off the
+        // open device handle, not a path-string heuristic - so it isn't
+        // affected by the enumeration-scheme mismatch that breaks the
+        // VID/PID check.
+        if (info.deviceName.contains(QLatin1String("vJoy"), Qt::CaseInsensitive)) {
+            return;
+        }
+
         parseVidPid(devicePath, info.vendorId, info.productId);
         info.isConnected = true;
         info.numAxes = static_cast<uint8_t>(ctx.axisCount);
