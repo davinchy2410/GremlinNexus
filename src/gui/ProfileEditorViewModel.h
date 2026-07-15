@@ -39,12 +39,15 @@ class PwaServer;
  * specific input *this session*; a route that already existed in
  * m_router before this ViewModel was constructed (e.g. one loaded from a
  * profile at startup, before the Profiles screen ever opened) still shows
- * as unbound here until touched, for the same reason. So the screen is
- * never empty and never lies about data it doesn't have: if no hardware is
- * connected yet, two clearly-fictional devices (with a couple of
- * illustrative *mock* bindings, so the binding-badge UI has something real
- * to render) are shown instead, and are wholesale replaced - not merged -
- * the moment any real device is detected.
+ * as unbound here until touched, for the same reason. If no hardware is
+ * connected yet, the list is genuinely empty (bugfix 2026-07-15: this used
+ * to seed two fictional placeholder devices with illustrative mock bindings
+ * "so the screen isn't empty" - indistinguishable in the UI from real
+ * detected hardware, which is exactly the problem: a user with nothing
+ * plugged in but vJoy connected had no way to tell the two "VKB Gunfighter
+ * Mk.III"/"MFG Crosswind Pedals" placeholders apart from real, currently-
+ * connected controllers they didn't actually own). QML shows its own empty
+ * state instead when this list has zero rows.
  *
  * Fase 10.8 also adds two features layered on top of the same device list:
  *  - Quick Bind: while listenForInputs is true, any physical axis/button
@@ -580,8 +583,9 @@ private:
         /// role, and buttonDisplayName()). Fase 16.7: a POV hat is reported
         /// as 4 synthetic buttons (not a fake axis) at the end of
         /// numButtons - numAxes plays no part in button-index math anymore.
-        /// Left at 0 for the illustrative mock devices (see
-        /// seedMockDevices()), which never receive real hardware events anyway.
+        /// Left at 0 for a device that never receives real hardware events
+        /// (e.g. an orphaned/offline placeholder - see makeDeviceEntry()'s
+        /// orphan-row construction).
         uint8_t numAxes = 0;
         uint8_t numHats = 0;
         uint8_t numButtons = 0;
@@ -609,8 +613,8 @@ private:
     /// free-text field (see noteFromActionJson()) - "" if none - exposed to
     /// QML under the "actionNote" role for InputRow.qml's own info icon/
     /// ToolTip. Defaulted so every pre-existing call site that has no note
-    /// to give (seedMockDevices()'s placeholders, create1to1Mapping()) keeps
-    /// compiling unchanged.
+    /// to give (create1to1Mapping(), the orphaned-device placeholder rows)
+    /// keeps compiling unchanged.
     static QVariantMap makeInputEntry(const QString &name, const QString &kind, int inputIndex, bool hasBinding,
                                        const QString &bindingLabel, const QString &note = QString());
 
@@ -640,11 +644,6 @@ private:
     /// deviceOrderKey() keys into QSettings, for deviceInsertionIndex() to
     /// read back on a future launch/replug.
     void persistDeviceTabOrder();
-
-    /// Appends the two illustrative placeholder devices (see class docs),
-    /// with proper begin/endInsertRows - safe to call whenever the real
-    /// device list becomes empty, not just from the constructor.
-    void seedMockDevices();
 
     int indexOfSystemPath(const QString &systemPath) const;
 

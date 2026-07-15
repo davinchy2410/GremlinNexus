@@ -37,10 +37,9 @@ namespace {
 /// own "VID:xxxx PID:xxxx" display format (see makeDeviceEntry()) rather than
 /// a redundant new DeviceEntry field. Falls back to systemPath for a device
 /// with no real VID/PID to key on (an R14/Legacy import's synthetic offline
-/// placeholder, or a Curves-screen mock device - both hardcode vendorProduct
-/// to a fixed literal string instead - see makeDeviceEntry()'s orphan-row
-/// construction and seedMockDevices()), so those still get a distinct key of
-/// their own rather than colliding under one shared literal.
+/// placeholder hardcodes vendorProduct to a fixed literal string instead -
+/// see makeDeviceEntry()'s orphan-row construction), so those still get a
+/// distinct key of their own rather than colliding under one shared literal.
 ///
 /// Ambiguous for two physically-identical devices sharing the exact same
 /// VID/PID (both resolve to the same key, so only the last one processed
@@ -53,6 +52,27 @@ QString deviceOrderKey(const QString &vendorProduct, const QString &systemPath)
     static const QRegularExpression pattern(QStringLiteral("VID:(\\S+) PID:(\\S+)"));
     const QRegularExpressionMatch match = pattern.match(vendorProduct);
     return match.hasMatch() ? (match.captured(1) + QLatin1Char(':') + match.captured(2)) : systemPath;
+}
+
+/// Readable tab label for an orphaned/offline device row (see
+/// makeDeviceEntry()'s orphan-row construction) - the raw systemPath these
+/// rows previously used verbatim as their name is a full Windows device
+/// instance path (e.g. "\\?\HID#VID_3344&PID_C4B0&MI_00#..."), unreadable
+/// as a tab title and impossible to visually tell apart from a dozen others
+/// at a glance. Pulls out just the VID/PID - same "VID_xxxx&PID_yyyy" shape
+/// DeviceManager::parseVidPid() looks for in a real device path - so the
+/// tab at least shows which physical device it once was without needing to
+/// hover/inspect. Falls back to the raw systemPath unchanged for a path
+/// that doesn't carry a VID/PID at all (e.g. a "[Legacy] <name>" synthetic
+/// source tag LegacyProfileImporter uses instead of a real device path).
+QString offlineDeviceLabel(const QString &systemPath)
+{
+    static const QRegularExpression pattern(QStringLiteral("VID_([0-9A-Fa-f]{4})&PID_([0-9A-Fa-f]{4})"));
+    const QRegularExpressionMatch match = pattern.match(systemPath);
+    if (!match.hasMatch()) {
+        return systemPath;
+    }
+    return QStringLiteral("Offline (VID:%1 PID:%2)").arg(match.captured(1).toUpper(), match.captured(2).toUpper());
 }
 
 /// Display name for buttonIndex out of a device with numButtons total
@@ -593,9 +613,6 @@ ProfileEditorViewModel::ProfileEditorViewModel(EventRouter &router, AutoSwitchMa
         const int insertAt = deviceInsertionIndex(entry.vendorProduct, entry.systemPath);
         m_devices.insert(insertAt, std::move(entry));
     }
-    if (m_devices.isEmpty()) {
-        seedMockDevices();
-    }
 
     connect(&DeviceManager::instance(), &DeviceManager::deviceAdded, this, &ProfileEditorViewModel::onDeviceAdded);
     connect(&DeviceManager::instance(), &DeviceManager::deviceRemoved, this, &ProfileEditorViewModel::onDeviceRemoved);
@@ -768,7 +785,7 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
         seenOrphanDevices.insert(sourceDevice);
 
         DeviceEntry virtualDev;
-        virtualDev.name = sourceDevice;
+        virtualDev.name = offlineDeviceLabel(sourceDevice);
         virtualDev.systemPath = sourceDevice;
         virtualDev.vendorProduct = QStringLiteral("Offline / Imported Device");
         virtualDev.isMock = true;
@@ -1601,16 +1618,6 @@ QVariantMap ProfileEditorViewModel::vjoyOccupancy(int targetOutputId) const
 
 void ProfileEditorViewModel::onDeviceAdded(const DeviceInfo &device)
 {
-    // Real hardware showing up replaces the "so the screen isn't empty"
-    // mock placeholders wholesale, rather than mixing fake and real devices.
-    if (!m_devices.isEmpty() && m_devices.constFirst().isMock) {
-        beginResetModel();
-        m_devices.clear();
-        m_devices.append(makeDeviceEntry(device, m_router));
-        endResetModel();
-        return;
-    }
-
     const int existing = indexOfSystemPath(device.systemPath);
     if (existing >= 0) {
         m_devices[existing] = makeDeviceEntry(device, m_router);
@@ -1636,10 +1643,6 @@ void ProfileEditorViewModel::onDeviceRemoved(const QString &systemPath)
     beginRemoveRows(QModelIndex(), existing, existing);
     m_devices.removeAt(existing);
     endRemoveRows();
-
-    if (m_devices.isEmpty()) {
-        seedMockDevices();
-    }
 }
 
 void ProfileEditorViewModel::onAxisMovedForDetection(const QString &systemPath, int axisIndex, int value)
@@ -2025,53 +2028,6 @@ void ProfileEditorViewModel::moveDeviceTab(int fromRow, int toRow)
     endMoveRows();
 
     persistDeviceTabOrder();
-}
-
-void ProfileEditorViewModel::seedMockDevices()
-{
-    QList<DeviceEntry> mocks;
-
-    {
-        DeviceEntry stick;
-        stick.name = QStringLiteral("VKB Gunfighter Mk.III");
-        stick.vendorProduct = QStringLiteral("VID:0483 PID:A34E");
-        stick.systemPath = QStringLiteral("MOCK-STICK-0");
-        stick.isMock = true;
-        stick.numAxes = 4;
-        stick.numButtons = 4;
-        stick.inputs = {
-            makeInputEntry(QStringLiteral("X Axis"), QStringLiteral("axis"), 0, true, QStringLiteral("CurveHandler")),
-            makeInputEntry(QStringLiteral("Y Axis"), QStringLiteral("axis"), 1, true, QStringLiteral("CurveHandler")),
-            makeInputEntry(QStringLiteral("Z Axis (Twist)"), QStringLiteral("axis"), 2, false, QString()),
-            makeInputEntry(QStringLiteral("Slider"), QStringLiteral("axis"), 3, false, QString()),
-            makeInputEntry(QStringLiteral("Button 1"), QStringLiteral("button"), 0, true,
-                            QStringLiteral("ButtonRemap: vJoy #1")),
-            makeInputEntry(QStringLiteral("Button 2"), QStringLiteral("button"), 1, true,
-                            QStringLiteral("Keyboard: Space")),
-            makeInputEntry(QStringLiteral("Button 3"), QStringLiteral("button"), 2, false, QString()),
-            makeInputEntry(QStringLiteral("Button 4"), QStringLiteral("button"), 3, false, QString()),
-        };
-        mocks.append(stick);
-    }
-    {
-        DeviceEntry pedals;
-        pedals.name = QStringLiteral("MFG Crosswind Pedals");
-        pedals.vendorProduct = QStringLiteral("VID:16D0 PID:0D5A");
-        pedals.systemPath = QStringLiteral("MOCK-PEDALS-0");
-        pedals.isMock = true;
-        pedals.numAxes = 3;
-        pedals.inputs = {
-            makeInputEntry(QStringLiteral("Left Brake"), QStringLiteral("axis"), 0, false, QString()),
-            makeInputEntry(QStringLiteral("Right Brake"), QStringLiteral("axis"), 1, false, QString()),
-            makeInputEntry(QStringLiteral("Rudder"), QStringLiteral("axis"), 2, true,
-                            QStringLiteral("MergeAxisHandler")),
-        };
-        mocks.append(pedals);
-    }
-
-    beginInsertRows(QModelIndex(), m_devices.size(), m_devices.size() + mocks.size() - 1);
-    m_devices.append(mocks);
-    endInsertRows();
 }
 
 int ProfileEditorViewModel::indexOfSystemPath(const QString &systemPath) const

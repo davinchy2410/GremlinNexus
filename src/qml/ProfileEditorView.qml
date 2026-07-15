@@ -561,6 +561,36 @@ Item {
             }
         }
 
+        // Bugfix 2026-07-15: replaces the old seedMockDevices() fallback
+        // (two fictional "VKB Gunfighter Mk.III"/"MFG Crosswind Pedals"
+        // placeholders, indistinguishable in the UI from real hardware) - a
+        // genuine empty state instead, so an idle Profiles screen can never
+        // be mistaken for detected devices the user doesn't actually own.
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: deviceTabsRepeater.count === 0
+
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.spacingSm
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "No Devices Connected"
+                    color: Theme.text
+                    font.pixelSize: 18
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Plug in a joystick, HOTAS, or pedal set to get started."
+                    color: Theme.subtext0
+                    font.pixelSize: 13
+                }
+            }
+        }
+
         Connections {
             target: profileEditorViewModel
 
