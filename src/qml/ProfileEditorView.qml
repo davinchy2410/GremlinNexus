@@ -782,6 +782,38 @@ Item {
         onRejected: pendingModes = []
     }
 
+    // Swap To suggestion (see ProfileEditorViewModel::offlineDeviceMatchFound's
+    // own docs): fires when a newly-connected device's name matches an
+    // "Offline / Imported Device" placeholder's last-known name - most
+    // likely the same physical device reconnecting under a different
+    // systemPath (e.g. a VID/PID change from a calibration tool, the
+    // AeroMax-R case this was built for) rather than two different
+    // controllers coincidentally sharing a product string.
+    Connections {
+        target: profileEditorViewModel
+        function onOfflineDeviceMatchFound(offlineSystemPath, newSystemPath, deviceName) {
+            swapSuggestionPopup.offlinePath = offlineSystemPath;
+            swapSuggestionPopup.newPath = newSystemPath;
+            swapSuggestionPopup.titleText = qsTr("Reassign \"%1\"?").arg(deviceName);
+            swapSuggestionPopup.messageText = qsTr("A device matching \"%1\" just reconnected under a different ID - its VID/PID likely changed (e.g. after running a calibration tool). Move its saved bindings onto the newly-connected device?").arg(deviceName);
+            swapSuggestionPopup.open();
+        }
+    }
+
+    ConfirmationPopup {
+        id: swapSuggestionPopup
+        property string offlinePath: ""
+        property string newPath: ""
+        confirmAccentColor: Theme.accent
+        onAccepted: {
+            const fromRow = profileEditorViewModel.deviceRowForSystemPath(offlinePath);
+            const toRow = profileEditorViewModel.deviceRowForSystemPath(newPath);
+            if (fromRow >= 0 && toRow >= 0) {
+                profileEditorViewModel.swapDevices(fromRow, toRow);
+            }
+        }
+    }
+
     // Fase 20.6/20.9 (ported to Tabs): debounces Quick Bind's highlight+
     // scroll - interval is set dynamically per event by
     // onHardwareInputDetected above: 100ms while waiting out a tab switch,
@@ -803,6 +835,83 @@ Item {
             if (!targetCard) return;
             root.lastFocusedInputId = targetCard.systemPath + "|" + targetInput;
             targetCard.highlightInput(targetInput);
+        }
+    }
+
+    // Undo toast: appears right after a destructive action
+    // (ProfileEditorViewModel::pushUndoSnapshot()'s own docs list which
+    // ones) and self-hides after a few seconds - no persistent Undo button
+    // anywhere else, by design (see the "where would you put an Undo
+    // button" discussion this was built from): these operations are
+    // occasional, not something that needs permanent toolbar real estate,
+    // and a toast surfaces the option exactly when it's relevant instead of
+    // sitting there enabled/disabled the rest of the time. Undo is still
+    // reachable after the toast hides itself by simply doing the action
+    // again and clicking Undo faster - m_undoSnapshot itself isn't cleared
+    // by the timeout, only by undoLastAction() actually running or a new
+    // destructive action overwriting it.
+    Rectangle {
+        id: undoToast
+        property string message: ""
+
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Theme.spacingLg
+        width: toastRow.implicitWidth + Theme.spacingLg * 2
+        height: 44
+        radius: Theme.radiusLarge
+        color: Theme.surface1
+        border.width: 1
+        border.color: Theme.accent
+        opacity: 0
+        visible: opacity > 0.01
+        Behavior on opacity { NumberAnimation { duration: Theme.animMedium } }
+
+        function show(msg) {
+            message = msg;
+            opacity = 1;
+            hideTimer.restart();
+        }
+
+        RowLayout {
+            id: toastRow
+            anchors.centerIn: parent
+            spacing: Theme.spacingMd
+
+            Text {
+                text: undoToast.message
+                color: Theme.text
+                font.pixelSize: 13
+            }
+            Text {
+                text: qsTr("UNDO")
+                color: Theme.accent
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        profileEditorViewModel.undoLastAction();
+                        undoToast.opacity = 0;
+                    }
+                }
+            }
+        }
+
+        Timer {
+            id: hideTimer
+            interval: 6000
+            onTriggered: undoToast.opacity = 0
+        }
+    }
+
+    Connections {
+        target: profileEditorViewModel
+        function onUndoableActionPerformed(description) {
+            undoToast.show(description);
         }
     }
 }

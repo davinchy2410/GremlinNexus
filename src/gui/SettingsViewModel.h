@@ -26,6 +26,8 @@ class SettingsViewModel : public QObject
     Q_PROPERTY(bool autoSwitchEnabled READ autoSwitchEnabled WRITE setAutoSwitchEnabled NOTIFY autoSwitchChanged)
     Q_PROPERTY(bool debugLoggingEnabled READ debugLoggingEnabled WRITE setDebugLoggingEnabled NOTIFY debugLoggingChanged)
     Q_PROPERTY(bool hidHideAutoCloakEnabled READ hidHideAutoCloakEnabled WRITE setHidHideAutoCloakEnabled NOTIFY hidHideAutoCloakChanged)
+    Q_PROPERTY(bool vjoyDetected READ vjoyDetected NOTIFY diagnosticsRefreshed)
+    Q_PROPERTY(bool vigemBusDetected READ vigemBusDetected NOTIFY diagnosticsRefreshed)
 
 public:
     explicit SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent = nullptr);
@@ -65,11 +67,31 @@ public:
     /// that unrelated piece of work.
     Q_INVOKABLE void resetVJoy();
 
+    /// Diagnostics panel: whether the vJoy/ViGEmBus kernel drivers are
+    /// actually installed on this machine right now - read live off the
+    /// same per-driver Windows service registry key
+    /// (HKLM\SYSTEM\CurrentControlSet\Services\<name>) installer.iss itself
+    /// checks to decide whether to offer installing each one, rather than
+    /// a cached guess that could go stale the moment a driver is installed/
+    /// uninstalled outside this process. HidHide's own status is already
+    /// available separately via the hidHideController context property's
+    /// cloakState - not duplicated here.
+    bool vjoyDetected() const;
+    bool vigemBusDetected() const;
+
+    /// Re-evaluates vjoyDetected()/vigemBusDetected() (both read the
+    /// registry live already, so this only needs to fire diagnosticsRefreshed()
+    /// for QML's property bindings to catch up) - called when the
+    /// Diagnostics panel becomes visible, so a driver installed/removed
+    /// since launch shows up without requiring an app restart.
+    Q_INVOKABLE void refreshDiagnostics();
+
 signals:
     void runOnStartupChanged();
     void autoSwitchChanged();
     void debugLoggingChanged();
     void hidHideAutoCloakChanged();
+    void diagnosticsRefreshed();
 
 private:
     /// Owned by main.cpp - outlives this ViewModel.

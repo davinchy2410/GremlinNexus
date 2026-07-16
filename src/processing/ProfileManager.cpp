@@ -219,11 +219,14 @@ bool ProfileManager::loadProfile(const QString &filePath, EventRouter &router)
         return false;
     }
 
-    const QJsonObject root = doc.object();
+    return loadProfileFromJson(doc.object(), router, filePath);
+}
 
+bool ProfileManager::loadProfileFromJson(const QJsonObject &root, EventRouter &router, const QString &sourceLabel)
+{
     const QJsonValue bindingsValue = root.value(QLatin1String("bindings"));
     if (!bindingsValue.isArray()) {
-        qWarning() << "ProfileManager: profile" << filePath << "has no \"bindings\" array";
+        qWarning() << "ProfileManager: profile" << sourceLabel << "has no \"bindings\" array";
         return false;
     }
 
@@ -302,7 +305,7 @@ bool ProfileManager::loadProfile(const QString &filePath, EventRouter &router)
     int applied = 0;
     for (const QJsonValue &bindingValue : bindings) {
         if (!bindingValue.isObject()) {
-            qWarning() << "ProfileManager: skipping non-object entry in \"bindings\" in" << filePath;
+            qWarning() << "ProfileManager: skipping non-object entry in \"bindings\" in" << sourceLabel;
             continue;
         }
 
@@ -344,7 +347,7 @@ bool ProfileManager::loadProfile(const QString &filePath, EventRouter &router)
         }
     }
 
-    qInfo() << "ProfileManager: loaded" << applied << "of" << bindings.size() << "binding(s) from" << filePath;
+    qInfo() << "ProfileManager: loaded" << applied << "of" << bindings.size() << "binding(s) from" << sourceLabel;
     return true;
 }
 
@@ -1177,6 +1180,19 @@ QJsonObject ProfileManager::serializeProfile(const EventRouter &router, const QS
     QJsonObject root;
     root[QLatin1String("profileName")] = profileName;
 
+    // Fase (Swap To suggestion): paired with each route's own sourceDevice
+    // below when the device happens to be connected right now - lets a
+    // future load recognize the same physical device reconnecting under a
+    // different systemPath (e.g. after a VID/PID change from a calibration
+    // tool) purely by name, even though its offline placeholder by then has
+    // nothing but the old systemPath to go on otherwise. A device that's
+    // already offline at save time just doesn't get this field written -
+    // no different from before this existed.
+    QHash<QString, QString> deviceNamesByPath;
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        deviceNamesByPath.insert(device.systemPath, device.deviceName);
+    }
+
     QJsonArray bindings;
     for (const EventRouter::RouteDescriptor &route : router.allRoutes()) {
         if (!route.handler) {
@@ -1196,6 +1212,10 @@ QJsonObject ProfileManager::serializeProfile(const EventRouter &router, const QS
         }
 
         binding[QLatin1String("sourceDevice")] = route.systemPath;
+        const QString deviceName = deviceNamesByPath.value(route.systemPath);
+        if (!deviceName.isEmpty()) {
+            binding[QLatin1String("sourceDeviceName")] = deviceName;
+        }
         if (route.isAxis) {
             binding[QLatin1String("sourceAxis")] = route.index;
         } else {

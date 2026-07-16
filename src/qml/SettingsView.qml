@@ -42,10 +42,44 @@ Item {
             Layout.fillHeight: true
             spacing: Theme.spacingLg
 
-            // --- vJoy Status Panel -------------------------------------
+            // --- Diagnostics Panel ---------------------------------------
+            // Bugfix 2026-07-15: replaces a "vJoy Status" panel that showed
+            // hardcoded "Driver Active"/"vJoy 2.1.9.1"/"16 (IDs 1-16)" text
+            // unconditionally, regardless of whether vJoy was actually
+            // installed - misleading in exactly the same way the old
+            // seedMockDevices() placeholders were (see ProfileEditorViewModel's
+            // own docs). Each row here reads real, live state: vJoy/ViGEmBus
+            // via settingsViewModel's registry-backed detection, HidHide via
+            // the hidHideController context property already wired up
+            // elsewhere in the app.
             Item {
+                id: diagnosticsPanel
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+
+                function statusColor(state) {
+                    if (state === "active") return Theme.success;
+                    if (state === "inactive") return Theme.warning;
+                    if (state === "unknown") return Theme.overlay0;
+                    return Theme.danger;
+                }
+
+                function refreshAll() {
+                    settingsViewModel.refreshDiagnostics();
+                    // queryCloakStateOnly() is a read-only IOCTL query (see
+                    // its own docs) - unlike deactivateCloak()/
+                    // reactivateCloak(), it never toggles the actual cloak
+                    // state, just resolves cloakState() from Unknown to
+                    // whatever's really going on right now. Needed because
+                    // cloakState() is otherwise only ever populated once, by
+                    // main.cpp's startup dance - which is skipped entirely
+                    // when hidHideAutoCloakEnabled is off, leaving this row
+                    // stuck at "Checking..." for the rest of the session
+                    // with nothing else to resolve it.
+                    hidHideController.queryCloakStateOnly();
+                }
+
+                Component.onCompleted: refreshAll()
 
                 GlassPanel {
                     anchors.fill: parent
@@ -58,29 +92,83 @@ Item {
                     anchors.margins: Theme.spacingLg
                     spacing: Theme.spacingMd
 
-                    Text { text: qsTr("vJoy Status"); color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
+                    Text { text: qsTr("Diagnostics"); color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
 
                     ColumnLayout {
                         spacing: Theme.spacingSm
                         Layout.topMargin: Theme.spacingXs
 
+                        // vJoy
                         RowLayout {
                             spacing: Theme.spacingSm
-                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.success }
-                            Text { text: qsTr("Driver Active"); color: Theme.text; font.pixelSize: 13 }
+                            Rectangle {
+                                width: 8; height: 8; radius: 4
+                                color: diagnosticsPanel.statusColor(settingsViewModel.vjoyDetected ? "active" : "missing")
+                            }
+                            Text { text: qsTr("vJoy"); color: Theme.text; font.pixelSize: 13; Layout.preferredWidth: 90 }
+                            Text {
+                                text: settingsViewModel.vjoyDetected ? qsTr("Detected") : qsTr("Not Detected")
+                                color: Theme.subtext0
+                                font.pixelSize: 12
+                            }
                         }
-                        Text { text: qsTr("Version: vJoy 2.1.9.1"); color: Theme.subtext0; font.pixelSize: 12 }
-                        Text { text: qsTr("Devices registered: 16 (IDs 1-16)"); color: Theme.subtext0; font.pixelSize: 12 }
+
+                        // HidHide - three real states (Active/Inactive/
+                        // Unavailable), not just a boolean, since HidHideController
+                        // already distinguishes "installed but cloak off" from
+                        // "not installed at all".
+                        RowLayout {
+                            spacing: Theme.spacingSm
+                            Rectangle {
+                                width: 8; height: 8; radius: 4
+                                color: diagnosticsPanel.statusColor(
+                                    hidHideController.cloakState === HidHideController.Active ? "active" :
+                                    hidHideController.cloakState === HidHideController.Inactive ? "inactive" :
+                                    hidHideController.cloakState === HidHideController.Unavailable ? "missing" : "unknown")
+                            }
+                            Text { text: qsTr("HidHide"); color: Theme.text; font.pixelSize: 13; Layout.preferredWidth: 90 }
+                            Text {
+                                text: hidHideController.cloakState === HidHideController.Active ? qsTr("Active") :
+                                      hidHideController.cloakState === HidHideController.Inactive ? qsTr("Installed (Cloak Off)") :
+                                      hidHideController.cloakState === HidHideController.Unavailable ? qsTr("Not Detected") :
+                                      qsTr("Checking...")
+                                color: Theme.subtext0
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        // ViGEmBus
+                        RowLayout {
+                            spacing: Theme.spacingSm
+                            Rectangle {
+                                width: 8; height: 8; radius: 4
+                                color: diagnosticsPanel.statusColor(settingsViewModel.vigemBusDetected ? "active" : "missing")
+                            }
+                            Text { text: qsTr("ViGEmBus"); color: Theme.text; font.pixelSize: 13; Layout.preferredWidth: 90 }
+                            Text {
+                                text: settingsViewModel.vigemBusDetected ? qsTr("Detected") : qsTr("Not Detected")
+                                color: Theme.subtext0
+                                font.pixelSize: 12
+                            }
+                        }
                     }
 
                     Item { Layout.fillHeight: true }
 
-                    GremblingButton {
-                        text: qsTr("Reset vJoy")
-                        accentColor: Theme.danger
-                        accentHoverColor: Theme.danger
-                        Layout.alignment: Qt.AlignLeft
-                        onClicked: settingsViewModel.resetVJoy()
+                    RowLayout {
+                        spacing: Theme.spacingMd
+                        GremblingButton {
+                            text: qsTr("Refresh")
+                            Layout.alignment: Qt.AlignLeft
+                            onClicked: diagnosticsPanel.refreshAll()
+                        }
+                        GremblingButton {
+                            text: qsTr("Reset vJoy")
+                            accentColor: Theme.danger
+                            accentHoverColor: Theme.danger
+                            Layout.alignment: Qt.AlignLeft
+                            onClicked: settingsViewModel.resetVJoy()
+                        }
                     }
                 }
             }

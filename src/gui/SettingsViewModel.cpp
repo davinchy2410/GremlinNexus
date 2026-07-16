@@ -23,6 +23,19 @@ constexpr auto kRunOnStartupValueName = "GremblingEx";
 // Same key main.cpp and DeviceManager::initialize() read directly (see
 // SettingsViewModel::hidHideAutoCloakEnabled()'s own docs) - keep in sync.
 constexpr auto kHidHideAutoCloakSettingsKey = "HidHide/AutoCloakManagement";
+
+/// Every driver registers itself as a Windows service under this same
+/// registry branch regardless of its own installer's engine (Advanced
+/// Installer, Inno Setup, or a raw INF) - the same check installer.iss
+/// itself uses (see its NeedsVJoy()/NeedsHidHide()/NeedsViGEm() Pascal
+/// functions) to decide whether a driver needs installing, confirmed
+/// against a real system with all three already installed and running.
+bool isDriverServiceInstalled(const QString &serviceName)
+{
+    QSettings settings(QStringLiteral("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\") + serviceName,
+                        QSettings::NativeFormat);
+    return !settings.allKeys().isEmpty();
+}
 } // namespace
 
 SettingsViewModel::SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent)
@@ -98,4 +111,19 @@ void SettingsViewModel::setHidHideAutoCloakEnabled(bool enabled)
 void SettingsViewModel::resetVJoy()
 {
     qInfo() << "Resetting vJoy...";
+}
+
+bool SettingsViewModel::vjoyDetected() const
+{
+    return isDriverServiceInstalled(QStringLiteral("vjoy"));
+}
+
+bool SettingsViewModel::vigemBusDetected() const
+{
+    return isDriverServiceInstalled(QStringLiteral("ViGEmBus"));
+}
+
+void SettingsViewModel::refreshDiagnostics()
+{
+    emit diagnosticsRefreshed();
 }

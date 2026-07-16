@@ -94,6 +94,19 @@ public:
     /// dance automatically when it's confirmed unnecessary.
     bool isWhitelistInverseEnabled() const;
 
+    /// Read-only status check - unlike deactivateCloak()/reactivateCloak(),
+    /// never issues IOCTL_SET_ACTIVE, so it's safe to call anytime (e.g.
+    /// from the Settings screen's Diagnostics panel) without side effects
+    /// on a cloak state the user may have deliberately left as-is.
+    /// Necessary because cloakState() is otherwise only ever populated by
+    /// main.cpp's one-time startup dance - which main.cpp skips entirely
+    /// when hidHideAutoCloakEnabled is off (see SettingsViewModel's own
+    /// docs), leaving cloakState() stuck at Unknown for the rest of the
+    /// session with nothing else to resolve it. Sets cloakState() to
+    /// Unavailable (not left at Unknown) if the query itself fails - same
+    /// fail-open convention as isWhitelistInverseEnabled().
+    Q_INVOKABLE bool queryCloakStateOnly();
+
 signals:
     void cloakStateChanged(CloakState state);
 

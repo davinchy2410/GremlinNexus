@@ -149,6 +149,17 @@ bool HidHideController::isWhitelistInverseEnabled() const
     return value != 0;
 }
 
+bool HidHideController::queryCloakStateOnly()
+{
+    bool active = false;
+    if (!queryActive(active)) {
+        setCloakState(CloakState::Unavailable);
+        return false;
+    }
+    setCloakState(active ? CloakState::Active : CloakState::Inactive);
+    return true;
+}
+
 bool HidHideController::deactivateCloak()
 {
     if (!setActiveRaw(false)) {

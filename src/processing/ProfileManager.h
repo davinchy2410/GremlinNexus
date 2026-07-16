@@ -405,6 +405,19 @@ public:
      */
     bool loadProfile(const QString &filePath, EventRouter &router);
 
+    /// Same as loadProfile() (see its own docs - identical clearRoutes()/
+    /// VID-PID-migration/calibration/mode-hierarchy behavior), just sourced
+    /// from an already-parsed JSON object instead of a file - loadProfile()
+    /// itself is now just "read+parse filePath, then call this." Exists for
+    /// ProfileEditorViewModel's Undo feature: restoring an in-memory
+    /// snapshot (taken via serializeProfile() right before a destructive
+    /// action) needs this exact same "clear and reapply everything" logic
+    /// without round-tripping through a throwaway temp file. sourceLabel is
+    /// purely cosmetic (used in the qInfo()/qWarning() lines loadProfile()
+    /// already logs) - pass whatever identifies where root came from.
+    bool loadProfileFromJson(const QJsonObject &root, EventRouter &router,
+                              const QString &sourceLabel = QStringLiteral("in-memory snapshot"));
+
     /// Serializes profileData to filePath as pretty-printed JSON.
     bool saveProfile(const QString &filePath, const QJsonObject &profileData);
 

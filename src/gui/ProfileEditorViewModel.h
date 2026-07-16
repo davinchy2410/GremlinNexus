@@ -347,6 +347,17 @@ public:
     /// or equal row pair without touching anything.
     Q_INVOKABLE bool swapDevices(int fromDeviceRow, int toDeviceRow);
 
+    /// Reverts the router (and, via rebuildDeviceListFromRouter(), the
+    /// whole device/mode list) to whatever pushUndoSnapshot() captured
+    /// right before the most recent destructive action (swapDevices(),
+    /// clearDeviceBindings(), or a mode merge via renameMode()) - see
+    /// pushUndoSnapshot()'s own docs for why a whole-profile JSON snapshot
+    /// was chosen over a command/diff stack. Single-level: calling this
+    /// undoes exactly one action, and does NOT re-arm itself into a "redo"
+    /// - a second call with nothing new snapshotted since is a no-op.
+    /// Returns false if there's nothing to undo.
+    Q_INVOKABLE bool undoLastAction();
+
     /// Fase SC-7.5: clears every binding (in every mode) routed under
     /// devicePath, then refreshes the UI the same way swapDevices() does. If
     /// devicePath was one of the synthesized "Offline / Imported Device"
@@ -551,6 +562,21 @@ signals:
     /// whatever it first evaluated to.
     void clipboardChanged();
 
+    /// Fires from onDeviceAdded() when a newly-connected device's own name
+    /// matches an existing "Offline / Imported Device" orphan row's
+    /// orphanedDeviceName (see DeviceEntry's own docs) - offlineSystemPath/
+    /// newSystemPath are both ready to pass straight into
+    /// deviceRowForSystemPath()+swapDevices() if the user accepts the
+    /// suggestion; deviceName is just for the confirmation prompt's text.
+    void offlineDeviceMatchFound(const QString &offlineSystemPath, const QString &newSystemPath,
+                                  const QString &deviceName);
+
+    /// Fired from pushUndoSnapshot() right after a destructive action
+    /// captured a snapshot to undo back to - description is a short,
+    /// user-facing label (e.g. "Devices swapped") for the toast QML shows
+    /// with an inline "Undo" action wired to undoLastAction().
+    void undoableActionPerformed(const QString &description);
+
 private slots:
     void onDeviceAdded(const DeviceInfo &device);
     void onDeviceRemoved(const QString &systemPath);
@@ -575,6 +601,19 @@ private:
         QString systemPath;
         QVariantList inputs;
         bool isMock = false;
+
+        /// Set only on an "Offline / Imported Device" orphan row, from the
+        /// profile's own stored "sourceDeviceName" (see
+        /// ProfileManager::serializeProfile()) - the real product name a
+        /// still-connected device reported the last time this profile was
+        /// saved. Empty for a real/live device row, and for an orphan whose
+        /// binding predates this field or was never saved while its device
+        /// was connected. onDeviceAdded() compares this against a newly-
+        /// connected device's own name to offer an automatic Swap To
+        /// suggestion when the same physical device reconnects under a
+        /// different systemPath (e.g. after a VID/PID change from a
+        /// calibration tool - see the AeroMax-R case this was built for).
+        QString orphanedDeviceName;
 
         /// Capability counts, needed to turn a raw DeviceManager
         /// axisMoved/buttonPressed axisIndex/buttonIndex back into the
@@ -646,6 +685,38 @@ private:
     void persistDeviceTabOrder();
 
     int indexOfSystemPath(const QString &systemPath) const;
+
+    /// Shared tail end of loadProfileFromPath() and undoLastAction() - both
+    /// end with an already-populated m_router (and, for the orphan-name
+    /// lookup below, an already-current m_currentProfileData) that just
+    /// needs the rest of this ViewModel's state (m_modes, offline
+    /// placeholder rows, every row's hasBinding/bindingLabel) rebuilt to
+    /// match. Callers are responsible for m_router/m_currentProfileData
+    /// themselves - this only ever reads them, never touches file identity
+    /// (m_currentFilePath, "LastProfile", profileName) since undoLastAction()
+    /// must not change which file/profile name is considered "current".
+    void rebuildDeviceListFromRouter();
+
+    /// Captures m_router's current full state as a JSON snapshot (via
+    /// ProfileManager::serializeProfile(), the same round-trip Save
+    /// already uses) into m_undoSnapshot, then emits undoableActionPerformed()
+    /// so QML can show its "Undo" toast. Call at the very top of a
+    /// destructive action, before it mutates anything - see
+    /// undoLastAction()'s own docs for why a whole-profile snapshot was
+    /// chosen over recording each individual mutation: every risky
+    /// operation already funnels through EventRouter's small
+    /// addAxisRoute()/addButtonRoute() surface, and serializeProfile()/
+    /// loadProfileFromJson() already exist, tested, as Save/Load's own
+    /// round-trip - reusing them here needed far less new code than a
+    /// command/diff stack would have, at the cost of only ever supporting
+    /// one level of undo (a second destructive action before the first is
+    /// undone overwrites m_undoSnapshot, same as Ctrl+Z after Ctrl+Z in an
+    /// app with no redo history). Profiles are small JSON, so the memory/
+    /// CPU cost of one extra in-memory copy is negligible - this is not
+    /// called anywhere near a hot path (device input events never reach
+    /// this ViewModel's own mutating methods, only user-initiated UI
+    /// actions do).
+    void pushUndoSnapshot(const QString &description);
 
     /// Sets hasBinding=true/bindingLabel=label/actionNote=note on the input
     /// named inputName within m_devices[deviceRow].inputs, and emits a
@@ -743,6 +814,11 @@ private:
     /// first time ever, in which case every device tab still falls back to
     /// plain discovery-order appending (see deviceInsertionIndex()).
     QStringList m_deviceTabOrder;
+
+    /// Set only by pushUndoSnapshot() - see its own docs. Empty
+    /// (QJsonObject{}.isEmpty() == true) means "nothing to undo",
+    /// undoLastAction()'s own signal for whether to actually do anything.
+    QJsonObject m_undoSnapshot;
 
     /// Fase SC-7.7: single-slot app-wide Copy/Paste clipboard - m_clipboardJson
     /// is whatever getActionDataJson() returned for the most recently

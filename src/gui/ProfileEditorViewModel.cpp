@@ -723,15 +723,6 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
         return false;
     }
 
-    m_modes.clear();
-    m_modes.append(EventRouter::kGlobalMode);
-    for (const EventRouter::RouteDescriptor &route : m_router.allRoutes()) {
-        if (!m_modes.contains(route.mode)) {
-            m_modes.append(route.mode);
-        }
-    }
-    emit modesChanged();
-
     // Cached only once the load has actually succeeded, so a failed Load
     // never clobbers whatever profile Save would otherwise still round-trip.
     m_currentProfileData = doc.object();
@@ -769,6 +760,21 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
     emit currentProfileNameChanged();
     QSettings().setValue(QStringLiteral("LastProfile"), localPath);
 
+    rebuildDeviceListFromRouter();
+    return true;
+}
+
+void ProfileEditorViewModel::rebuildDeviceListFromRouter()
+{
+    m_modes.clear();
+    m_modes.append(EventRouter::kGlobalMode);
+    for (const EventRouter::RouteDescriptor &route : m_router.allRoutes()) {
+        if (!m_modes.contains(route.mode)) {
+            m_modes.append(route.mode);
+        }
+    }
+    emit modesChanged();
+
     // Fase SC-7.3: synthesize an offline placeholder row for any
     // sourceDevice the freshly-loaded routes reference that isn't a real,
     // currently-connected device - e.g. a "[Legacy] <name>" string
@@ -776,6 +782,27 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
     // real device that simply isn't plugged in right now. Without a row,
     // that source has nothing to select in Swap Devices' ComboBoxes at all,
     // so its bindings could never be retargeted onto real hardware.
+    // Swap To suggestion (see DeviceEntry::orphanedDeviceName's own docs):
+    // built from the raw loaded JSON (m_currentProfileData - the caller is
+    // responsible for it already reflecting whatever was just loaded, be it
+    // a file or an Undo snapshot), not m_router - route.handler->toJson()
+    // never carries "sourceDeviceName" (it's bolted onto the binding only at
+    // serializeProfile() time, alongside sourceDevice/sourceAxis/mode - see
+    // that function), so it doesn't survive being instantiated into a
+    // RouteDescriptor. A device absent here (an old profile saved before
+    // this field existed, or one never saved while its device was
+    // connected) just leaves orphanedDeviceName empty below - no worse than
+    // before this existed.
+    QHash<QString, QString> orphanNameBySourceDevice;
+    for (const QJsonValue &val : m_currentProfileData.value(QStringLiteral("bindings")).toArray()) {
+        const QJsonObject binding = val.toObject();
+        const QString sourceDevice = binding.value(QStringLiteral("sourceDevice")).toString();
+        const QString sourceDeviceName = binding.value(QStringLiteral("sourceDeviceName")).toString();
+        if (!sourceDevice.isEmpty() && !sourceDeviceName.isEmpty()) {
+            orphanNameBySourceDevice.insert(sourceDevice, sourceDeviceName);
+        }
+    }
+
     QSet<QString> seenOrphanDevices;
     for (const EventRouter::RouteDescriptor &route : m_router.allRoutes()) {
         const QString &sourceDevice = route.systemPath;
@@ -784,11 +811,15 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
         }
         seenOrphanDevices.insert(sourceDevice);
 
+        const QString knownName = orphanNameBySourceDevice.value(sourceDevice);
+
         DeviceEntry virtualDev;
-        virtualDev.name = offlineDeviceLabel(sourceDevice);
+        virtualDev.name = knownName.isEmpty() ? offlineDeviceLabel(sourceDevice)
+                                               : QStringLiteral("Offline: %1").arg(knownName);
         virtualDev.systemPath = sourceDevice;
         virtualDev.vendorProduct = QStringLiteral("Offline / Imported Device");
         virtualDev.isMock = true;
+        virtualDev.orphanedDeviceName = knownName;
         virtualDev.numAxes = 8;
         virtualDev.numButtons = 128;
         for (int i = 0; i < virtualDev.numAxes; ++i) {
@@ -811,7 +842,33 @@ bool ProfileEditorViewModel::loadProfileFromPath(const QString &filePath)
     // since updateAllInputBindingLabels() had already finished inspecting
     // the router before those rows even existed to inspect.
     updateAllInputBindingLabels();
+}
 
+void ProfileEditorViewModel::pushUndoSnapshot(const QString &description)
+{
+    m_undoSnapshot = m_profileManager.serializeProfile(m_router, currentProfileName());
+    emit undoableActionPerformed(description);
+}
+
+bool ProfileEditorViewModel::undoLastAction()
+{
+    if (m_undoSnapshot.isEmpty()) {
+        return false;
+    }
+
+    if (!m_profileManager.loadProfileFromJson(m_undoSnapshot, m_router, QStringLiteral("undo snapshot"))) {
+        return false;
+    }
+
+    // profileName round-trips through m_undoSnapshot itself (serializeProfile()
+    // always writes it) - reusing it wholesale here, rather than just the
+    // "bindings"/"modeHierarchy" router-facing parts, keeps rebuildDeviceListFromRouter()'s
+    // own orphan-name lookup (reads m_currentProfileData) working exactly
+    // as it does for a normal file load.
+    m_currentProfileData = m_undoSnapshot;
+    m_undoSnapshot = QJsonObject();
+
+    rebuildDeviceListFromRouter();
     return true;
 }
 
@@ -1294,6 +1351,8 @@ bool ProfileEditorViewModel::swapDevices(int fromDeviceRow, int toDeviceRow)
         return false;
     }
 
+    pushUndoSnapshot(tr("Devices swapped"));
+
     const QString fromPath = m_devices.at(fromDeviceRow).systemPath;
     const QString toPath = m_devices.at(toDeviceRow).systemPath;
     const int targetMaxAxes = m_devices.at(toDeviceRow).numAxes;
@@ -1354,6 +1413,8 @@ void ProfileEditorViewModel::clearDeviceBindings(const QString &devicePath)
     if (deviceRow < 0) {
         return;
     }
+
+    pushUndoSnapshot(tr("Bindings cleared"));
 
     // Clears every route associated with this device, in every mode - a
     // plain snapshot copy (not a reference) since addAxisRoute()/
@@ -1551,6 +1612,15 @@ bool ProfileEditorViewModel::renameMode(const QString &oldName, const QString &n
     // legitimate merge target, not just a plain "swap this mode's name" one.
     const bool mergingIntoExistingMode = m_modes.contains(trimmedNewName);
 
+    // Undo (see pushUndoSnapshot()'s own docs): only a real merge is
+    // destructive here - oldName's bindings get folded into an existing
+    // mode's, which isn't reversible by just renaming back if the target
+    // mode already had bindings of its own. A plain rename-to-a-new-name is
+    // trivially reversible (rename it back), so it doesn't need a snapshot.
+    if (mergingIntoExistingMode) {
+        pushUndoSnapshot(tr("Merged mode \"%1\" into \"%2\"").arg(oldName, trimmedNewName));
+    }
+
     if (!m_profileManager.renameMode(oldName, trimmedNewName, m_router)) {
         return false;
     }
@@ -1631,6 +1701,26 @@ void ProfileEditorViewModel::onDeviceAdded(const DeviceInfo &device)
     beginInsertRows(QModelIndex(), insertAt, insertAt);
     m_devices.insert(insertAt, std::move(entry));
     endInsertRows();
+
+    // Swap To suggestion (see DeviceEntry::orphanedDeviceName's own docs):
+    // a newly-connected device whose name matches an existing offline
+    // placeholder's last-known name is very likely the exact same physical
+    // device reconnecting under a different systemPath (a genuine VID/PID
+    // change, e.g. from a calibration tool - see the AeroMax-R case this
+    // was built for) rather than a coincidence, since two different real
+    // controllers reporting the identical product string is rare. Only the
+    // first match is offered - if more than one offline row happens to
+    // share this name, the rest just stay available for a manual Swap To.
+    if (!device.deviceName.isEmpty()) {
+        for (const DeviceEntry &candidate : std::as_const(m_devices)) {
+            if (candidate.vendorProduct == QStringLiteral("Offline / Imported Device") &&
+                !candidate.orphanedDeviceName.isEmpty() &&
+                candidate.orphanedDeviceName.compare(device.deviceName, Qt::CaseInsensitive) == 0) {
+                emit offlineDeviceMatchFound(candidate.systemPath, device.systemPath, device.deviceName);
+                break;
+            }
+        }
+    }
 }
 
 void ProfileEditorViewModel::onDeviceRemoved(const QString &systemPath)
