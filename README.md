@@ -12,7 +12,7 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 
 ---
 
-## 🛰️ Core Features
+##  Core Features
 
 * **Intelligent vJoy Routing:** Seamlessly map multiple physical devices into consolidated virtual vJoy outputs.
 * **Advanced Asynchronous Macros:** Create complex sequences of keyboard presses, mouse clicks, and vJoy inputs with custom delays using a fluid drag-and-drop editor. Runs on a non-blocking engine to keep latency at zero.
@@ -24,7 +24,7 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 * **Star Citizen Native Integration:** Features a dedicated integration module utilizing native Star Citizen terminology (such as Strafe and Decoupled) for frictionless configuration.
 * **Modern Telemetry UI:** A fully responsive, dark-themed (Catppuccin-inspired) QML interface that prevents visual fatigue, featuring smart layout constraints and scalable tab navigation for massive hardware setups.
 
-## 📸 Screenshots
+##  Screenshots
 
 
 * <img width="982" height="587" alt="Animation 3" src="https://github.com/user-attachments/assets/0aaacf98-59c7-467b-8b57-c14a33ea6a3f" />
@@ -45,7 +45,7 @@ Built for enthusiasts running heavy HOSAS (Hands-On Stick And Stick) setups—su
 
 
 
-## 🛠️ Installation & Usage
+## Installation & Usage
 
 For regular users, there is no need to compile the source code.
 
@@ -54,7 +54,7 @@ For regular users, there is no need to compile the source code.
 3. Launch `GremlinNexus.exe`.
 4. Connect your devices, create a new profile, and start routing!
 
-### 📦 Required Dependencies
+### Required Dependencies
 
 Gremlin Nexus itself is just the router/profile editor — the actual virtual-device drivers it talks to are separate, official, third-party projects that you need to install yourself:
 
@@ -64,7 +64,7 @@ Gremlin Nexus itself is just the router/profile editor — the actual virtual-de
 
 **Why aren't these bundled in the installer anymore?** An installer that silently installs third-party kernel drivers is far more likely to get flagged as "unsafe" by SmartScreen/antivirus tools when downloaded — and in practice, the bundled vJoy install failed silently on at least one real user's machine, which is hard to diagnose or recover from without local access. Installing each driver yourself from its official source is safer, and each project's own installer is the one best equipped to handle its own edge cases.
 
-## 🔒 Hiding Physical Controllers with HidHide (Recommended)
+## Hiding Physical Controllers with HidHide (Recommended)
 
 Gremlin Nexus routes your physical inputs into virtual vJoy devices, but by default your game will still see your **physical** HOTAS/HOSAS controllers at the same time as the vJoy outputs. That causes double input — duplicate, conflicting axis and button data reaching the game. [HidHide](https://github.com/nefarius/HidHide) fixes this by hiding physical devices from specific applications at the driver level, and it's free and open-source.
 
@@ -81,7 +81,7 @@ That's it — this only needs to be done once per game. In this mode, HidHide hi
 
 > **Why Inverse mode instead of the regular whitelist?** In the default (non-inverse) mode, only whitelisted apps can see the devices and everything else is blocked by default — including Windows' own internal device registration the very first time a controller is detected after a fresh reboot. If that initial registration gets blocked, the device can become invisible to every application (Nexus included) until it's physically unplugged and replugged. Inverse mode avoids this entirely: only the one application you explicitly list is denied access, so nothing else — including that internal Windows registration step — is ever blocked by default.
 
-## 💻 Building from Source
+## Building from Source
 
 If you wish to contribute or build the project yourself:
 
@@ -100,15 +100,15 @@ cmake -B build -G Ninja
 cmake --build build
 ```
 
-## 🌍 Internationalization (i18n)
+##  Internationalization (i18n)
 The application is built with a strict English core and fully supports dynamic language switching via Qt's `QTranslator`. Current supported translations include English and Español.
 
-## 👨‍💻 Author & Credits
+##  Author & Credits
 Developed and maintained by **Darian Zuain**.
 
 Special thanks to the flight sim and Star Citizen communities for the ongoing inspiration for better peripheral management tools.
 
-## 📄 License
+##  License
 This project is licensed under the GNU General Public License v3.0 (GPLv3) - see the `LICENSE` file for details. 
 
 This ensures that Gremlin Nexus and any derivative works will always remain free and open-source software.
