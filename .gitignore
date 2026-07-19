@@ -52,3 +52,6 @@ Roadmap_Manana.md
 intrucciones de compilado.md
 build_error.txt
 mapa_arquitectura.md
+# Perfiles legacy personales (no publicos) y carpeta huerfana de i18n duplicado
+/perfiles_viejos/
+/2.0/
