@@ -100,6 +100,23 @@ class ProfileEditorViewModel : public QAbstractListModel
     // curvesTargetDeviceRow by setCurveEditorTarget(), read once by the same
     // Connections handler that already reacts to curvesTargetDeviceRowChanged.
     Q_PROPERTY(QString curvesTargetInputName READ curvesTargetInputName NOTIFY curvesTargetInputNameChanged)
+    // How many rows in m_devices are real, bindable devices - i.e. NOT
+    // vJoy (see the "vjoy" name-substring convention already used by
+    // onAxisMovedForDetection/onButtonPressedForDetection's own Quick Bind
+    // guard). ProfileEditorView.qml's device tabs/cards already each hide
+    // themselves individually when vJoy (visible: !...contains("vjoy")),
+    // but that leaves nothing telling the "No Devices Connected" empty
+    // state, or the TabBar/StackLayout around it, that a model row count
+    // of 1 can still mean zero *usable* devices. Bugfix 2026-07-20: this
+    // used to be computed in QML itself (a JS function reading
+    // Repeater.itemAt(i).visible in a loop), which turned out to never
+    // reliably re-evaluate - QML's binding-dependency tracker doesn't
+    // pick up property reads that happen through a method call like that,
+    // so it silently froze at whatever it first computed (0, before any
+    // device had even been discovered) and never updated again. Computing
+    // it here instead, from the same model data QML already reads
+    // deviceName off of, needs no such tracking to work correctly.
+    Q_PROPERTY(int realDeviceCount READ realDeviceCount NOTIFY realDeviceCountChanged)
 
 public:
     enum Role
@@ -196,6 +213,11 @@ public:
     /// "" if that has never been called this session (or the last call was
     /// setCurrentDeviceForCurves()'s own device-only form, which clears it).
     QString curvesTargetInputName() const;
+
+    /// Count of m_devices rows that aren't vJoy - see the Q_PROPERTY's own
+    /// docs above for why QML needs this from here rather than computing
+    /// it itself.
+    int realDeviceCount() const;
 
     /// Records which device the Curves screen should pre-select next time
     /// it's shown (Fase: Curves nav rework - DeviceCard's own "Curves"
@@ -555,6 +577,7 @@ signals:
     void currentProfileNameChanged();
     void curvesTargetDeviceRowChanged();
     void curvesTargetInputNameChanged();
+    void realDeviceCountChanged();
 
     /// Fase SC-7.10: fires whenever copyAction() changes the clipboard - the
     /// NOTIFY signal for hasCopiedAxis/hasCopiedButton, so a Paste button's

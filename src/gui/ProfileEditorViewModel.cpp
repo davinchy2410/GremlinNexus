@@ -809,6 +809,20 @@ void ProfileEditorViewModel::rebuildDeviceListFromRouter()
         if (sourceDevice.isEmpty() || seenOrphanDevices.contains(sourceDevice) || indexOfSystemPath(sourceDevice) >= 0) {
             continue;
         }
+
+        // XInput slots ("xinput:0".."xinput:3" - see DeviceManager.cpp's
+        // pollXInputDevices()) don't need an offline placeholder/Swap To at
+        // all, unlike a real HID device: their systemPath is a stable OS-
+        // assigned player-slot number, not a path derived from the physical
+        // device's own identity, so it never changes across reconnects the
+        // way a HID path can (USB port change, recalibration, etc.). Any
+        // controller that reconnects to slot 0 becomes "xinput:0" again and
+        // these bindings just start working again immediately - a "device
+        // not currently connected" tab here would only be confusing clutter
+        // with nothing useful to do (no identity mismatch to Swap away).
+        if (sourceDevice.startsWith(QStringLiteral("xinput:"))) {
+            continue;
+        }
         seenOrphanDevices.insert(sourceDevice);
 
         const QString knownName = orphanNameBySourceDevice.value(sourceDevice);
@@ -842,6 +856,7 @@ void ProfileEditorViewModel::rebuildDeviceListFromRouter()
     // since updateAllInputBindingLabels() had already finished inspecting
     // the router before those rows even existed to inspect.
     updateAllInputBindingLabels();
+    emit realDeviceCountChanged();
 }
 
 void ProfileEditorViewModel::pushUndoSnapshot(const QString &description)
@@ -909,6 +924,17 @@ int ProfileEditorViewModel::curvesTargetDeviceRow() const
 QString ProfileEditorViewModel::curvesTargetInputName() const
 {
     return m_curvesTargetInputName;
+}
+
+int ProfileEditorViewModel::realDeviceCount() const
+{
+    int count = 0;
+    for (const DeviceEntry &device : m_devices) {
+        if (!device.name.contains(QStringLiteral("vjoy"), Qt::CaseInsensitive)) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 void ProfileEditorViewModel::setCurrentDeviceForCurves(const QString &systemPath)
@@ -1275,7 +1301,15 @@ bool ProfileEditorViewModel::create1to1Mapping(const QString &devicePath, int ta
         if (!m_profileManager.applyBinding(binding, m_router)) {
             continue;
         }
-        updateInputBindingLabel(deviceRow, inputName, binding.value(QStringLiteral("actionType")).toString());
+        // Bugfix 2026-07-20: used to pass the raw actionType string
+        // ("CurveHandler", "ButtonRemapHandler") straight through as the
+        // label, unlike bindAction() (see its own call a bit above in this
+        // file), which always runs it through bindingLabelForActionJson()
+        // first to get the "vJoy N : Axis X" style text every InputRow
+        // actually expects - a 1:1-mapped row showed the bare handler class
+        // name until the next full profile reload silently fixed it via
+        // updateAllInputBindingLabels()'s own (correct) formatting pass.
+        updateInputBindingLabel(deviceRow, inputName, bindingLabelForActionJson(binding));
         ++mapped;
     }
 
@@ -1701,6 +1735,7 @@ void ProfileEditorViewModel::onDeviceAdded(const DeviceInfo &device)
     beginInsertRows(QModelIndex(), insertAt, insertAt);
     m_devices.insert(insertAt, std::move(entry));
     endInsertRows();
+    emit realDeviceCountChanged();
 
     // Swap To suggestion (see DeviceEntry::orphanedDeviceName's own docs):
     // a newly-connected device whose name matches an existing offline
@@ -1733,6 +1768,7 @@ void ProfileEditorViewModel::onDeviceRemoved(const QString &systemPath)
     beginRemoveRows(QModelIndex(), existing, existing);
     m_devices.removeAt(existing);
     endRemoveRows();
+    emit realDeviceCountChanged();
 }
 
 void ProfileEditorViewModel::onAxisMovedForDetection(const QString &systemPath, int axisIndex, int value)

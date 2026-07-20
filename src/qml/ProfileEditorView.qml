@@ -351,7 +351,41 @@ Item {
         TabBar {
             id: deviceTabBar
             Layout.fillWidth: true
+            // Zero real (non-vJoy) devices connected: nothing here would be
+            // selectable anyway (every tab hidden), and leaving this
+            // visible would show an empty bar sitting right above the
+            // "No Devices Connected" message below - see
+            // ProfileEditorViewModel::realDeviceCount's own docs for the
+            // fuller story (StackLayout below forcing vJoy's own card
+            // visible was the actual bug; this is what stops the bar above
+            // it from rendering emptily alongside that message too).
+            visible: profileEditorViewModel.realDeviceCount > 0
             spacing: 2
+
+            // Shared by the Component.onCompleted guard below AND
+            // onCurrentIndexChanged: the initial-load guard only ever ran
+            // once, so keyboard Left/Right navigation (the TabBar's
+            // contentItem is a plain ListView - see its own docs above -
+            // which walks delegates by index with no idea some are
+            // invisible) could still land currentIndex on a hidden vJoy
+            // tab afterwards, leaving deviceStack showing a blank page with
+            // no visibly-selected tab above it. Re-running the same "skip
+            // to the nearest visible tab" logic on every currentIndex
+            // change, not just at startup, closes that gap.
+            function skipHiddenTab() {
+                const current = deviceTabsRepeater.itemAt(currentIndex);
+                if (!current || current.visible) {
+                    return;
+                }
+                for (let i = 0; i < deviceTabsRepeater.count; i++) {
+                    const btn = deviceTabsRepeater.itemAt(i);
+                    if (btn && btn.visible) {
+                        currentIndex = i;
+                        return;
+                    }
+                }
+            }
+            onCurrentIndexChanged: Qt.callLater(skipHiddenTab)
 
             // Horizontal-scroll bugfix: a rig with many connected devices
             // needs more tab width than any reasonable window has - the
@@ -495,28 +529,24 @@ Item {
             }
 
             // Guards against defaulting to a hidden vJoy tab (currentIndex
-            // 0 otherwise) leaving the StackLayout showing a blank page with
-            // no visibly-selected tab above it - picks the first real device
-            // instead, once the Repeater has actually built its delegates.
-            Component.onCompleted: Qt.callLater(() => {
-                const current = deviceTabsRepeater.itemAt(deviceTabBar.currentIndex);
-                if (current && current.visible) {
-                    return;
-                }
-                for (let i = 0; i < deviceTabsRepeater.count; i++) {
-                    const btn = deviceTabsRepeater.itemAt(i);
-                    if (btn && btn.visible) {
-                        deviceTabBar.currentIndex = i;
-                        return;
-                    }
-                }
-            })
+            // 0 otherwise) - onCurrentIndexChanged above doesn't fire for
+            // this initial value (Qt Quick doesn't emit a property's own
+            // *Changed signal for the value it's constructed with), so the
+            // very first load still needs its own explicit check.
+            Component.onCompleted: Qt.callLater(skipHiddenTab)
         }
 
         StackLayout {
             id: deviceStack
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // See deviceTabBar's own visible binding just above - same
+            // reasoning. Without this, StackLayout still forces whichever
+            // child sits at currentIndex to be visible regardless of that
+            // child's own visible binding, which is exactly what let
+            // vJoy's card render fully (unbound, selectable) once it became
+            // the only entry left in the model.
+            visible: profileEditorViewModel.realDeviceCount > 0
             currentIndex: deviceTabBar.currentIndex
 
             Repeater {
@@ -569,7 +599,7 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            visible: deviceTabsRepeater.count === 0
+            visible: profileEditorViewModel.realDeviceCount === 0
 
             Column {
                 anchors.centerIn: parent

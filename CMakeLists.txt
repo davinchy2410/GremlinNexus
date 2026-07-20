@@ -72,13 +72,19 @@ if(WIN32)
     # device-interface enumeration (setupapi) and device-tree/CM_Get_Parent
     # traversal (cfgmgr32, for reading the real bus-reported product name of
     # composite USB devices off their parent node) used by DeviceManager's
-    # Windows-native monitoring backend.
+    # Windows-native monitoring backend. xinput9_1_0 backs the XInput poll
+    # path (pollXInputDevices() in DeviceManager.cpp) for Xbox-compatible
+    # pads whose analog axes aren't reliably readable via raw HID - picked
+    # over xinput1_4 purely for its wider guaranteed presence (Vista+
+    # redirect DLL) since this app doesn't need anything 1_4-only (battery
+    # info, XInputGetStateEx).
     target_link_libraries(GremblingCore
         PUBLIC
             user32
             hid
             setupapi
             cfgmgr32
+            xinput9_1_0
     )
 endif()
 

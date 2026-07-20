@@ -15,6 +15,7 @@
 #include <dbt.h>
 #include <setupapi.h>
 #include <cfgmgr32.h>
+#include <xinput.h>
 
 // hidusage.h/hidpi.h/hidsdi.h ship without extern "C" guards on this MinGW
 // SDK, so their HidP_*/HidD_* declarations get C++ name-mangled unless we
@@ -69,6 +70,59 @@ namespace {
 // HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER since not every SDK this project
 // builds against is guaranteed to define that macro.
 constexpr USHORT kHidUsageMultiAxisController = 0x08;
+
+// ---------------------------------------------------------------------------
+// XInput support (Xbox-compatible pads, e.g. GameSir G7 Pro, 8BitDo in
+// XInput mode): these devices' raw HID interface is a Windows-provided
+// legacy compatibility shim, not a real generic joystick report - it
+// reliably passes digital buttons through but leaves analog axes at a
+// static/degenerate logical range (confirmed against a real GameSir G7 Pro:
+// buttons worked, the stick position never moved). Real analog data for
+// this device class only comes through the actual XInput API, polled here
+// in parallel with the HID path above.
+//
+// kXInputHardwareIdMarker: Microsoft's own documented convention (DirectX
+// SDK's "XInput and DirectInput" article) for telling XInput-compatible
+// controllers apart from plain HID ones - their device instance path always
+// contains "IG_" (e.g. "...&IG_00#..."), independent of VID/PID, which is
+// exactly why every other input library (SDL included) filters on this same
+// substring rather than a VID/PID allowlist. registerHidDevice() uses it to
+// skip registering the broken/partial legacy interface once the real
+// XInput poll path below can read the same physical pad properly - without
+// this, the same controller would show up twice (a working XInput entry and
+// a half-functional HID one).
+constexpr auto kXInputHardwareIdMarker = "IG_";
+
+/// axisIndex assignment for a polled XINPUT_GAMEPAD, matching this file's
+/// existing DirectInput/vJoy convention (X=0, Y=1, Z=2, Rx=3, Ry=4, Rz=5 -
+/// see registerHidDevice()'s own axisIndices docs): left stick -> X/Y, left
+/// trigger -> Z, right stick -> Rx/Ry, right trigger -> Rz. Raw values are
+/// passed through unshaped (no deadzone applied here), same as the HID
+/// path - CurveHandler/deadzone shaping happens downstream, not here.
+constexpr int kXInputAxisLeftX = 0;
+constexpr int kXInputAxisLeftY = 1;
+constexpr int kXInputAxisLeftTrigger = 2;
+constexpr int kXInputAxisRightX = 3;
+constexpr int kXInputAxisRightY = 4;
+constexpr int kXInputAxisRightTrigger = 5;
+constexpr int kXInputAxisCount = 6;
+
+/// Digital buttons, in a fixed order so button indices stay stable across
+/// polls/sessions. XInput exposes no "Guide"/Xbox-button bit via
+/// XInputGetState, so this is the full set it can ever report.
+constexpr WORD kXInputButtonBits[] = {
+    XINPUT_GAMEPAD_DPAD_UP,        XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_LEFT,
+    XINPUT_GAMEPAD_DPAD_RIGHT,     XINPUT_GAMEPAD_START,     XINPUT_GAMEPAD_BACK,
+    XINPUT_GAMEPAD_LEFT_THUMB,     XINPUT_GAMEPAD_RIGHT_THUMB,
+    XINPUT_GAMEPAD_LEFT_SHOULDER,  XINPUT_GAMEPAD_RIGHT_SHOULDER,
+    XINPUT_GAMEPAD_A,              XINPUT_GAMEPAD_B,         XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y,
+};
+constexpr int kXInputButtonCount = static_cast<int>(sizeof(kXInputButtonBits) / sizeof(kXInputButtonBits[0]));
+
+QString xinputSystemPath(DWORD slot)
+{
+    return QStringLiteral("xinput:%1").arg(slot);
+}
 
 /// Per-device state needed to interpret subsequent WM_INPUT HID reports.
 struct HidDeviceContext
@@ -243,6 +297,13 @@ public slots:
         m_arrivalDebounceTimer = new QTimer(this);
         m_arrivalDebounceTimer->setSingleShot(true);
         connect(m_arrivalDebounceTimer, &QTimer::timeout, this, &DeviceMonitorWorker::performInitialScan);
+
+        // XInput support (GameSir/8BitDo-class pads) - see
+        // pollXInputDevices()'s own docs for why this has to be a poll
+        // rather than an event.
+        m_xinputPollTimer = new QTimer(this);
+        connect(m_xinputPollTimer, &QTimer::timeout, this, &DeviceMonitorWorker::pollXInputDevices);
+        m_xinputPollTimer->start(kAxisFlushIntervalMs);
     }
 
     /**
@@ -267,6 +328,9 @@ public slots:
         }
         if (m_arrivalDebounceTimer) {
             m_arrivalDebounceTimer->stop();
+        }
+        if (m_xinputPollTimer) {
+            m_xinputPollTimer->stop();
         }
 
         if (m_deviceNotifyHandle) {
@@ -512,23 +576,33 @@ private:
 
         // vJoy's own virtual joystick(s) are, deliberately, real enough HID
         // devices to be picked up by this exact scan (that's the whole point
-        // of vJoy - games need to see it as a real joystick) - without this
-        // check, GremlinNexus's own vJoy OUTPUT device(s) show up as
-        // selectable INPUT sources in the Profiles/Device Tester screens, and
-        // a profile that (accidentally or otherwise) binds one of vJoy's own
-        // axes/buttons back into itself creates a routing loop with nothing
-        // to break it (MacroHandler has its own narrow rate-limit guard
-        // against exactly this "recursive vJoy-output-as-input" pattern, but
-        // no other handler type does). 1234/BEAD is vJoy's own
-        // driver-assigned VID/PID, not shared with any real hardware family,
-        // so filtering on it can't exclude a genuine physical device the way
-        // filtering on, say, an Xbox 360 controller's VID/PID would (see
-        // ViGEmDevice's own docs - ViGEmBus deliberately emulates that exact
-        // real VID/PID, indistinguishable from a real pad by design, so that
-        // class of virtual device is NOT filtered here).
-        QString vjoyCheckVendorId, vjoyCheckProductId;
-        parseVidPid(devicePath, vjoyCheckVendorId, vjoyCheckProductId);
-        if (vjoyCheckVendorId == QLatin1String("1234") && vjoyCheckProductId == QLatin1String("BEAD")) {
+        // of vJoy - games need to see it as a real joystick), and are
+        // deliberately NOT filtered out here (bugfix 2026-07-20, reverting
+        // the 2026-07-14/15 exclusion added for this same routing-loop
+        // concern): DeviceManager.cpp is meant to be the raw, unfiltered
+        // hardware catalogue - it's also what backs the Device Tester's
+        // device picker (ProfileEditorViewModel is that picker's model),
+        // and a vJoy exclusion here silently broke watching vJoy's own
+        // OUTPUT there too, not just Profiles' bindable input list, since
+        // both screens share the same underlying device list. The
+        // "shouldn't be a bindable INPUT source in Profiles" half of this
+        // concern already has its own, more targeted fix: every device tab/
+        // card in ProfileEditorView.qml is `visible: !model.deviceName...
+        // contains("vjoy")`, and Quick Bind (onAxisMovedForDetection/
+        // onButtonPressedForDetection below) has its own explicit vJoy
+        // guard - both were already built for exactly this, just left
+        // unreachable while vJoy couldn't get into the list here at all.
+        // 1234/BEAD is vJoy's own driver-assigned VID/PID, not shared with
+        // any real hardware family (unlike ViGEmBus, which deliberately
+        // emulates a real Xbox pad's VID/PID and is NOT filtered here for
+        // that reason), so should this concern ever need a DeviceManager-
+        // level fix again, that VID/PID pair is still the reliable signal.
+
+        // XInput-compatible pad (see kXInputHardwareIdMarker's own docs
+        // above) - skip its broken/partial legacy HID interface, the real
+        // XInput poll path (pollXInputDevices()) reports this same physical
+        // controller properly instead.
+        if (devicePath.contains(QLatin1String(kXInputHardwareIdMarker), Qt::CaseInsensitive)) {
             return;
         }
 
@@ -687,7 +761,17 @@ private:
         std::vector<int> axisLogicalMax(finalAxisCount, 65535);
         for (std::size_t i = 0; i < axisIndices.size(); ++i) {
             const int standardIndex = axisIndices[i];
-            if (standardIndex >= 0 && static_cast<uint32_t>(standardIndex) < finalAxisCount) {
+            // Some HID report descriptors (seen on XInput-compatible
+            // gamepads, e.g. a GameSir G7 Pro) declare a degenerate
+            // LogicalMin == LogicalMax (often both 0) for an axis -
+            // invalid per the HID spec but real firmware behavior.
+            // Normalizing against a zero-width range (hi - lo <= 0) makes
+            // any bipolar UI built on this - the Device Tester's radar dot
+            // - permanently stuck at center even though the raw value
+            // keeps updating, so keep the sane [0, 65535] default seeded
+            // above instead of adopting a useless declared range.
+            if (standardIndex >= 0 && static_cast<uint32_t>(standardIndex) < finalAxisCount
+                && rawLogicalMin[i] < rawLogicalMax[i]) {
                 axisLogicalMin[standardIndex] = rawLogicalMin[i];
                 axisLogicalMax[standardIndex] = rawLogicalMax[i];
             }
@@ -715,23 +799,12 @@ private:
         info.systemPath = devicePath;
         info.deviceName = queryProductName(devicePath);
 
-        // Second-layer vJoy exclusion (bugfix 2026-07-14, see the VID/PID
-        // check above): that check relies on devicePath literally containing
-        // "VID_1234&PID_BEAD", which assumes a standard USB-enumerated HID
-        // instance path. vJoy is a root-enumerated virtual bus device, not a
-        // real USB device, so its actual RawInput device path doesn't
-        // reliably take that shape - confirmed against a real system with
-        // only vJoy connected, where the device slipped past the VID/PID
-        // check entirely and showed up as a normal 152-input bindable
-        // source (with vendorId/productId both falling back to "0000" for
-        // the exact same parsing failure). queryProductName() goes through
-        // HidD_GetProductString - a real Win32 HID API call keyed off the
-        // open device handle, not a path-string heuristic - so it isn't
-        // affected by the enumeration-scheme mismatch that breaks the
-        // VID/PID check.
-        if (info.deviceName.contains(QLatin1String("vJoy"), Qt::CaseInsensitive)) {
-            return;
-        }
+        // vJoy is intentionally NOT excluded here either (see the longer
+        // note above where the VID/PID-based exclusion used to be) -
+        // DeviceManager stays the raw, unfiltered hardware catalogue;
+        // ProfileEditorView.qml's own `visible: !...contains("vjoy")` on
+        // every device tab/card is what keeps it out of Profiles' bindable
+        // input list, while still reaching the Device Tester correctly.
 
         parseVidPid(devicePath, info.vendorId, info.productId);
         info.isConnected = true;
@@ -923,15 +996,38 @@ private:
     /// equality.
     void handleDeviceInterfaceRemoved(const QString &interfacePath)
     {
+        // Every HID device interface path shares the same trailing class
+        // GUID ({4d1e55b2-f16f-11cf-88cb-001111000030} - see
+        // kGuidDevInterfaceHid above), so a plain substring containment
+        // check can match more than one currently-tracked device at once,
+        // not just the one that actually got unplugged - confirmed as a
+        // real bug (2026-07-20): with several HID devices connected
+        // simultaneously, unplugging one could match and erase a
+        // completely unrelated device's HidDeviceContext first (iteration
+        // order over m_deviceContexts, an unordered_map, isn't even
+        // deterministic), silently breaking that other device's product
+        // name/button reporting even though it stayed physically connected
+        // the whole time. Collecting every match first and only acting on
+        // an unambiguous single hit keeps the original intent (tolerate
+        // DBT's path casing/formatting not exactly matching RawInput's own
+        // RIDI_DEVICENAME) without ever guessing between multiple
+        // candidates - an ambiguous notification is simply ignored instead,
+        // exactly as if the substring check hadn't matched anything, and
+        // that device is caught by the next arrival rescan / regular
+        // teardown either way.
+        std::vector<std::unordered_map<HANDLE, HidDeviceContext>::iterator> matches;
         for (auto it = m_deviceContexts.begin(); it != m_deviceContexts.end(); ++it) {
             const QString &known = it->second.systemPath;
             if (known.contains(interfacePath, Qt::CaseInsensitive) || interfacePath.contains(known, Qt::CaseInsensitive)) {
-                const QString removedPath = known;
-                m_deviceContexts.erase(it);
-                emit deviceLost(removedPath);
-                return;
+                matches.push_back(it);
             }
         }
+        if (matches.size() != 1) {
+            return;
+        }
+        const QString removedPath = matches.front()->second.systemPath;
+        m_deviceContexts.erase(matches.front());
+        emit deviceLost(removedPath);
     }
 
     // -- Raw input report parsing --------------------------------------------
@@ -1249,6 +1345,93 @@ private:
         }
     }
 
+    // -- XInput polling -------------------------------------------------------
+
+    /// m_xinputPollTimer's own slot: polls all XUSER_MAX_COUNT (4) XInput
+    /// slots every tick, detects connect/disconnect, and diffs+emits axis/
+    /// button changes exactly like parseHidReport() does for a real HID
+    /// report - deviceDiscovered/deviceLost/axisMoved/buttonPressed/
+    /// buttonsChanged, so everything downstream (DeviceManager's relay,
+    /// EventRouter, the Tester UI) treats an XInput pad identically to a
+    /// physical HID joystick, no special-casing needed anywhere else. XInput
+    /// has no push notification of its own (unlike RawInput's WM_INPUT), so
+    /// this has to be a poll - kAxisFlushIntervalMs (4 ms/250 Hz) keeps it at
+    /// the same cadence the HID path already flushes axis events at.
+    void pollXInputDevices()
+    {
+        for (DWORD slot = 0; slot < XUSER_MAX_COUNT; ++slot) {
+            XINPUT_STATE state{};
+            const bool nowConnected = XInputGetState(slot, &state) == ERROR_SUCCESS;
+            const QString systemPath = xinputSystemPath(slot);
+
+            if (nowConnected && !m_xinputConnected[slot]) {
+                m_xinputConnected[slot] = true;
+                m_xinputLastButtons[slot] = 0;
+                for (int &axis : m_xinputLastAxis[slot]) {
+                    axis = std::numeric_limits<int>::min();
+                }
+
+                DeviceInfo info;
+                info.systemPath = systemPath;
+                info.deviceName = QStringLiteral("Xbox Controller (XInput #%1)").arg(slot + 1);
+                info.isConnected = true;
+                info.numAxes = static_cast<uint8_t>(kXInputAxisCount);
+                info.numButtons = static_cast<uint8_t>(kXInputButtonCount);
+                info.numHats = 0;
+                info.axisLogicalMin = {-32768, -32768, 0, -32768, -32768, 0};
+                info.axisLogicalMax = {32767, 32767, 255, 32767, 32767, 255};
+                emit deviceDiscovered(info);
+                continue;
+            }
+
+            if (!nowConnected) {
+                if (m_xinputConnected[slot]) {
+                    m_xinputConnected[slot] = false;
+                    emit deviceLost(systemPath);
+                }
+                continue;
+            }
+
+            const XINPUT_GAMEPAD &pad = state.Gamepad;
+            // Y is negated here, unlike X: XInput's Y axis grows *upward*
+            // (Y-up), the opposite of HID/DirectInput's convention (Y grows
+            // downward) that DeviceTesterView.qml's radar dot deliberately
+            // relies on (see its own "Y is deliberately NOT flipped" comment
+            // - flipping there would break every real HID joystick this app
+            // already reads correctly). Negating the raw value here, only
+            // for this XInput-specific source, keeps that QML code untouched
+            // while still landing an XInput pad's "up" at bipolarY < 0, same
+            // as every other device.
+            const int rawAxes[kXInputAxisCount] = {
+                pad.sThumbLX, -static_cast<int>(pad.sThumbLY), pad.bLeftTrigger,
+                pad.sThumbRX, -static_cast<int>(pad.sThumbRY), pad.bRightTrigger,
+            };
+            for (int i = 0; i < kXInputAxisCount; ++i) {
+                if (m_xinputLastAxis[slot][i] != rawAxes[i]) {
+                    m_xinputLastAxis[slot][i] = rawAxes[i];
+                    emit axisMoved(systemPath, i, rawAxes[i]);
+                }
+            }
+
+            if (pad.wButtons == m_xinputLastButtons[slot]) {
+                continue;
+            }
+            QVector<ButtonEvent> changedButtons;
+            for (int i = 0; i < kXInputButtonCount; ++i) {
+                const bool wasPressed = (m_xinputLastButtons[slot] & kXInputButtonBits[i]) != 0;
+                const bool isPressed = (pad.wButtons & kXInputButtonBits[i]) != 0;
+                if (wasPressed != isPressed) {
+                    changedButtons.append(ButtonEvent{systemPath, i, isPressed});
+                    emit buttonPressed(systemPath, i, isPressed);
+                }
+            }
+            m_xinputLastButtons[slot] = pad.wButtons;
+            if (!changedButtons.isEmpty()) {
+                emit buttonsChanged(changedButtons);
+            }
+        }
+    }
+
     // -- Native message handling ---------------------------------------------
 
     LRESULT handleWindowMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1343,6 +1526,14 @@ private:
     QTimer *m_axisFlushTimer = nullptr;
     QTimer *m_arrivalDebounceTimer = nullptr;
     const bool m_hidHideWarmupEnabled;
+
+    /// pollXInputDevices()'s own per-slot state - see that method's docs.
+    /// Only ever touched from this worker thread's own timer callback, same
+    /// as m_deviceContexts below.
+    QTimer *m_xinputPollTimer = nullptr;
+    bool m_xinputConnected[XUSER_MAX_COUNT] = {};
+    WORD m_xinputLastButtons[XUSER_MAX_COUNT] = {};
+    int m_xinputLastAxis[XUSER_MAX_COUNT][kXInputAxisCount] = {};
 
     /// systemPath -> axisIndex -> latest raw value not yet flushed as
     /// axisMoved() - see flushPendingAxisEvents().

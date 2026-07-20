@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QVariantList>
 
+#include "DeviceInfo.h"
+
 /**
  * @brief ViewModel for the "Device Tester" screen (Fase 10.5).
  *
@@ -92,6 +94,21 @@ signals:
     void buttonStatesChanged();
 
 private slots:
+    /// Relayed from DeviceManager::deviceAdded - fires both for a brand new
+    /// device AND for a re-registration of an already-known one (e.g. the
+    /// startup warmup rescans, or any later rescan that resolves a name/
+    /// button-count DeviceManager only got partially right the first time
+    /// around - see DeviceManager::addOrUpdateDevice()). Refreshes this
+    /// Tester's own cached numButtons/numHats/axisLogicalMin/axisLogicalMax/
+    /// label snapshot when it's the CURRENTLY selected device, since
+    /// setCurrentSystemPath() below only ever captures that snapshot once,
+    /// at selection time, and has no other way of finding out it went
+    /// stale. Confirmed as the real cause (2026-07-20) of "device shows as
+    /// Unknown/0 buttons until you reselect it" - reselecting only "fixed"
+    /// it by accident, by re-running setCurrentSystemPath()'s own capture
+    /// against DeviceManager's by-then-corrected data.
+    void onDeviceInfoUpdated(const DeviceInfo &device);
+
     /// Relayed from DeviceManager::axisMoved; updates a single element of
     /// m_axisValues (O(1)) and sets ONLY m_axesDirty for the next
     /// m_uiThrottleTimer tick to notify - see that timer's own docs for why
@@ -109,6 +126,17 @@ private slots:
     void flushPendingUiUpdates();
 
 private:
+    /// Shared by setCurrentSystemPath() and onDeviceInfoUpdated() - looks
+    /// m_currentSystemPath up in DeviceManager::getConnectedDevices() and
+    /// (re)captures m_axisLogicalMin/Max/m_currentDeviceNumButtons/Hats from
+    /// whatever it finds (or the [0,65535]/0/0 defaults if not found at
+    /// all). Does not touch m_axisValues/m_buttonStates or emit any
+    /// signals itself - callers decide what else needs resetting/notifying
+    /// around it (a fresh selection clears live readings too; a metadata-
+    /// only refresh must not, or it would stomp readings that arrived
+    /// between the stale registration and this one correcting it).
+    void refreshDeviceMetadataFromManager();
+
     static constexpr int kNumAxes = 8;
     static constexpr int kNumButtons = 256;
 

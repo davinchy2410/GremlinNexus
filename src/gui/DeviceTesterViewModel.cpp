@@ -24,6 +24,7 @@ DeviceTesterViewModel::DeviceTesterViewModel(QObject *parent)
         m_axisLogicalMax.append(65535);
     }
 
+    connect(&DeviceManager::instance(), &DeviceManager::deviceAdded, this, &DeviceTesterViewModel::onDeviceInfoUpdated);
     connect(&DeviceManager::instance(), &DeviceManager::axisMoved, this, &DeviceTesterViewModel::onAxisMoved);
     connect(&DeviceManager::instance(), &DeviceManager::buttonPressed, this, &DeviceTesterViewModel::onButtonPressed);
 
@@ -50,17 +51,41 @@ void DeviceTesterViewModel::setCurrentSystemPath(const QString &systemPath)
     std::fill(m_axisValues.begin(), m_axisValues.end(), QVariant(0));
     std::fill(m_buttonStates.begin(), m_buttonStates.end(), QVariant(false));
 
-    // Re-derive the per-axis HID logical range for the newly selected
-    // device (Fase 16.6) - falls back to [0, 65535] per axis (already
-    // std::fill'd as the starting value below) for a device DeviceManager
-    // has no captured HID caps for, e.g. a mock/synthetic entry.
+    refreshDeviceMetadataFromManager();
+
+    emit currentSystemPathChanged();
+    emit axisValuesChanged();
+    emit buttonStatesChanged();
+}
+
+void DeviceTesterViewModel::onDeviceInfoUpdated(const DeviceInfo &device)
+{
+    if (device.systemPath != m_currentSystemPath) {
+        return;
+    }
+    // Same device, but DeviceManager's own catalogue entry for it just
+    // changed (a later rescan resolved its real name/button count - see
+    // this slot's own docs in the header) - re-run the exact same capture
+    // setCurrentSystemPath() does, without touching m_currentSystemPath
+    // itself or clearing the live axis/button readings.
+    refreshDeviceMetadataFromManager();
+    emit currentSystemPathChanged();
+}
+
+void DeviceTesterViewModel::refreshDeviceMetadataFromManager()
+{
+    // Re-derive the per-axis HID logical range for the current device
+    // (Fase 16.6) - falls back to [0, 65535] per axis (the starting value
+    // std::fill'd below) for a device DeviceManager has no captured HID
+    // caps for, e.g. a mock/synthetic entry, or one not currently found at
+    // all (falls through the loop below untouched).
     std::fill(m_axisLogicalMin.begin(), m_axisLogicalMin.end(), QVariant(0));
     std::fill(m_axisLogicalMax.begin(), m_axisLogicalMax.end(), QVariant(65535));
     m_currentDeviceNumButtons = 0;
     m_currentDeviceNumHats = 0;
     const QList<DeviceInfo> connected = DeviceManager::instance().getConnectedDevices();
     for (const DeviceInfo &device : connected) {
-        if (device.systemPath != systemPath) {
+        if (device.systemPath != m_currentSystemPath) {
             continue;
         }
         const int count = std::min<int>(device.axisLogicalMin.size(), kNumAxes);
@@ -72,10 +97,6 @@ void DeviceTesterViewModel::setCurrentSystemPath(const QString &systemPath)
         m_currentDeviceNumHats = device.numHats;
         break;
     }
-
-    emit currentSystemPathChanged();
-    emit axisValuesChanged();
-    emit buttonStatesChanged();
 }
 
 QVariantList DeviceTesterViewModel::axisValues() const
@@ -137,7 +158,15 @@ void DeviceTesterViewModel::onAxisMoved(const QString &systemPath, int axisIndex
     if (axisIndex < 0 || axisIndex >= kNumAxes) {
         return;
     }
-    m_axisValues[axisIndex] = std::clamp(value, 0, 65535);
+    // Was clamped to [0, 65535] (unsigned-only) - every HID joystick this
+    // app dealt with until now reports a zero-based logical range, but
+    // XInput's thumbsticks are signed (-32768..32767, centered on 0), so a
+    // push left/up produced a negative raw value that this clamp silently
+    // floored to 0, making the Tester radar look permanently stuck at
+    // center for those directions. Widened to also cover that signed range
+    // - real HID devices never report negative values in the first place,
+    // so this is a strict widening, not a behavior change for them.
+    m_axisValues[axisIndex] = std::clamp(value, -65535, 65535);
     m_axesDirty = true;
 }
 
