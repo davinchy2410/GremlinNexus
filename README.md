@@ -104,7 +104,7 @@ cmake --build build
 The application is built with a strict English core and fully supports dynamic language switching via Qt's `QTranslator`. Current supported translations include English and Español.
 
 ##  Author & Credits
-Developed and maintained by **Darian Zuain**.
+Developed and maintained by **davinchy2410**.
 
 **AI Acknowledgement:** A significant portion of the C++ boilerplate, Qt QML UI generation, and English translation was developed with the assistance of AI acting as a pair-programmer. The core architecture, vJoy routing logic, physical hardware testing (with VKB/VIRPIL gear), and final implementation decisions are 100% human-driven.
 
