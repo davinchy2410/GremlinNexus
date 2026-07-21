@@ -602,7 +602,26 @@ private:
         // above) - skip its broken/partial legacy HID interface, the real
         // XInput poll path (pollXInputDevices()) reports this same physical
         // controller properly instead.
-        if (devicePath.contains(QLatin1String(kXInputHardwareIdMarker), Qt::CaseInsensitive)) {
+        //
+        // Bugfix 2026-07-21: kXInputHardwareIdMarker ("IG_") only covers the
+        // USB case - a Bluetooth-connected XInput-compatible pad (e.g.
+        // GameSir G7 Pro, 8BitDo SN30 Pro) enumerates through Windows' own
+        // BTHLEDevice/BTHENUM HID compatibility driver instead, whose device
+        // instance path never contains "IG_" at all (confirmed against a
+        // real device: "BTHLEDevice\{...}_Dev_VID&...\..." - no "IG_"
+        // anywhere). Without the second check below, such a pad's broken/
+        // degenerate legacy HID interface was never excluded, double-
+        // registering the same physical pad once here (broken axes, working
+        // buttons - buttons aren't affected by the degenerate-axis-range
+        // guard) and once via pollXInputDevices() (working axes). If a
+        // profile's binding ends up pointing at the broken entry, buttons
+        // still work while every axis silently fails - exactly the symptom
+        // reported for an 8BitDo SN30 Pro over Bluetooth. isDescribedAsXInputCompatible()
+        // asks Windows directly (it already computes and shows this exact
+        // answer in Device Manager - "Bluetooth XINPUT compatible input
+        // device") instead of guessing further from the path.
+        if (devicePath.contains(QLatin1String(kXInputHardwareIdMarker), Qt::CaseInsensitive) ||
+            isDescribedAsXInputCompatible(devicePath)) {
             return;
         }
 
@@ -986,6 +1005,77 @@ private:
 
         SetupDiDestroyDeviceInfoList(deviceInfoSet);
         return result;
+    }
+
+    /// Bugfix 2026-07-21 (see registerHidDevice()'s own docs on this call
+    /// site): asks Windows directly whether it considers this HID interface
+    /// XInput-compatible, via the same PnP device-description property
+    /// (SPDRP_DEVICEDESC/SPDRP_FRIENDLYNAME) Device Manager itself shows -
+    /// e.g. "Bluetooth XINPUT compatible input device" for a Bluetooth pad,
+    /// where kXInputHardwareIdMarker's "IG_" path substring never appears.
+    /// Deliberately a separate, minimal enumeration rather than reusing
+    /// queryProductNameFromRegistry(): that function climbs to the PARENT
+    /// devnode for a USB composite device's real product string (e.g.
+    /// "VIRPIL Control Panel"), which is the wrong node here - the "XINPUT"
+    /// wording lives on the HID node's own description, not its parent's.
+    bool isDescribedAsXInputCompatible(const QString &devicePath) const
+    {
+        HDEVINFO deviceInfoSet =
+            SetupDiGetClassDevsW(&kGuidDevInterfaceHid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+        if (deviceInfoSet == INVALID_HANDLE_VALUE) {
+            return false;
+        }
+
+        bool isXInputCompatible = false;
+        SP_DEVICE_INTERFACE_DATA interfaceData{};
+        interfaceData.cbSize = sizeof(interfaceData);
+
+        for (DWORD index = 0;
+             SetupDiEnumDeviceInterfaces(deviceInfoSet, nullptr, &kGuidDevInterfaceHid, index, &interfaceData);
+             ++index) {
+            DWORD requiredSize = 0;
+            SetupDiGetDeviceInterfaceDetailW(deviceInfoSet, &interfaceData, nullptr, 0, &requiredSize, nullptr);
+            if (requiredSize == 0) {
+                continue;
+            }
+
+            std::vector<BYTE> detailBuffer(requiredSize);
+            auto *detailData = reinterpret_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA_W>(detailBuffer.data());
+            detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+
+            SP_DEVINFO_DATA devInfoData{};
+            devInfoData.cbSize = sizeof(devInfoData);
+
+            if (!SetupDiGetDeviceInterfaceDetailW(deviceInfoSet, &interfaceData, detailData, requiredSize, nullptr,
+                                                   &devInfoData)) {
+                continue;
+            }
+
+            // Same case-insensitive compare queryProductNameFromRegistry()
+            // uses - RawInput's own path tends to be all-lowercase, SetupDi's
+            // isn't guaranteed to match case.
+            const QString interfacePath = QString::fromWCharArray(detailData->DevicePath);
+            if (interfacePath.compare(devicePath, Qt::CaseInsensitive) != 0) {
+                continue;
+            }
+
+            wchar_t nameBuffer[256] = {};
+            QString description;
+            if (SetupDiGetDeviceRegistryPropertyW(deviceInfoSet, &devInfoData, SPDRP_DEVICEDESC, nullptr,
+                                                   reinterpret_cast<PBYTE>(nameBuffer), sizeof(nameBuffer), nullptr)) {
+                description = QString::fromWCharArray(nameBuffer);
+            }
+            if (description.isEmpty() &&
+                SetupDiGetDeviceRegistryPropertyW(deviceInfoSet, &devInfoData, SPDRP_FRIENDLYNAME, nullptr,
+                                                   reinterpret_cast<PBYTE>(nameBuffer), sizeof(nameBuffer), nullptr)) {
+                description = QString::fromWCharArray(nameBuffer);
+            }
+            isXInputCompatible = description.contains(QLatin1String("XINPUT"), Qt::CaseInsensitive);
+            break;
+        }
+
+        SetupDiDestroyDeviceInfoList(deviceInfoSet);
+        return isXInputCompatible;
     }
 
     /// Finds the tracked device whose systemPath corresponds to the
