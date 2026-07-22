@@ -25,6 +25,7 @@
 #include "HidHideController.h"
 #include "I18nManager.h"
 #include "PwaServer.h"
+#include "ScriptBridgeServer.h"
 #include "SCIntegrationManager.h"
 #include "VJoyDevice.h"
 #include "VoiceFeedbackManager.h"
@@ -337,6 +338,31 @@ int main(int argc, char *argv[])
     CalibrationViewModel calibrationViewModel(profileEditorViewModel.profileManager());
 
     SettingsViewModel settingsViewModel(autoSwitch);
+
+    // Fase 19 (Script Bridge, step 3/6): starts/stops ScriptBridgeServer
+    // based on the user's persisted "Scripts (Beta)" toggle
+    // (settingsViewModel.scriptsEnabled) AND whether the separately-
+    // downloaded module is actually present right now
+    // (settingsViewModel.scriptsModuleDetected) - never starts just because
+    // a previous session left the toggle on if the module was since
+    // removed. This decision lives here rather than inside
+    // ScriptBridgeServer itself (unlike PwaServer's own self-managing
+    // init()) since it needs SettingsViewModel's two separate properties,
+    // not just one persisted flag. Nothing yet constructs the "Nexus
+    // Scripts" virtual device or a Scripts panel (later steps) - today this
+    // only means the listener itself starts/stops; there is still nothing
+    // for a script to usefully do once connected.
+    ScriptBridgeServer scriptBridgeServer;
+    auto refreshScriptBridgeState = [&]() {
+        const bool shouldRun = settingsViewModel.scriptsEnabled() && settingsViewModel.scriptsModuleDetected();
+        if (shouldRun && !scriptBridgeServer.isRunning()) {
+            scriptBridgeServer.start();
+        } else if (!shouldRun && scriptBridgeServer.isRunning()) {
+            scriptBridgeServer.stop();
+        }
+    };
+    refreshScriptBridgeState();
+    QObject::connect(&settingsViewModel, &SettingsViewModel::scriptsEnabledChanged, &app, refreshScriptBridgeState);
 
     LegacyMigrator legacyMigrator;
 
