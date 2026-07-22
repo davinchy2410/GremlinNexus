@@ -109,7 +109,30 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
     // shared by CurveHandler/SmoothingHandler's own label below and the
     // MergeAxisHandler/SplitAxisHandler previews further down, so all three
     // agree on what axis N is called instead of each maintaining its own copy.
-    auto getAxisName = [](int axis) -> QString {
+    //
+    // Bugfix 2026-07-22: a ViGEm-targeted binding used to get this exact same
+    // vJoy-shaped name ("Rx", "Slider 1", ...) even though targetAxis for a
+    // ViGEm target actually means something completely different (see
+    // ViGEmDevice::kMaxAxes's own docs: 0=Left Stick X, 1=Left Stick Y,
+    // 2=Right Stick X, 3=Right Stick Y, 4=Left Trigger, 5=Right Trigger) -
+    // so an Xbox binding's label told you which vJoy-style axis slot number
+    // it was, not which physical Xbox control it actually drove. isVigem
+    // picks between the two name sets; same order ActionPickerPopup.qml's
+    // own xboxAxisNames already uses for its target picker, just centralized
+    // here too so every label (Profiles list, Macro step preview, 1:1 map)
+    // agrees with it instead of only the picker looking right.
+    auto getAxisName = [](int axis, bool isVigem) -> QString {
+        if (isVigem) {
+            switch (axis) {
+                case 0: return QStringLiteral("Left Stick X");
+                case 1: return QStringLiteral("Left Stick Y");
+                case 2: return QStringLiteral("Right Stick X");
+                case 3: return QStringLiteral("Right Stick Y");
+                case 4: return QStringLiteral("Left Trigger");
+                case 5: return QStringLiteral("Right Trigger");
+                default: return QStringLiteral("Axis %1").arg(axis);
+            }
+        }
         switch (axis) {
             case 0: return QStringLiteral("X");
             case 1: return QStringLiteral("Y");
@@ -123,6 +146,22 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
         }
     };
 
+    // Same fix as getAxisName above, for buttons - matches
+    // ActionPickerPopup.qml's own xboxButtonNames order/meaning exactly
+    // (ViGEmDevice::kMaxButtons's own docs: D-Pad Up/Down/Left/Right, Start,
+    // Back, LThumb, RThumb, LShoulder, RShoulder, Guide, A, B, X, Y).
+    auto getXboxButtonName = [](int buttonIndex) -> QString {
+        static const QStringList kXboxButtonNames{
+            QStringLiteral("D-Pad Up"),   QStringLiteral("D-Pad Down"), QStringLiteral("D-Pad Left"),
+            QStringLiteral("D-Pad Right"), QStringLiteral("Start"),     QStringLiteral("Back"),
+            QStringLiteral("L Thumb"),    QStringLiteral("R Thumb"),   QStringLiteral("LB"),
+            QStringLiteral("RB"),         QStringLiteral("Guide"),     QStringLiteral("A"),
+            QStringLiteral("B"),          QStringLiteral("X"),         QStringLiteral("Y")};
+        return buttonIndex >= 0 && buttonIndex < kXboxButtonNames.size()
+            ? kXboxButtonNames.at(buttonIndex)
+            : QStringLiteral("Btn %1").arg(buttonIndex + 1);
+    };
+
     // ViGEm integration: a binding's top-level "targetDeviceType" ("vjoy",
     // the default, or "vigem") picks which prefix its targetOutputId gets
     // labelled with - shared by every single-device handler kind below so a
@@ -133,13 +172,20 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
         return isVigem ? QStringLiteral("Xbox %1").arg(outputId) : QStringLiteral("vJoy %1").arg(outputId);
     };
 
+    const bool isVigemTarget =
+        binding.value(QStringLiteral("targetDeviceType")).toString() == QStringLiteral("vigem");
+
     QString label = binding.value(QStringLiteral("actionType")).toString();
     if (label == QStringLiteral("CurveHandler") || label == QStringLiteral("SmoothingHandler")) {
         const int targetAxis = binding.value(QStringLiteral("targetAxis")).toInt();
-        label = QStringLiteral("%1 : Axis %2").arg(getDeviceLabel(binding), getAxisName(targetAxis));
+        label = isVigemTarget
+            ? QStringLiteral("%1 : %2").arg(getDeviceLabel(binding), getAxisName(targetAxis, true))
+            : QStringLiteral("%1 : Axis %2").arg(getDeviceLabel(binding), getAxisName(targetAxis, false));
     } else if (label == QStringLiteral("ButtonRemapHandler")) {
-        label = QStringLiteral("%1 : Btn %2").arg(getDeviceLabel(binding))
-                                             .arg(binding.value(QStringLiteral("targetButton")).toInt() + 1);
+        const int targetButton = binding.value(QStringLiteral("targetButton")).toInt();
+        label = isVigemTarget
+            ? QStringLiteral("%1 : %2").arg(getDeviceLabel(binding), getXboxButtonName(targetButton))
+            : QStringLiteral("%1 : Btn %2").arg(getDeviceLabel(binding)).arg(targetButton + 1);
     } else if (label == QStringLiteral("HatRemapHandler")) {
         static const QStringList kDirections{
             QStringLiteral("Up"), QStringLiteral("Right"), QStringLiteral("Down"), QStringLiteral("Left")};
@@ -285,7 +331,7 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
         const int targetAxis = binding.value(QStringLiteral("targetAxis")).toInt();
         const bool isSubtraction = binding.value(QStringLiteral("parameters")).toObject()
                                        .value(QStringLiteral("isSubtraction")).toBool(true);
-        label = QStringLiteral("Merge -> %1 %2 (%3)").arg(getDeviceLabel(binding), getAxisName(targetAxis),
+        label = QStringLiteral("Merge -> %1 %2 (%3)").arg(getDeviceLabel(binding), getAxisName(targetAxis, isVigemTarget),
                                                            isSubtraction ? QStringLiteral("Diff") : QStringLiteral("Add"));
     } else if (label == QStringLiteral("SplitAxisHandler")) {
         const QJsonObject parameters = binding.value(QStringLiteral("parameters")).toObject();
@@ -297,9 +343,9 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
         label = QStringLiteral("Split (%1) -> vJ%2 %3 / vJ%4 %5")
                     .arg(splitMode == 1 ? QStringLiteral("Seq") : QStringLiteral("Center"))
                     .arg(lowerTargetOutputId)
-                    .arg(getAxisName(lowerTargetAxis))
+                    .arg(getAxisName(lowerTargetAxis, false))
                     .arg(upperTargetOutputId)
-                    .arg(getAxisName(upperTargetAxis));
+                    .arg(getAxisName(upperTargetAxis, false));
     }
     return label;
 }
