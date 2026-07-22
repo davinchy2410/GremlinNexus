@@ -27,6 +27,7 @@
 #include "AxisSplitterHandler.h"
 #include "AxisToButtonHandler.h"
 #include "ButtonRemapHandler.h"
+#include "ButtonToAxisHandler.h"
 #include "ConditionHandler.h"
 #include "CurveHandler.h"
 #include "DelayAction.h"
@@ -442,6 +443,9 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateHandlerImpl(const QJs
     }
     if (actionType == QLatin1String("AxisToButtonHandler")) {
         return instantiateAxisToButtonHandler(binding, router, depth);
+    }
+    if (actionType == QLatin1String("ButtonToAxisHandler")) {
+        return instantiateButtonToAxisHandler(binding, router, depth);
     }
     if (actionType == QLatin1String("MergeAxisHandler")) {
         return instantiateMergeAxisHandler(binding, router);
@@ -911,6 +915,22 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateAxisToButtonHandler(c
     }
 
     return std::make_shared<AxisToButtonHandler>(threshold, invert, std::move(wrapped), inputMin, inputMax);
+}
+
+std::shared_ptr<IActionHandler> ProfileManager::instantiateButtonToAxisHandler(const QJsonObject &binding,
+                                                                                  EventRouter &router, int depth)
+{
+    if (!binding.contains(QLatin1String("wrappedAction"))) {
+        qWarning() << "ProfileManager: ButtonToAxisHandler binding is missing \"wrappedAction\" - skipping";
+        return nullptr;
+    }
+    auto wrapped = instantiateHandler(binding.value(QLatin1String("wrappedAction")).toObject(), router, depth + 1);
+    if (!wrapped) {
+        qWarning() << "ProfileManager: ButtonToAxisHandler's \"wrappedAction\" failed to instantiate - skipping";
+        return nullptr;
+    }
+
+    return std::make_shared<ButtonToAxisHandler>(std::move(wrapped));
 }
 
 std::shared_ptr<IActionHandler> ProfileManager::instantiateMergeAxisHandler(const QJsonObject &binding,

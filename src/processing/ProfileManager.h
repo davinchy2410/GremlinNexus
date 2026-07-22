@@ -225,6 +225,17 @@ class IVirtualOutputDevice;
  *       "wrappedAction": { "actionType": "ModeSwitch", "parameters": { "targetMode": "Combat" } }
  *     },
  *     {
+ *       // Reverse of AxisToButtonHandler above - for a source input that reports as a
+ *       // plain HID button rather than an analog axis (some Bluetooth-connected
+ *       // XInput-compatible pads' triggers). Pressed emits 65535 on the canonical
+ *       // [0, 65535] scale to wrappedAction, released emits 0 - no parameters of its own.
+ *       "sourceDevice": "",
+ *       "sourceButton": 4,
+ *       "actionType": "ButtonToAxisHandler",
+ *       "mode": "Global",
+ *       "wrappedAction": { "actionType": "CurveHandler", "targetDeviceType": "vigem", "targetOutputId": 1, "targetAxis": 4 }
+ *     },
+ *     {
  *       // Differential merge (pedals -> rudder): author TWO mirrored bindings, one per
  *       // physical axis, each naming the *other* axis as "otherSystemPath"/"otherAxisIndex" -
  *       // moving either pedal re-evaluates the same formula and re-stages the same vJoy axis.
@@ -614,6 +625,7 @@ private:
                                                                           const QString &legacySingularKey,
                                                                           EventRouter &router, int depth);
     std::shared_ptr<IActionHandler> instantiateAxisToButtonHandler(const QJsonObject &binding, EventRouter &router, int depth);
+    std::shared_ptr<IActionHandler> instantiateButtonToAxisHandler(const QJsonObject &binding, EventRouter &router, int depth);
     std::shared_ptr<IActionHandler> instantiateMergeAxisHandler(const QJsonObject &binding, EventRouter &router);
     std::shared_ptr<IActionHandler> instantiateSplitAxisHandler(const QJsonObject &binding, EventRouter &router);
     std::shared_ptr<IActionHandler> instantiateMacroHandler(const QJsonObject &binding, EventRouter &router);

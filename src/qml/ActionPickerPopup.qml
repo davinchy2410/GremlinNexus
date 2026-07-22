@@ -449,6 +449,7 @@ Popup {
         mergeAxisCombo.currentIndex = 0;
         mergeModeCombo.currentIndex = 0;
         invertAxisCheck.checked = false;
+        buttonAsAxisToggle.checked = false;
         actionNoteField.text = "";
 
         // Fase 20.17: re-populate every field from whatever's actually
@@ -497,6 +498,19 @@ Popup {
                     vjoyDeviceCombo.setFromTarget(actionData);
                     vjoyTargetButton.value = (actionData.targetButton || 0) + 1;
                     xboxButtonCombo.currentIndex = actionData.targetButton || 0;
+                    restoredExisting = true;
+                } else if (actionType === "ButtonToAxisHandler") {
+                    // See buttonAsAxisToggle's own docs by its declaration -
+                    // this restores the wrapped CurveHandler's own target
+                    // fields exactly like the plain CurveHandler branch above,
+                    // plus flips the toggle so the axis-target rows (not the
+                    // button-target ones) show for this button-kind input.
+                    actionTypeCombo.currentIndex = Math.max(0, root.actionTypesForButton.indexOf("vJoy Remap"));
+                    const wrapped = actionData.wrappedAction || {};
+                    vjoyDeviceCombo.setFromTarget(wrapped);
+                    vjoyAxisCombo.currentIndex = wrapped.targetAxis || 0;
+                    xboxAxisCombo.currentIndex = wrapped.targetAxis || 0;
+                    buttonAsAxisToggle.checked = true;
                     restoredExisting = true;
                 } else if (actionType === "HatRemapHandler") {
                     actionTypeCombo.currentIndex = Math.max(0, root.actionTypesForButton.indexOf("vJoy Hat Remap"));
@@ -809,10 +823,34 @@ Popup {
                 OutputDeviceCombo { id: vjoyDeviceCombo }
             }
 
+            // Bugfix 2026-07-22: some Bluetooth-connected XInput-compatible
+            // pads report a trigger as a plain HID button instead of the
+            // analog axis XInput itself always allocates for it - with no
+            // way to route that button to an analog target (e.g. ViGEm's
+            // Left/Right Trigger), those pads' triggers were stuck unusable.
+            // Checking this re-purposes the button-kind rows below into the
+            // same axis-target fields the axis-kind case uses, and wraps the
+            // resulting CurveHandler in a ButtonToAxisHandler at Apply time
+            // (see onClicked below) - pressed -> full deflection, released
+            // -> rest, matching AxisToButtonHandler's own reverse-direction
+            // convention.
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.inputKind === "button" && actionTypeCombo.currentText === "vJoy Remap"
+                Text {
+                    text: qsTr("Map as Analog Axis")
+                    color: Theme.subtext0
+                    font.pixelSize: 11
+                    Layout.fillWidth: true
+                }
+                ToggleSwitch { id: buttonAsAxisToggle }
+            }
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                visible: root.inputKind === "axis" && !vjoyDeviceCombo.isXbox
+                visible: (root.inputKind === "axis" || (root.inputKind === "button" && buttonAsAxisToggle.checked))
+                         && !vjoyDeviceCombo.isXbox
                 Text { text: qsTr("Target Axis"); color: Theme.subtext0; font.pixelSize: 11 }
                 AppComboBox { id: vjoyAxisCombo; Layout.fillWidth: true; model: root.vjoyAxisNames }
             }
@@ -820,14 +858,15 @@ Popup {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                visible: root.inputKind === "axis" && vjoyDeviceCombo.isXbox
+                visible: (root.inputKind === "axis" || (root.inputKind === "button" && buttonAsAxisToggle.checked))
+                         && vjoyDeviceCombo.isXbox
                 Text { text: qsTr("Target Axis (Xbox 360)"); color: Theme.subtext0; font.pixelSize: 11 }
                 AppComboBox { id: xboxAxisCombo; Layout.fillWidth: true; model: root.xboxAxisNames }
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                visible: root.inputKind === "button" && !vjoyDeviceCombo.isXbox
+                visible: root.inputKind === "button" && !buttonAsAxisToggle.checked && !vjoyDeviceCombo.isXbox
                 Text { text: qsTr("Target Button"); color: Theme.subtext0; font.pixelSize: 11; Layout.fillWidth: true }
                 IntStepper { id: vjoyTargetButton; from: 1; to: 128 }
             }
@@ -835,7 +874,7 @@ Popup {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                visible: root.inputKind === "button" && vjoyDeviceCombo.isXbox
+                visible: root.inputKind === "button" && !buttonAsAxisToggle.checked && vjoyDeviceCombo.isXbox
                 Text { text: qsTr("Target Button (Xbox 360)"); color: Theme.subtext0; font.pixelSize: 11 }
                 AppComboBox { id: xboxButtonCombo; Layout.fillWidth: true; model: root.xboxButtonNames }
             }
@@ -2375,6 +2414,18 @@ Popup {
                                     parameters: { smoothingFactor: smoothingFactorSlider.value },
                                     wrappedAction: curveAction }
                                 : curveAction;
+                        } else if (buttonAsAxisToggle.checked) {
+                            // See buttonAsAxisToggle's own docs above - this
+                            // button's source is analog-shaped (or the source
+                            // pad reports it as a plain button but the user
+                            // wants it driving an analog target anyway), so
+                            // wrap a normal axis-target CurveHandler in
+                            // ButtonToAxisHandler instead of ButtonRemapHandler.
+                            actionData = { actionType: "ButtonToAxisHandler",
+                                            wrappedAction: { actionType: "CurveHandler",
+                                                              targetDeviceType: target.targetDeviceType,
+                                                              targetOutputId: target.targetOutputId,
+                                                              targetAxis: isXbox ? xboxAxisCombo.currentIndex : vjoyAxisCombo.currentIndex } };
                         } else {
                             actionData = { actionType: "ButtonRemapHandler",
                                             targetDeviceType: target.targetDeviceType,

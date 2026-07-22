@@ -177,6 +177,8 @@ add_library(GremblingProcessing STATIC
     src/processing/TempoHandler.cpp
     src/processing/AxisToButtonHandler.h
     src/processing/AxisToButtonHandler.cpp
+    src/processing/ButtonToAxisHandler.h
+    src/processing/ButtonToAxisHandler.cpp
     src/processing/MergeAxisHandler.h
     src/processing/MergeAxisHandler.cpp
     src/processing/SplitAxisHandler.h

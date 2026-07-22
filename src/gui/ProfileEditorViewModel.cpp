@@ -186,6 +186,14 @@ QString bindingLabelForActionJson(const QJsonObject &binding)
         label = isVigemTarget
             ? QStringLiteral("%1 : %2").arg(getDeviceLabel(binding), getXboxButtonName(targetButton))
             : QStringLiteral("%1 : Btn %2").arg(getDeviceLabel(binding)).arg(targetButton + 1);
+    } else if (label == QStringLiteral("ButtonToAxisHandler")) {
+        // Reverse of AxisToButtonHandler - no target fields of its own
+        // (they live entirely on wrappedAction's CurveHandler), so just
+        // recurse into that binding's own label - same idiom MacroHandler's
+        // step-preview branch further below already uses, and it correctly
+        // picks up isVigemTarget from the WRAPPED binding's own
+        // targetDeviceType (this outer ButtonToAxisHandler object has none).
+        label = bindingLabelForActionJson(binding.value(QStringLiteral("wrappedAction")).toObject());
     } else if (label == QStringLiteral("HatRemapHandler")) {
         static const QStringList kDirections{
             QStringLiteral("Up"), QStringLiteral("Right"), QStringLiteral("Down"), QStringLiteral("Left")};
