@@ -41,6 +41,8 @@ add_library(GremblingCore STATIC
     src/core/HidHideController.cpp
     src/network/PwaServer.h
     src/network/PwaServer.cpp
+    src/network/ScriptBridgeServer.h
+    src/network/ScriptBridgeServer.cpp
 )
 
 target_include_directories(GremblingCore
