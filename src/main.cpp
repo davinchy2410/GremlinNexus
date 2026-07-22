@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 
     SettingsViewModel settingsViewModel(autoSwitch);
 
-    // Fase 19 (Script Bridge, step 3/6): starts/stops ScriptBridgeServer
+    // Fase 19 (Script Bridge, step 3-4/6): starts/stops ScriptBridgeServer
     // based on the user's persisted "Scripts (Beta)" toggle
     // (settingsViewModel.scriptsEnabled) AND whether the separately-
     // downloaded module is actually present right now
@@ -348,17 +348,37 @@ int main(int argc, char *argv[])
     // removed. This decision lives here rather than inside
     // ScriptBridgeServer itself (unlike PwaServer's own self-managing
     // init()) since it needs SettingsViewModel's two separate properties,
-    // not just one persisted flag. Nothing yet constructs the "Nexus
-    // Scripts" virtual device or a Scripts panel (later steps) - today this
-    // only means the listener itself starts/stops; there is still nothing
-    // for a script to usefully do once connected.
+    // not just one persisted flag.
+    //
+    // Step 4: registers/removes the single, fixed-capacity "Nexus Scripts"
+    // virtual device (EventRouter::scriptsSystemPath()) in lockstep with the
+    // server itself starting/stopping - same addOrUpdateDevice()/
+    // removeDevice() mechanism PwaServer's own clientConnected/
+    // clientDisconnected wiring above uses for a paired PWA, but ONE shared
+    // device for the whole Script Bridge rather than one per script (see
+    // MasterPlan.md's own Fase 19 entry for why - avoids Profiles filling up
+    // with one entry per connected script). Capacity mirrors vJoy's own
+    // (VJoyDevice::kMaxAxes/kMaxButtons) for consistency - individual
+    // scripts don't yet claim specific channels of it (that's the Scripts
+    // panel, a later step), so every axis/button on it is unbound and inert
+    // until then; it just already shows up as a normal bindable input
+    // source in Profiles.
     ScriptBridgeServer scriptBridgeServer;
     auto refreshScriptBridgeState = [&]() {
         const bool shouldRun = settingsViewModel.scriptsEnabled() && settingsViewModel.scriptsModuleDetected();
         if (shouldRun && !scriptBridgeServer.isRunning()) {
             scriptBridgeServer.start();
+
+            DeviceInfo info;
+            info.systemPath = EventRouter::scriptsSystemPath();
+            info.deviceName = QStringLiteral("Nexus Scripts");
+            info.isConnected = true;
+            info.numAxes = 8;
+            info.numButtons = 128;
+            DeviceManager::instance().addOrUpdateDevice(info);
         } else if (!shouldRun && scriptBridgeServer.isRunning()) {
             scriptBridgeServer.stop();
+            DeviceManager::instance().removeDevice(EventRouter::scriptsSystemPath());
         }
     };
     refreshScriptBridgeState();

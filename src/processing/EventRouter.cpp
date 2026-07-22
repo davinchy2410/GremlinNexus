@@ -429,6 +429,11 @@ QString EventRouter::pwaSystemPath(const QString &deviceName)
     return QStringLiteral("pwa:") + deviceName;
 }
 
+QString EventRouter::scriptsSystemPath()
+{
+    return QStringLiteral("scripts:nexus");
+}
+
 void EventRouter::tick()
 {
     for (const auto &device : m_outputDevices) {

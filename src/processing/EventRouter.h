@@ -267,6 +267,18 @@ public:
     /// starting with "\\\\?\\", never "pwa:".
     static QString pwaSystemPath(const QString &deviceName);
 
+    /// Fase 19 (Script Bridge): systemPath of the single, fixed-capacity
+    /// "Nexus Scripts" virtual device (see MasterPlan.md's own "Fase 19"
+    /// entry) - one shared device registered whenever the Script Bridge
+    /// itself is enabled, NOT one per connected script (deliberately unlike
+    /// pwaSystemPath() above, which mints a distinct "pwa:"+deviceName per
+    /// paired client - the whole point of the shared device is to avoid
+    /// Profiles filling up with one entry per script). Same "never collides
+    /// with a real Windows device-interface path" reasoning as
+    /// pwaSystemPath(), just with no variable part since there is only ever
+    /// one of these.
+    static QString scriptsSystemPath();
+
     /// Rewrites every route (in every mode), plus the per-(systemPath,
     /// index) physical button/axis state cache (see isButtonPressed()/
     /// getAxisValue()), currently keyed under fromPath's exact systemPath
