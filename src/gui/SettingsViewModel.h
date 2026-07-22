@@ -28,6 +28,8 @@ class SettingsViewModel : public QObject
     Q_PROPERTY(bool hidHideAutoCloakEnabled READ hidHideAutoCloakEnabled WRITE setHidHideAutoCloakEnabled NOTIFY hidHideAutoCloakChanged)
     Q_PROPERTY(bool vjoyDetected READ vjoyDetected NOTIFY diagnosticsRefreshed)
     Q_PROPERTY(bool vigemBusDetected READ vigemBusDetected NOTIFY diagnosticsRefreshed)
+    Q_PROPERTY(bool scriptsModuleDetected READ scriptsModuleDetected NOTIFY diagnosticsRefreshed)
+    Q_PROPERTY(bool scriptsEnabled READ scriptsEnabled WRITE setScriptsEnabled NOTIFY scriptsEnabledChanged)
 
 public:
     explicit SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent = nullptr);
@@ -79,11 +81,33 @@ public:
     bool vjoyDetected() const;
     bool vigemBusDetected() const;
 
-    /// Re-evaluates vjoyDetected()/vigemBusDetected() (both read the
-    /// registry live already, so this only needs to fire diagnosticsRefreshed()
-    /// for QML's property bindings to catch up) - called when the
-    /// Diagnostics panel becomes visible, so a driver installed/removed
-    /// since launch shows up without requiring an app restart.
+    /// Fase 19 (Script Bridge): whether the separately-downloaded Scripts
+    /// module (see MasterPlan.md's own "Distribución de Python" entry) is
+    /// present next to the executable right now - a plain folder-existence
+    /// check (ScriptsModule/), not a cached flag, same "read live" spirit as
+    /// vjoyDetected()/vigemBusDetected() above. The module is intentionally
+    /// NOT bundled into the main installer (same reasoning as vJoy/HidHide/
+    /// ViGEmBus staying external - see installer.iss's own comment), so most
+    /// users will never have this folder at all.
+    bool scriptsModuleDetected() const;
+
+    /// User-facing on/off intent for the Script Bridge (Fase 19), persisted
+    /// via QSettings ("scripts/enabled") - same pattern as
+    /// hidHideAutoCloakEnabled above. Deliberately separate from
+    /// scriptsModuleDetected(): a user can enable this before the module is
+    /// even downloaded (nothing runtime cares until whatever wires this
+    /// property to actually starting ScriptBridgeServer exists), and can
+    /// disable it later without uninstalling anything (e.g. to stop that
+    /// local socket from listening at all).
+    bool scriptsEnabled() const;
+    void setScriptsEnabled(bool enabled);
+
+    /// Re-evaluates vjoyDetected()/vigemBusDetected()/scriptsModuleDetected()
+    /// (all read live already, so this only needs to fire
+    /// diagnosticsRefreshed() for QML's property bindings to catch up) -
+    /// called when the Diagnostics panel becomes visible, so a driver (or
+    /// the Scripts module) installed/removed since launch shows up without
+    /// requiring an app restart.
     Q_INVOKABLE void refreshDiagnostics();
 
 signals:
@@ -92,6 +116,7 @@ signals:
     void debugLoggingChanged();
     void hidHideAutoCloakChanged();
     void diagnosticsRefreshed();
+    void scriptsEnabledChanged();
 
 private:
     /// Owned by main.cpp - outlives this ViewModel.

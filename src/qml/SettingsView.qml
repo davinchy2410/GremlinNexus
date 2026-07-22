@@ -319,6 +319,42 @@ Item {
                         }
                     }
 
+                    // Scripts / Script Bridge (Fase 19, Beta): the Python
+                    // module is deliberately NOT part of this installer -
+                    // same reasoning as vJoy/HidHide/ViGEmBus staying
+                    // external downloads (see installer.iss's own comment) -
+                    // so this toggle only makes sense once
+                    // settingsViewModel.scriptsModuleDetected finds the
+                    // separately-downloaded ScriptsModule/ folder next to the
+                    // executable. Disabled (not hidden) otherwise, so a user
+                    // who hasn't downloaded it yet still sees the feature
+                    // exists and what to do about it.
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingMd
+
+                            Text { text: qsTr("Scripts (Beta)"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
+                            ToggleSwitch {
+                                enabled: settingsViewModel.scriptsModuleDetected
+                                checked: settingsViewModel.scriptsEnabled
+                                onToggled: (v) => settingsViewModel.scriptsEnabled = v
+                            }
+                        }
+                        Text {
+                            text: settingsViewModel.scriptsModuleDetected
+                                ? qsTr("Lets external Python scripts read/drive inputs through Nexus.")
+                                : qsTr("Scripts module not detected - download it from the Releases page and extract it next to GremlinNexus.exe as \"ScriptsModule\" to enable this.")
+                            color: Theme.subtext0
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+
                     Item { Layout.fillHeight: true }
                 }
             }

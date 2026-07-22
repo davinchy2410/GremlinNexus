@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QSettings>
 
 #include "AsyncLogSink.h"
@@ -36,6 +37,12 @@ bool isDriverServiceInstalled(const QString &serviceName)
                         QSettings::NativeFormat);
     return !settings.allKeys().isEmpty();
 }
+
+// Fase 19: fixed subfolder name the separately-downloaded Scripts module is
+// documented to be extracted into, next to the executable - see
+// SettingsViewModel::scriptsModuleDetected()'s own docs.
+constexpr auto kScriptsModuleDirName = "ScriptsModule";
+constexpr auto kScriptsEnabledSettingsKey = "scripts/enabled";
 } // namespace
 
 SettingsViewModel::SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent)
@@ -121,6 +128,26 @@ bool SettingsViewModel::vjoyDetected() const
 bool SettingsViewModel::vigemBusDetected() const
 {
     return isDriverServiceInstalled(QStringLiteral("ViGEmBus"));
+}
+
+bool SettingsViewModel::scriptsModuleDetected() const
+{
+    return QDir(QCoreApplication::applicationDirPath() + QLatin1String("/") + QLatin1String(kScriptsModuleDirName))
+        .exists();
+}
+
+bool SettingsViewModel::scriptsEnabled() const
+{
+    return QSettings().value(QLatin1String(kScriptsEnabledSettingsKey), false).toBool();
+}
+
+void SettingsViewModel::setScriptsEnabled(bool enabled)
+{
+    if (enabled == scriptsEnabled()) {
+        return;
+    }
+    QSettings().setValue(QLatin1String(kScriptsEnabledSettingsKey), enabled);
+    emit scriptsEnabledChanged();
 }
 
 void SettingsViewModel::refreshDiagnostics()
