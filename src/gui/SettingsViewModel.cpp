@@ -2,11 +2,11 @@
 
 #include <QCoreApplication>
 #include <QDebug>
-#include <QDir>
 #include <QSettings>
 
 #include "AsyncLogSink.h"
 #include "AutoSwitchManager.h"
+#include "ScriptsModuleLocator.h"
 
 namespace {
 /// Windows' own per-user "Run" key - a value here (name -> executable path)
@@ -38,10 +38,6 @@ bool isDriverServiceInstalled(const QString &serviceName)
     return !settings.allKeys().isEmpty();
 }
 
-// Fase 19: fixed subfolder name the separately-downloaded Scripts module is
-// documented to be extracted into, next to the executable - see
-// SettingsViewModel::scriptsModuleDetected()'s own docs.
-constexpr auto kScriptsModuleDirName = "ScriptsModule";
 constexpr auto kScriptsEnabledSettingsKey = "scripts/enabled";
 } // namespace
 
@@ -132,8 +128,7 @@ bool SettingsViewModel::vigemBusDetected() const
 
 bool SettingsViewModel::scriptsModuleDetected() const
 {
-    return QDir(QCoreApplication::applicationDirPath() + QLatin1String("/") + QLatin1String(kScriptsModuleDirName))
-        .exists();
+    return ScriptsModuleLocator::isModuleDetected();
 }
 
 bool SettingsViewModel::scriptsEnabled() const

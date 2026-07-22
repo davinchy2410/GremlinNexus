@@ -30,6 +30,49 @@ Rectangle {
     signal remoteControlRequested()
     signal autoSwitchRequested()
 
+    // Fase 19 (Script Bridge, step 5/6): the Tools menu's own item list,
+    // pulled out of the Repeater's model literal below so "Scripts" can be
+    // appended conditionally - only reachable once the user has both turned
+    // the feature on AND the separately-downloaded module is actually
+    // present (settingsViewModel.scriptsEnabled/scriptsModuleDetected, see
+    // SettingsView.qml's own "Scripts (Beta)" toggle). Both are direct,
+    // NOTIFY-backed property reads (not reads through a Repeater.itemAt()
+    // delegate traversal, the specific pattern that broke QML's binding
+    // dependency tracking in the Profiles "hidden vJoy tab" bug - see
+    // Memory.md), so this re-evaluates correctly whenever either changes.
+    readonly property var toolsMenuItems: {
+        const items = [
+            {
+                label: qsTr("Web Dashboard"),
+                icon: "M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1 -4 10 15.3 15.3 0 0 1 -4 -10 15.3 15.3 0 0 1 4 -10z M2 12h20",
+                run: function() { root.remoteControlRequested(); }
+            },
+            {
+                label: qsTr("Auto-Switch"),
+                icon: "M13 2L3 14h9l-1 8 10 -12h-9l1 -8z",
+                run: function() { root.autoSwitchRequested(); }
+            },
+            {
+                label: qsTr("PWA Editor"),
+                icon: "M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2V4a2 2 0 0 1 2 -2z M12 18h.01",
+                run: function() { profileEditorViewModel.openPwaEditor(); }
+            },
+            {
+                label: qsTr("Log Console"),
+                icon: "M7 8l4 4 -4 4 M13 16h5",
+                run: function() { mainViewModel.currentView = "LogConsole"; }
+            }
+        ];
+        if (settingsViewModel.scriptsEnabled && settingsViewModel.scriptsModuleDetected) {
+            items.push({
+                label: qsTr("Scripts"),
+                icon: "M16 18l6 -6 -6 -6 M8 6l-6 6 6 6",
+                run: function() { mainViewModel.currentView = "Scripts"; }
+            });
+        }
+        return items;
+    }
+
     // The Engine switch's ON state is a dedicated "phosphor LED" look
     // (bright neon green + near-black ink for max contrast) rather than
     // Theme.success (a softer teal reserved for status dots/log lines) -
@@ -310,28 +353,7 @@ Rectangle {
                             // Plain JS array (not a ListModel) so each entry
                             // can carry its own action closure straight
                             // through to the delegate via modelData.run().
-                            model: [
-                                {
-                                    label: qsTr("Web Dashboard"),
-                                    icon: "M22 12A10 10 0 1 1 12 2a10 10 0 0 1 10 10z M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1 -4 10 15.3 15.3 0 0 1 -4 -10 15.3 15.3 0 0 1 4 -10z M2 12h20",
-                                    run: function() { root.remoteControlRequested(); }
-                                },
-                                {
-                                    label: qsTr("Auto-Switch"),
-                                    icon: "M13 2L3 14h9l-1 8 10 -12h-9l1 -8z",
-                                    run: function() { root.autoSwitchRequested(); }
-                                },
-                                {
-                                    label: qsTr("PWA Editor"),
-                                    icon: "M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2V4a2 2 0 0 1 2 -2z M12 18h.01",
-                                    run: function() { profileEditorViewModel.openPwaEditor(); }
-                                },
-                                {
-                                    label: qsTr("Log Console"),
-                                    icon: "M7 8l4 4 -4 4 M13 16h5",
-                                    run: function() { mainViewModel.currentView = "LogConsole"; }
-                                }
-                            ]
+                            model: root.toolsMenuItems
 
                             delegate: Rectangle {
                                 id: menuItemBg

@@ -26,6 +26,7 @@
 #include "I18nManager.h"
 #include "PwaServer.h"
 #include "ScriptBridgeServer.h"
+#include "ScriptsViewModel.h"
 #include "SCIntegrationManager.h"
 #include "VJoyDevice.h"
 #include "VoiceFeedbackManager.h"
@@ -384,6 +385,14 @@ int main(int argc, char *argv[])
     refreshScriptBridgeState();
     QObject::connect(&settingsViewModel, &SettingsViewModel::scriptsEnabledChanged, &app, refreshScriptBridgeState);
 
+    // Fase 19 (Script Bridge, step 5/6): the "Scripts" screen's own
+    // ViewModel - CRUD list of configured scripts plus Start/Stop, each
+    // running one as its own QProcess. Needs scriptBridgeServer directly
+    // (to mint/revoke each script's own auth token), so it's constructed
+    // after it, same reasoning profileEditorViewModel takes pwaServer by
+    // reference above.
+    ScriptsViewModel scriptsViewModel(scriptBridgeServer);
+
     LegacyMigrator legacyMigrator;
 
     // Deliberately decoupled (see AutoSwitchManager's own docs): it has no
@@ -402,6 +411,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("pwaServer"), &pwaServer);
     engine.rootContext()->setContextProperty(QStringLiteral("calibrationViewModel"), &calibrationViewModel);
     engine.rootContext()->setContextProperty(QStringLiteral("settingsViewModel"), &settingsViewModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("scriptsViewModel"), &scriptsViewModel);
     engine.rootContext()->setContextProperty(QStringLiteral("legacyMigrator"), &legacyMigrator);
     engine.rootContext()->setContextProperty(QStringLiteral("SCManager"), &SCIntegrationManager::instance());
     I18nManager::instance().setEngine(&engine);

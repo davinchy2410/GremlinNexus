@@ -166,6 +166,7 @@ ApplicationWindow {
                     case "Settings": return 3;
                     case "LogConsole": return 4;
                     case "StarCitizen": return 5;
+                    case "Scripts": return 6;
                     default: return 0;
                     }
                 }
@@ -176,6 +177,7 @@ ApplicationWindow {
                 SettingsView { }
                 LogConsoleView { }
                 StarCitizenView { }
+                ScriptsView { }
             }
 
             Connections {

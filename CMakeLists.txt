@@ -271,6 +271,9 @@ qt_add_executable(GremblingNexus WIN32
     src/gui/CalibrationViewModel.cpp
     src/gui/SettingsViewModel.h
     src/gui/SettingsViewModel.cpp
+    src/gui/ScriptsModuleLocator.h
+    src/gui/ScriptsViewModel.h
+    src/gui/ScriptsViewModel.cpp
     src/gui/CurveEditorViewModel.h
     src/gui/CurveEditorViewModel.cpp
     src/gui/DeviceTesterViewModel.h
@@ -336,6 +339,7 @@ qt_add_qml_module(GremblingNexus
         src/qml/ModeManagerPopup.qml
         src/qml/VJoyAuditorPopup.qml
         src/qml/SettingsView.qml
+        src/qml/ScriptsView.qml
         src/qml/CalibrationWizardPopup.qml
         src/qml/GlassPanel.qml
         src/qml/RemoteControlPopup.qml
