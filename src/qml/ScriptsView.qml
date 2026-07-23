@@ -404,8 +404,8 @@ Item {
         parent: Overlay.overlay
         x: parent ? Math.round((parent.width - width) / 2) : 0
         y: parent ? Math.round((parent.height - height) / 2) : 0
-        width: parent ? Math.min(parent.width - 80, 700) : 700
-        height: parent ? Math.min(parent.height - 80, 500) : 500
+        width: parent ? Math.min(parent.width - 80, 980) : 980
+        height: parent ? Math.min(parent.height - 80, 720) : 720
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
