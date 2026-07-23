@@ -49,6 +49,21 @@ ScriptsViewModel::~ScriptsViewModel()
     }
 }
 
+QVariantList ScriptsViewModel::aliasesToVariantList(const std::vector<AliasEntry> &aliases)
+{
+    QVariantList result;
+    result.reserve(static_cast<int>(aliases.size()));
+    for (const auto &alias : aliases) {
+        QVariantMap map;
+        map[QStringLiteral("name")] = alias.name;
+        map[QStringLiteral("devicePath")] = alias.devicePath;
+        map[QStringLiteral("channelIndex")] = alias.channelIndex;
+        map[QStringLiteral("isAxis")] = alias.isAxis;
+        result.append(map);
+    }
+    return result;
+}
+
 QVariantList ScriptsViewModel::scripts() const
 {
     QVariantList result;
@@ -58,6 +73,8 @@ QVariantList ScriptsViewModel::scripts() const
         map[QStringLiteral("name")] = entry->name;
         map[QStringLiteral("scriptPath")] = entry->scriptPath;
         map[QStringLiteral("status")] = statusToString(entry->status);
+        map[QStringLiteral("inputAliases")] = aliasesToVariantList(entry->inputAliases);
+        map[QStringLiteral("outputAliases")] = aliasesToVariantList(entry->outputAliases);
         result.append(map);
     }
     return result;
@@ -106,6 +123,77 @@ void ScriptsViewModel::removeScript(int index)
         teardownProcess(*m_scripts[static_cast<std::size_t>(index)], /*crashed=*/false);
     }
     m_scripts.erase(m_scripts.begin() + index);
+    saveScripts();
+    emit scriptsChanged();
+}
+
+void ScriptsViewModel::addInputAlias(int scriptIndex, const QString &name, const QString &devicePath, int channelIndex, bool isAxis)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    if (name.trimmed().isEmpty() || devicePath.trimmed().isEmpty() || channelIndex < 0) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    const bool nameTaken = std::any_of(entry.inputAliases.begin(), entry.inputAliases.end(),
+                                        [&](const auto &alias) { return alias.name == name; });
+    if (nameTaken) {
+        qWarning() << "ScriptsViewModel:" << entry.name << "already has an input alias named" << name << "- ignoring";
+        return;
+    }
+    entry.inputAliases.push_back(AliasEntry{name, devicePath, channelIndex, isAxis});
+    saveScripts();
+    emit scriptsChanged();
+}
+
+void ScriptsViewModel::removeInputAlias(int scriptIndex, int aliasIndex)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    if (aliasIndex < 0 || static_cast<std::size_t>(aliasIndex) >= entry.inputAliases.size()) {
+        return;
+    }
+    entry.inputAliases.erase(entry.inputAliases.begin() + aliasIndex);
+    saveScripts();
+    emit scriptsChanged();
+}
+
+void ScriptsViewModel::addOutputAlias(int scriptIndex, const QString &name, int channelIndex, bool isAxis)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    if (name.trimmed().isEmpty() || channelIndex < 0) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    const bool nameTaken = std::any_of(entry.outputAliases.begin(), entry.outputAliases.end(),
+                                        [&](const auto &alias) { return alias.name == name; });
+    if (nameTaken) {
+        qWarning() << "ScriptsViewModel:" << entry.name << "already has an output alias named" << name << "- ignoring";
+        return;
+    }
+    // devicePath left empty - an output alias always targets the one shared
+    // "Nexus Scripts" virtual device, never a per-alias device (see
+    // AliasEntry's own docs).
+    entry.outputAliases.push_back(AliasEntry{name, QString(), channelIndex, isAxis});
+    saveScripts();
+    emit scriptsChanged();
+}
+
+void ScriptsViewModel::removeOutputAlias(int scriptIndex, int aliasIndex)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    if (aliasIndex < 0 || static_cast<std::size_t>(aliasIndex) >= entry.outputAliases.size()) {
+        return;
+    }
+    entry.outputAliases.erase(entry.outputAliases.begin() + aliasIndex);
     saveScripts();
     emit scriptsChanged();
 }
@@ -252,6 +340,40 @@ void ScriptsViewModel::teardownProcess(ScriptEntry &entry, bool crashed)
     emit scriptsChanged();
 }
 
+QJsonArray ScriptsViewModel::aliasesToJson(const std::vector<AliasEntry> &aliases)
+{
+    QJsonArray array;
+    for (const auto &alias : aliases) {
+        QJsonObject obj;
+        obj[QStringLiteral("name")] = alias.name;
+        obj[QStringLiteral("devicePath")] = alias.devicePath;
+        obj[QStringLiteral("channelIndex")] = alias.channelIndex;
+        obj[QStringLiteral("isAxis")] = alias.isAxis;
+        array.append(obj);
+    }
+    return array;
+}
+
+std::vector<ScriptsViewModel::AliasEntry> ScriptsViewModel::aliasesFromJson(const QJsonArray &array)
+{
+    std::vector<AliasEntry> aliases;
+    aliases.reserve(static_cast<std::size_t>(array.size()));
+    for (const QJsonValue &value : array) {
+        const QJsonObject obj = value.toObject();
+        const QString name = obj.value(QStringLiteral("name")).toString();
+        if (name.isEmpty()) {
+            continue;
+        }
+        AliasEntry alias;
+        alias.name = name;
+        alias.devicePath = obj.value(QStringLiteral("devicePath")).toString();
+        alias.channelIndex = obj.value(QStringLiteral("channelIndex")).toInt();
+        alias.isAxis = obj.value(QStringLiteral("isAxis")).toBool(true);
+        aliases.push_back(std::move(alias));
+    }
+    return aliases;
+}
+
 QString ScriptsViewModel::configFilePath()
 {
     return QCoreApplication::applicationDirPath() + QStringLiteral("/scripts_config.json");
@@ -280,6 +402,8 @@ void ScriptsViewModel::loadScripts()
         auto entry = std::make_unique<ScriptEntry>();
         entry->name = name;
         entry->scriptPath = scriptPath;
+        entry->inputAliases = aliasesFromJson(obj.value(QStringLiteral("inputAliases")).toArray());
+        entry->outputAliases = aliasesFromJson(obj.value(QStringLiteral("outputAliases")).toArray());
         m_scripts.push_back(std::move(entry));
     }
 }
@@ -291,6 +415,8 @@ void ScriptsViewModel::saveScripts() const
         QJsonObject obj;
         obj[QStringLiteral("name")] = entry->name;
         obj[QStringLiteral("scriptPath")] = entry->scriptPath;
+        obj[QStringLiteral("inputAliases")] = aliasesToJson(entry->inputAliases);
+        obj[QStringLiteral("outputAliases")] = aliasesToJson(entry->outputAliases);
         array.append(obj);
     }
 

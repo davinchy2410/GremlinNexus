@@ -7,6 +7,7 @@
 #include <QProcess>
 #include <QVariantList>
 
+class QJsonArray;
 class ScriptBridgeServer;
 
 /**
@@ -23,14 +24,17 @@ class ScriptBridgeServer;
  * hardcoded or typed by the user, and PYTHONPATH points at the module's own
  * nexus_bridge SDK so `import nexus_bridge` just works.
  *
- * Deliberately does NOT yet manage per-script input/output channel alias
- * assignments (which physical axis/button a script's "rudder" name means,
- * or which slot of the shared "Nexus Scripts" virtual device its own output
- * writes land on) - that configuration surface, and the EventRouter-side
- * plumbing to actually act on it, is its own separate follow-up once this
- * screen exists to hang it off of. Today a running script can authenticate
- * with ScriptBridgeServer and would receive/send messages if it did, but
- * nothing yet interprets what those messages mean for real input routing.
+ * Alias routing (Fase 19.6, step 1/6 - data model + persistence only): each
+ * script now carries its own input alias list (which physical device axis/
+ * button a name like "rudder" means) and output alias list (which channel
+ * of the shared "Nexus Scripts" virtual device a name like
+ * "toebrakeOutput" writes to), persisted alongside it in scripts_config.json.
+ * Deliberately no UI to edit these yet (that's step 2) and no C++ plumbing
+ * that actually forwards physical input to a script or a script's output to
+ * "Nexus Scripts" yet (steps 3-4) - a running script can authenticate with
+ * ScriptBridgeServer and would receive/send messages if it did, but nothing
+ * yet interprets what those messages mean for real input routing. This step
+ * only adds the data these later steps will read/write.
  */
 class ScriptsViewModel : public QObject
 {
@@ -52,11 +56,41 @@ public:
     Q_INVOKABLE void startScript(int index);
     Q_INVOKABLE void stopScript(int index);
 
+    /// Input alias: "name" is what the script's own @bridge.on_axis(name)/
+    /// @bridge.on_button(name) refers to; devicePath+channelIndex+isAxis
+    /// identify the physical device channel that feeds it. Rejects a
+    /// duplicate name within the same script's own input list (same
+    /// reasoning as addScript()'s own name uniqueness - "name" is the only
+    /// handle a script has on it, two aliases sharing one would be
+    /// ambiguous to route).
+    Q_INVOKABLE void addInputAlias(int scriptIndex, const QString &name, const QString &devicePath, int channelIndex, bool isAxis);
+    Q_INVOKABLE void removeInputAlias(int scriptIndex, int aliasIndex);
+
+    /// Output alias: "name" is what the script's own bridge.set_axis(name,
+    /// value)/bridge.set_button(name, pressed) refers to; channelIndex+
+    /// isAxis identify which channel of the shared "Nexus Scripts" virtual
+    /// device (see EventRouter::scriptsSystemPath()) it writes to - there's
+    /// no devicePath here, unlike an input alias, since the target device is
+    /// always that one fixed virtual device.
+    Q_INVOKABLE void addOutputAlias(int scriptIndex, const QString &name, int channelIndex, bool isAxis);
+    Q_INVOKABLE void removeOutputAlias(int scriptIndex, int aliasIndex);
+
 signals:
     void scriptsChanged();
 
 private:
     enum class Status { Stopped, Running, Crashed };
+
+    struct AliasEntry
+    {
+        QString name;
+        /// Physical device systemPath for an input alias; unused (always
+        /// empty) for an output alias, since its target is always the one
+        /// shared "Nexus Scripts" virtual device.
+        QString devicePath;
+        int channelIndex = 0;
+        bool isAxis = true;
+    };
 
     /// unique_ptr-held (not stored by value) so a pointer to one entry
     /// stays valid across the vector growing/shrinking as other scripts are
@@ -78,9 +112,15 @@ private:
         /// actually crashing on its own, so a deliberate Stop still lands on
         /// Status::Stopped instead of the misleading Status::Crashed.
         bool stopRequested = false;
+
+        std::vector<AliasEntry> inputAliases;
+        std::vector<AliasEntry> outputAliases;
     };
 
     static QString statusToString(Status status);
+    static QVariantList aliasesToVariantList(const std::vector<AliasEntry> &aliases);
+    static QJsonArray aliasesToJson(const std::vector<AliasEntry> &aliases);
+    static std::vector<AliasEntry> aliasesFromJson(const QJsonArray &array);
     static QString configFilePath();
     void loadScripts();
     void saveScripts() const;
