@@ -10,6 +10,7 @@
 #include <QJsonObject>
 #include <QPointer>
 #include <QProcessEnvironment>
+#include <QRegularExpression>
 #include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
@@ -283,6 +284,28 @@ QString ScriptsViewModel::readScriptSource(const QString &scriptPath) const
         text += QStringLiteral("\n\n[... truncated - file is larger than 256 KB ...]");
     }
     return text;
+}
+
+QStringList ScriptsViewModel::suggestedAliasNames(const QString &scriptPath, bool forInput) const
+{
+    const QString source = readScriptSource(scriptPath);
+    if (source.isEmpty()) {
+        return {};
+    }
+
+    static const QRegularExpression kInputPattern(QStringLiteral(R"(\bon_(?:axis|button)\s*\(\s*["']([^"']+)["'])"));
+    static const QRegularExpression kOutputPattern(QStringLiteral(R"(\bset_(?:axis|button)\s*\(\s*["']([^"']+)["'])"));
+    const QRegularExpression &pattern = forInput ? kInputPattern : kOutputPattern;
+
+    QStringList names;
+    QRegularExpressionMatchIterator it = pattern.globalMatch(source);
+    while (it.hasNext()) {
+        const QString name = it.next().captured(1);
+        if (!names.contains(name)) {
+            names.append(name);
+        }
+    }
+    return names;
 }
 
 void ScriptsViewModel::onDeviceListChanged()

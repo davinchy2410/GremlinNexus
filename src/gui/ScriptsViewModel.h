@@ -143,6 +143,18 @@ public:
     /// large file on the GUI thread.
     Q_INVOKABLE QString readScriptSource(const QString &scriptPath) const;
 
+    /// Scans scriptPath's own source for literal bridge.on_axis("...")/
+    /// bridge.on_button("...") calls (forInput true) or bridge.set_axis(
+    /// "...")/bridge.set_button("...") calls (forInput false), returning
+    /// every distinct name found in first-appearance order - so the alias
+    /// picker's "name" field can suggest exactly what the script's code
+    /// actually expects instead of a user having to open "View code" and
+    /// read it by eye. Only catches a literal string argument (the pattern
+    /// nexus_bridge's own docs recommend) - a name built dynamically (an
+    /// f-string, a variable) won't be detected and simply won't be
+    /// suggested; this is a convenience hint, not a guarantee.
+    Q_INVOKABLE QStringList suggestedAliasNames(const QString &scriptPath, bool forInput) const;
+
     /// Human-readable name for systemPath, for displaying an already-saved
     /// input alias's device (which may not be in availableInputDevices()
     /// right now if it's been unplugged since the alias was created) -

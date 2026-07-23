@@ -299,8 +299,16 @@ Item {
                                                 // could get stuck on "not connected yet" from the very first
                                                 // paint. See ScriptsViewModel::deviceListVersion's own docs.
                                                 readonly property int _deviceListVersion: scriptsViewModel.deviceListVersion
-                                                readonly property bool connected: scriptsViewModel.isDeviceConnected(modelData.devicePath)
-                                                readonly property var channelNames: scriptsViewModel.channelNamesForDevice(modelData.devicePath, modelData.isAxis)
+                                                // Must read _deviceListVersion inside this expression itself (not
+                                                // just be a sibling property) - a binding only re-evaluates when a
+                                                // property IT reads changes, so without the comma-operator read
+                                                // here this froze at whatever isDeviceConnected() returned at this
+                                                // row's very first paint and never updated again.
+                                                readonly property bool connected: (_deviceListVersion, scriptsViewModel.isDeviceConnected(modelData.devicePath))
+                                                // Same staleness issue as connected above - channelNamesForDevice()
+                                                // is also a plain Q_INVOKABLE with no NOTIFY, so this must read
+                                                // _deviceListVersion inside its own expression too.
+                                                readonly property var channelNames: (_deviceListVersion, scriptsViewModel.channelNamesForDevice(modelData.devicePath, modelData.isAxis))
                                                 text: (connected ? "" : qsTr("[Offline] "))
                                                     + scriptsViewModel.deviceDisplayName(modelData.devicePath) + "  ·  "
                                                     + (modelData.channelIndex < channelNames.length
@@ -327,6 +335,17 @@ Item {
                                             placeholderText: qsTr("name")
                                             color: Theme.text
                                             background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
+                                        }
+                                        AppComboBox {
+                                            id: inSuggestCombo
+                                            Layout.preferredWidth: 130
+                                            // Names this script's own source actually calls bridge.on_axis()/
+                                            // on_button() with - see ScriptsViewModel::suggestedAliasNames()'s
+                                            // own docs on why this is a hint, not a guarantee.
+                                            model: scriptsViewModel.suggestedAliasNames(scriptDelegate.scriptData.scriptPath, true)
+                                            displayText: qsTr("Suggested ▾")
+                                            visible: model.length > 0
+                                            onActivated: (index) => { inAliasName.text = model[index] }
                                         }
                                         AppComboBox {
                                             id: inDeviceCombo
@@ -390,6 +409,17 @@ Item {
                                             placeholderText: qsTr("name")
                                             color: Theme.text
                                             background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
+                                        }
+                                        AppComboBox {
+                                            id: outSuggestCombo
+                                            Layout.preferredWidth: 130
+                                            // Names this script's own source actually calls bridge.set_axis()/
+                                            // set_button() with - see ScriptsViewModel::suggestedAliasNames()'s
+                                            // own docs on why this is a hint, not a guarantee.
+                                            model: scriptsViewModel.suggestedAliasNames(scriptDelegate.scriptData.scriptPath, false)
+                                            displayText: qsTr("Suggested ▾")
+                                            visible: model.length > 0
+                                            onActivated: (index) => { outAliasName.text = model[index] }
                                         }
                                         AppComboBox {
                                             id: outKindCombo
