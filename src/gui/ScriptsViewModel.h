@@ -75,6 +75,14 @@ public:
     Q_INVOKABLE void addOutputAlias(int scriptIndex, const QString &name, int channelIndex, bool isAxis);
     Q_INVOKABLE void removeOutputAlias(int scriptIndex, int aliasIndex);
 
+    /// Physical devices an input alias can point at: one QVariantMap per
+    /// connected device - {deviceName, systemPath, numAxes, numButtons} -
+    /// for the Scripts panel's own device/channel picker. Excludes the
+    /// shared "Nexus Scripts" virtual device itself (see
+    /// EventRouter::scriptsSystemPath()) - it's a script's *output* target,
+    /// never a sensible input source for another (or its own) input alias.
+    Q_INVOKABLE QVariantList availableInputDevices() const;
+
 signals:
     void scriptsChanged();
 

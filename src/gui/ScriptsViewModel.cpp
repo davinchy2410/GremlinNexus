@@ -14,6 +14,9 @@
 #include <QUrl>
 #include <QVariantMap>
 
+#include "DeviceInfo.h"
+#include "DeviceManager.h"
+#include "EventRouter.h"
 #include "ScriptBridgeServer.h"
 #include "ScriptsModuleLocator.h"
 
@@ -196,6 +199,24 @@ void ScriptsViewModel::removeOutputAlias(int scriptIndex, int aliasIndex)
     entry.outputAliases.erase(entry.outputAliases.begin() + aliasIndex);
     saveScripts();
     emit scriptsChanged();
+}
+
+QVariantList ScriptsViewModel::availableInputDevices() const
+{
+    QVariantList result;
+    const QString scriptsPath = EventRouter::scriptsSystemPath();
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        if (device.systemPath == scriptsPath) {
+            continue; // "Nexus Scripts" is an output target, not a sensible input source.
+        }
+        QVariantMap map;
+        map[QStringLiteral("deviceName")] = device.deviceName;
+        map[QStringLiteral("systemPath")] = device.systemPath;
+        map[QStringLiteral("numAxes")] = device.numAxes;
+        map[QStringLiteral("numButtons")] = device.numButtons;
+        result.append(map);
+    }
+    return result;
 }
 
 void ScriptsViewModel::startScript(int index)
