@@ -35,8 +35,9 @@ Popup {
     Behavior on height { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutQuad } }
     // Fase SC-7.7: widened from 380 - the bottom button row can now show up
     // to 5 ToolButtons at once (Copy, Paste, Unbind, Cancel, Apply), which
-    // didn't comfortably fit the popup's old width.
-    width: 440
+    // didn't comfortably fit the popup's old width. Widened again from 440
+    // (user feedback: felt cramped building Tempo/macro actions).
+    width: 560
     padding: 0
     // Fase (bugfix, take 2): the popup's own height is deliberately left as
     // plain implicit sizing again - a previous attempt tried to cap IT

@@ -362,30 +362,127 @@ Item {
             visible: profileEditorViewModel.realDeviceCount > 0
             spacing: 2
 
-            // Shared by the Component.onCompleted guard below AND
-            // onCurrentIndexChanged: the initial-load guard only ever ran
-            // once, so keyboard Left/Right navigation (the TabBar's
-            // contentItem is a plain ListView - see its own docs above -
-            // which walks delegates by index with no idea some are
-            // invisible) could still land currentIndex on a hidden vJoy
-            // tab afterwards, leaving deviceStack showing a blank page with
-            // no visibly-selected tab above it. Re-running the same "skip
-            // to the nearest visible tab" logic on every currentIndex
-            // change, not just at startup, closes that gap.
-            function skipHiddenTab() {
-                const current = deviceTabsRepeater.itemAt(currentIndex);
-                if (!current || current.visible) {
-                    return;
-                }
+            // Startup reorder bugfix (2026-07-23): tracks the selected tab's
+            // own device identity (systemPath), not just its numeric
+            // position - devices arrive one at a time during DeviceManager's
+            // own async startup scan and each gets inserted at a SORTED
+            // position (see deviceInsertionIndex() in
+            // ProfileEditorViewModel.cpp), which shifts every row after the
+            // insertion point. currentIndex alone has no idea this happened.
+            //
+            // The actual root cause (found via temporary console.log tracing
+            // of a real repro): the OLD skipHiddenTab(), wired to run on
+            // EVERY currentIndex change via onCurrentIndexChanged, doesn't
+            // just handle genuine navigation - it also re-fires on every
+            // transient currentIndex mutation caused by a mid-scan row
+            // insertion shifting things around. vJoy's own row bounces
+            // between positions repeatedly during that churn (each real
+            // device inserted before it pushes it one further), and if
+            // vJoy's row happens to transiently coincide with whatever
+            // position was already selected, skipHiddenTab() "corrects" it
+            // by jumping to the first visible tab (index 0-ish) - a
+            // completely spurious jump the user never asked for, not a real
+            // hidden-tab recovery. Confirmed live via the trace: currentIndex
+            // jumped straight to 0 milliseconds after TabBar's own
+            // Component.onCompleted captured a totally different tab,
+            // immediately following a vJoy-row-shuffle event.
+            //
+            // Fix: resync() below is now the SINGLE place that both (a)
+            // resolves selectedSystemPath to its current row and (b) falls
+            // back to the first visible tab when that resolution fails or
+            // lands on a hidden one - and it only ever runs in response to a
+            // genuine trigger (a real navigation landing on a hidden tab, or
+            // the device list's own count actually changing), never on every
+            // transient currentIndex mutation a row-shift causes.
+            property string selectedSystemPath: ""
+            property bool _resyncingIndex: false
+
+            function isVisibleAt(idx) {
+                const btn = deviceTabsRepeater.itemAt(idx);
+                return !!btn && btn.visible;
+            }
+
+            function firstVisibleIndex() {
                 for (let i = 0; i < deviceTabsRepeater.count; i++) {
-                    const btn = deviceTabsRepeater.itemAt(i);
-                    if (btn && btn.visible) {
-                        currentIndex = i;
-                        return;
+                    if (isVisibleAt(i)) {
+                        return i;
                     }
                 }
+                return -1;
             }
-            onCurrentIndexChanged: Qt.callLater(skipHiddenTab)
+
+            function resync() {
+                let row = selectedSystemPath !== "" ? profileEditorViewModel.deviceRowForSystemPath(selectedSystemPath) : -1;
+                if (row < 0 || !isVisibleAt(row)) {
+                    row = firstVisibleIndex();
+                }
+                if (row < 0) {
+                    return;
+                }
+                if (row !== currentIndex) {
+                    _resyncingIndex = true;
+                    currentIndex = row;
+                    _resyncingIndex = false;
+                } else if (deviceTabsRepeater.count > 1) {
+                    // Nudge-and-restore (confirmed necessary via logging: row
+                    // already equaled currentIndex here, yet deviceStack kept
+                    // rendering a stale child's content). A device inserted
+                    // BEFORE this row shifts an EXISTING DeviceCard delegate
+                    // into this exact position without currentIndex itself
+                    // ever changing value - StackLayout's own "which child is
+                    // current" bookkeeping doesn't reliably notice a
+                    // different child having moved INTO its already-current
+                    // index, only a currentIndex value actually changing.
+                    // Cycling through a real transition forces it to fully
+                    // re-evaluate.
+                    const neighbor = row === 0 ? 1 : row - 1;
+                    _resyncingIndex = true;
+                    currentIndex = neighbor;
+                    currentIndex = row;
+                    _resyncingIndex = false;
+                }
+                const btn = deviceTabsRepeater.itemAt(row);
+                if (btn) {
+                    selectedSystemPath = btn.systemPath;
+                }
+            }
+
+            onCurrentIndexChanged: {
+                // Only capture identity for a "real" navigation (click,
+                // keyboard, Quick Bind) - not for resync()'s own corrective
+                // assignment above, which would otherwise re-capture
+                // whatever (possibly still-wrong) device happens to sit at
+                // the corrected index mid-reassignment.
+                if (_resyncingIndex) {
+                    return;
+                }
+                const btn = deviceTabsRepeater.itemAt(currentIndex);
+                if (btn) {
+                    selectedSystemPath = btn.systemPath;
+                }
+                // Keyboard Left/Right can still land directly on a hidden
+                // vJoy tab (the TabBar's contentItem is a plain ListView -
+                // see its own docs below - which walks delegates by index
+                // with no idea some are invisible); resync() immediately
+                // steps off it. This is the ONLY case that re-triggers
+                // resync() from here - it does not run for every reflow
+                // below, unlike the old unconditional hook that caused this
+                // whole bug.
+                if (!isVisibleAt(currentIndex)) {
+                    Qt.callLater(resync);
+                }
+            }
+
+            Connections {
+                target: profileEditorViewModel
+                // Fires on every device add/remove (see
+                // ProfileEditorViewModel::onDeviceAdded/onDeviceRemoved) -
+                // exactly the moments a sorted insertion could have shifted
+                // the currently-selected device out from under currentIndex.
+                function onRealDeviceCountChanged() {
+                    Qt.callLater(deviceTabBar.resync);
+                }
+            }
 
             // Horizontal-scroll bugfix: a rig with many connected devices
             // needs more tab width than any reasonable window has - the
@@ -440,6 +537,8 @@ Item {
                     id: deviceTab
                     visible: !model.deviceName.toLowerCase().includes("vjoy")
                     text: model.deviceName
+                    // Read by deviceTabBar's own resync() - see its docs.
+                    property string systemPath: model.systemPath
                     implicitHeight: 38
 
                     contentItem: Text {
@@ -532,8 +631,12 @@ Item {
             // 0 otherwise) - onCurrentIndexChanged above doesn't fire for
             // this initial value (Qt Quick doesn't emit a property's own
             // *Changed signal for the value it's constructed with), so the
-            // very first load still needs its own explicit check.
-            Component.onCompleted: Qt.callLater(skipHiddenTab)
+            // very first load still needs its own explicit check via
+            // resync() - which also seeds selectedSystemPath for the first
+            // time, needed since every device that arrives before the
+            // user's first manual tab click would otherwise have nothing to
+            // resync() against.
+            Component.onCompleted: Qt.callLater(resync)
         }
 
         StackLayout {

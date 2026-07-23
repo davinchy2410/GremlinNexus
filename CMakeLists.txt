@@ -21,6 +21,69 @@ find_package(Qt6 REQUIRED COMPONENTS Core Xml Gui PrintSupport Qml Quick QuickCo
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
+# This project's own root directory path contains a space ("grembling 2.0"),
+# and this MinGW windres build cannot parse a quoted -I/-D argument
+# containing a space - it forwards them to its internal cc1 preprocessing
+# pass where the quoting is lost, splitting "...grembling 2.0/build/..."
+# into two bogus arguments and failing outright. CMake's default RC compile
+# rule always injects the target's full include-dir/compile-definition list
+# (needed for real C++ sources, irrelevant for a resource script), so any
+# .rc source - our own app.rc, and (once FetchContent pulls it in below)
+# ViGEmClient's own ViGEmClient.rc - fails to compile the instant its own
+# target links anything with a spaced include path (i.e. always, since the
+# project root itself qualifies). Dropping <DEFINES>/<INCLUDES> here is safe:
+# windres still resolves a .rc's own relative includes/icon references
+# against the .rc file's own directory regardless of CWD or -I, confirmed by
+# compiling app.rc standalone with zero -I flags. Must run before
+# FetchContent_MakeAvailable(vigemclient) below - CMAKE_RC_COMPILE_OBJECT is
+# read per-target at the point its .rc source is processed, not deferred to
+# the end of this file, so setting it any later leaves ViGEmClient.rc's own
+# compile rule using the broken default.
+if(WIN32)
+    set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <SOURCE> -o <OBJECT>")
+endif()
+
+# -----------------------------------------------------------------------------
+# ViGEmClient (vendored, built from source): ViGEmDevice.cpp resolves this DLL
+# dynamically at runtime via QLibrary (see Phase 3 below), but unlike
+# vJoyInterface.dll - which the vJoy driver installer places on PATH for us -
+# ViGEmBus's own installer only ever installs the kernel-mode bus driver,
+# never this user-mode client library. Nothing has ever shipped it, which is
+# why ViGEm output has never actually worked in any built copy of this app
+# (confirmed 2026-07-23: "ViGEmDevice: failed to load ViGEmClient.dll" in
+# every session log that ever touched a ViGEm binding). Building it ourselves
+# (rather than vendoring a prebuilt binary of unverifiable provenance) is the
+# archived-but-still-functional upstream project's own recommended path.
+#
+# Pinned to v1.21.222.0 - the version ViGEmDevice.h's own hand-reproduced
+# exports/ABI (vigem_alloc/vigem_connect/vigem_target_x360_alloc/.../
+# VIGEM_ERROR_NONE == 0x20000000) were verified against on GitHub. At this
+# exact tag, upstream's own CMakeLists.txt is minimal - a single
+# EXCLUDE_FROM_ALL add_library() with no explicit STATIC/SHARED (so it
+# follows BUILD_SHARED_LIBS), no target_link_libraries() for the SetupAPI
+# calls ViGEmClient.cpp actually makes, and none of __declspec(dllexport)'s
+# VIGEM_DYNAMIC/VIGEM_EXPORTS macros defined (Client.h's VIGEM_API would
+# resolve to nothing, exporting zero symbols) - all three handled explicitly
+# below rather than relying on a newer/unpinned ref's CMakeLists.txt.
+include(FetchContent)
+set(_gremlin_saved_build_shared_libs ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS ON)
+FetchContent_Declare(
+    vigemclient
+    GIT_REPOSITORY https://github.com/nefarius/ViGEmClient.git
+    GIT_TAG v1.21.222.0
+)
+FetchContent_MakeAvailable(vigemclient)
+set(BUILD_SHARED_LIBS ${_gremlin_saved_build_shared_libs})
+target_link_libraries(ViGEmClient PRIVATE setupapi)
+target_compile_definitions(ViGEmClient PRIVATE VIGEM_DYNAMIC VIGEM_EXPORTS)
+set_target_properties(ViGEmClient PROPERTIES
+    EXCLUDE_FROM_ALL OFF
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+    PREFIX ""
+    OUTPUT_NAME "ViGEmClient"
+)
+
 # -----------------------------------------------------------------------------
 # Phase 1: Core device catalogue module (DeviceManager).
 # -----------------------------------------------------------------------------
@@ -243,24 +306,6 @@ endif()
 # screen; delete them once that porting is done.)
 # -----------------------------------------------------------------------------
 
-# GremblingNexus rename: this project's own directory path contains a space
-# ("grembling 2.0"), and this MinGW windres build cannot parse a quoted -I/-D
-# argument containing a space - it forwards them to its internal cc1
-# preprocessing pass where the quoting is lost, splitting "...grembling
-# 2.0/build/..." into two bogus arguments and failing outright. CMake's
-# default RC compile rule always injects the target's full include-dir/
-# compile-definition list (needed for real C++ sources, irrelevant for a
-# resource script), so app.rc - which has no #include/#define of its own -
-# fails to compile the instant this target links anything with a spaced
-# include path (i.e. always, since the project root itself qualifies).
-# Dropping <DEFINES>/<INCLUDES> here is safe: windres still resolves app.rc's
-# relative "app.ico" reference against the .rc file's own directory
-# regardless of CWD or -I, confirmed by compiling it standalone with zero -I
-# flags.
-if(WIN32)
-    set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <SOURCE> -o <OBJECT>")
-endif()
-
 qt_add_executable(GremblingNexus WIN32
     app.rc
     src/main.cpp
@@ -417,3 +462,16 @@ qt_add_translations(GremblingNexus
 # emitted .exe's filename, leaving the target name (and everything that
 # references it) untouched.
 set_target_properties(GremblingNexus PROPERTIES OUTPUT_NAME "GremlinNexus")
+
+# Copies the freshly-built ViGEmClient.dll (see the FetchContent block near
+# the top of this file) next to the exe on every build - ViGEmDevice.cpp
+# loads it dynamically by bare name via QLibrary, so it only ever resolves if
+# it's sitting in the exe's own directory (or system-wide, which nothing
+# installs it to - see that block's own docs). Mirrors how windeployqt places
+# every Qt DLL here, just for this one non-Qt dependency windeployqt doesn't
+# know about.
+add_custom_command(TARGET GremblingNexus POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:ViGEmClient>"
+        "$<TARGET_FILE_DIR:GremblingNexus>"
+)

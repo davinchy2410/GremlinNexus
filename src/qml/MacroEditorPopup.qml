@@ -59,7 +59,7 @@ Popup {
     parent: Overlay.overlay // Fase 20.15: escape the opening popup's own coordinate system
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: parent ? Math.round((parent.height - height) / 2) : 0
-    width: 420
+    width: 600 // Widened from 420 - user feedback: felt cramped building longer macros.
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
