@@ -6,7 +6,7 @@ the "Nexus Scripts" virtual device alongside your real hardware.
 
 ## Installing
 
-1. Download `ScriptsModule.zip` from the Gremlin Nexus [Releases](https://github.com/davinchy2410/GremlinNexus/releases) page.
+1. Download [`ScriptsModule.zip`](https://github.com/davinchy2410/GremlinNexus/releases/download/scripts-module/ScriptsModule.zip) - a fixed download, independent of Nexus's own version releases (see the [`scripts-module` release](https://github.com/davinchy2410/GremlinNexus/releases/tag/scripts-module) itself for what's currently in it).
 2. Extract it so you end up with a `ScriptsModule` folder **next to `GremlinNexus.exe`**.
 3. Open Gremlin Nexus -> Settings -> enable "Scripts (Beta)".
 4. Open the new "Scripts" tab (Tools menu) and add your `.py` script.
