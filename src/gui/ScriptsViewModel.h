@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QStringList>
 #include <QVariantList>
 
 class QJsonArray;
@@ -104,6 +105,20 @@ public:
     /// EventRouter::scriptsSystemPath()) - it's a script's *output* target,
     /// never a sensible input source for another (or its own) input alias.
     Q_INVOKABLE QVariantList availableInputDevices() const;
+
+    /// Human-readable channel names for systemPath's axes (isAxis true) or
+    /// buttons (isAxis false), in channel-index order - list[i]'s display
+    /// text for channel i - so the alias picker's channel dropdown reads
+    /// "Axis Z (Throttle/Rudder)"/"POV 1 Up" instead of a bare number, using
+    /// the exact same names Profiles' own device tree shows (see
+    /// InputNaming.h). Empty if systemPath isn't currently connected.
+    Q_INVOKABLE QStringList channelNamesForDevice(const QString &systemPath, bool isAxis) const;
+
+    /// Human-readable name for systemPath, for displaying an already-saved
+    /// input alias's device (which may not be in availableInputDevices()
+    /// right now if it's been unplugged since the alias was created) -
+    /// falls back to the raw systemPath if it's genuinely unknown.
+    Q_INVOKABLE QString deviceDisplayName(const QString &systemPath) const;
 
 signals:
     void scriptsChanged();

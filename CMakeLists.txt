@@ -28,6 +28,7 @@ add_library(GremblingCore STATIC
     src/core/DeviceInfo.h
     src/core/DeviceManager.h
     src/core/DeviceManager.cpp
+    src/core/InputNaming.h
     src/core/ShutdownTrace.h
     src/core/AsyncLogSink.h
     src/core/AsyncLogSink.cpp

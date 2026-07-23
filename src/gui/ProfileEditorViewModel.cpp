@@ -20,6 +20,7 @@
 #include "DeviceInfo.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
+#include "InputNaming.h"
 #include "KeyboardHandler.h"
 #include "PwaServer.h"
 #include "SCIntegrationManager.h"
@@ -82,20 +83,9 @@ QString offlineDeviceLabel(const QString &systemPath)
 /// is the single place that decides how those get labeled, shared by
 /// makeDeviceEntry() (building the bindable input list) and
 /// onButtonPressedForDetection() (Quick Bind), so the two can never disagree
-/// on a synthetic button's name.
-QString buttonDisplayName(int buttonIndex, int numButtons, int numHats)
-{
-    const int physicalButtonCount = numButtons - numHats * 4;
-    if (buttonIndex < physicalButtonCount) {
-        return QStringLiteral("Button %1").arg(buttonIndex + 1);
-    }
-
-    const int hatButtonIndex = buttonIndex - physicalButtonCount;
-    const int hatNumber = hatButtonIndex / 4 + 1; // 1-based: "POV 1", "POV 2", ...
-    static const QStringList kDirections{
-        QStringLiteral("Up"), QStringLiteral("Right"), QStringLiteral("Down"), QStringLiteral("Left")};
-    return QStringLiteral("POV %1 %2").arg(hatNumber).arg(kDirections.at(hatButtonIndex % 4));
-}
+/// on a synthetic button's name. Moved to InputNaming.h (Fase 19.6) once the
+/// Scripts panel's alias picker needed the exact same names.
+using InputNaming::buttonDisplayName;
 
 /// Short display label for a binding's own JSON (IActionHandler::toJson()
 /// shape) - shared by bindAction() (a binding just applied this session) and
@@ -2122,20 +2112,10 @@ ProfileEditorViewModel::DeviceEntry ProfileEditorViewModel::makeDeviceEntry(cons
     // restarting at 0.
     QVariantList inputs;
     for (int i = 0; i < device.numAxes; ++i) {
-        QString axisName;
-        switch (i) {
-            case 0: axisName = QStringLiteral("Axis X"); break;
-            case 1: axisName = QStringLiteral("Axis Y"); break;
-            case 2: axisName = QStringLiteral("Axis Z (Throttle/Rudder)"); break;
-            case 3: axisName = QStringLiteral("Axis Rx (Pitch/Roll)"); break;
-            case 4: axisName = QStringLiteral("Axis Ry"); break;
-            case 5: axisName = QStringLiteral("Axis Rz"); break;
-            default: axisName = QStringLiteral("Slider %1").arg(i - 5); break;
-        }
         QString bindingLabel;
         QString actionNote;
         const bool hasBinding = findBinding(true, i, bindingLabel, actionNote);
-        inputs.append(makeInputEntry(axisName, QStringLiteral("axis"), i, hasBinding, bindingLabel, actionNote));
+        inputs.append(makeInputEntry(InputNaming::axisDisplayName(i), QStringLiteral("axis"), i, hasBinding, bindingLabel, actionNote));
     }
     // Fase 16.7: POV hats no longer get their own "axis"-kind entries here -
     // DeviceManager now reports each hat as 4 synthetic buttons

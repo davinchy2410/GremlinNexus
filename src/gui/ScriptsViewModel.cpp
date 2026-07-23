@@ -17,6 +17,7 @@
 #include "DeviceInfo.h"
 #include "DeviceManager.h"
 #include "EventRouter.h"
+#include "InputNaming.h"
 #include "ScriptBridgeServer.h"
 #include "ScriptsModuleLocator.h"
 
@@ -220,6 +221,39 @@ QVariantList ScriptsViewModel::availableInputDevices() const
         result.append(map);
     }
     return result;
+}
+
+QStringList ScriptsViewModel::channelNamesForDevice(const QString &systemPath, bool isAxis) const
+{
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        if (device.systemPath != systemPath) {
+            continue;
+        }
+        QStringList names;
+        if (isAxis) {
+            names.reserve(device.numAxes);
+            for (int i = 0; i < device.numAxes; ++i) {
+                names.append(InputNaming::axisDisplayName(i));
+            }
+        } else {
+            names.reserve(device.numButtons);
+            for (int i = 0; i < device.numButtons; ++i) {
+                names.append(InputNaming::buttonDisplayName(i, device.numButtons, device.numHats));
+            }
+        }
+        return names;
+    }
+    return {}; // Not currently connected.
+}
+
+QString ScriptsViewModel::deviceDisplayName(const QString &systemPath) const
+{
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        if (device.systemPath == systemPath) {
+            return device.deviceName;
+        }
+    }
+    return systemPath; // Not currently connected - best we can show is its raw path.
 }
 
 void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJsonObject &message)

@@ -42,6 +42,19 @@ Item {
         root.expandedScripts = copy
     }
 
+    // "Nexus Scripts" has no real per-channel meaning (unlike a physical
+    // device's axes/buttons, it's just a fixed bank of generic slots), so
+    // output aliases just get plain numbered names - matches capacity
+    // registered in main.cpp (numAxes: 8, numButtons: 128).
+    function outputChannelNames(isAxis) {
+        const count = isAxis ? 8 : 128
+        const names = []
+        for (let i = 1; i <= count; ++i) {
+            names.push((isAxis ? qsTr("Axis %1") : qsTr("Button %1")).arg(i))
+        }
+        return names
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.base
@@ -250,7 +263,11 @@ Item {
                                             spacing: Theme.spacingSm
                                             Text { text: modelData.name; color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 90; elide: Text.ElideRight }
                                             Text {
-                                                text: modelData.devicePath + "  ·  " + (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex
+                                                readonly property var channelNames: scriptsViewModel.channelNamesForDevice(modelData.devicePath, modelData.isAxis)
+                                                text: scriptsViewModel.deviceDisplayName(modelData.devicePath) + "  ·  "
+                                                    + (modelData.channelIndex < channelNames.length
+                                                       ? channelNames[modelData.channelIndex]
+                                                       : (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex)
                                                 color: Theme.overlay0
                                                 font.pixelSize: 11
                                                 elide: Text.ElideMiddle
@@ -282,22 +299,23 @@ Item {
                                             Layout.preferredWidth: 80
                                             model: [qsTr("Axis"), qsTr("Button")]
                                         }
-                                        TextField {
-                                            id: inChannelField
-                                            Layout.preferredWidth: 44
-                                            placeholderText: qsTr("#")
-                                            color: Theme.text
-                                            validator: IntValidator { bottom: 0; top: 255 }
-                                            background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
+                                        AppComboBox {
+                                            id: inChannelCombo
+                                            Layout.preferredWidth: 170
+                                            // Re-evaluates whenever inDeviceCombo/inKindCombo's currentIndex
+                                            // changes (both referenced directly here, so QML tracks them) -
+                                            // same names Profiles' own device tree shows (see InputNaming.h).
+                                            model: (inDeviceCombo.currentIndex >= 0 && inDeviceCombo.currentIndex < scriptDelegate.availableDevices.length)
+                                                ? scriptsViewModel.channelNamesForDevice(scriptDelegate.availableDevices[inDeviceCombo.currentIndex].systemPath, inKindCombo.currentIndex === 0)
+                                                : []
                                         }
                                         GremblingButton {
                                             text: qsTr("Add")
-                                            enabled: inAliasName.text.trim().length > 0 && inChannelField.text.length > 0 && inDeviceCombo.currentIndex >= 0 && scriptDelegate.availableDevices.length > 0
+                                            enabled: inAliasName.text.trim().length > 0 && inChannelCombo.currentIndex >= 0 && inChannelCombo.count > 0 && inDeviceCombo.currentIndex >= 0 && scriptDelegate.availableDevices.length > 0
                                             onClicked: {
                                                 const dev = scriptDelegate.availableDevices[inDeviceCombo.currentIndex]
-                                                scriptsViewModel.addInputAlias(scriptDelegate.scriptIndex, inAliasName.text.trim(), dev.systemPath, parseInt(inChannelField.text), inKindCombo.currentIndex === 0)
+                                                scriptsViewModel.addInputAlias(scriptDelegate.scriptIndex, inAliasName.text.trim(), dev.systemPath, inChannelCombo.currentIndex, inKindCombo.currentIndex === 0)
                                                 inAliasName.text = ""
-                                                inChannelField.text = ""
                                             }
                                         }
                                     }
@@ -312,7 +330,8 @@ Item {
                                             spacing: Theme.spacingSm
                                             Text { text: modelData.name; color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 90; elide: Text.ElideRight }
                                             Text {
-                                                text: (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex
+                                                readonly property var channelName: root.outputChannelNames(modelData.isAxis)[modelData.channelIndex]
+                                                text: channelName !== undefined ? channelName : (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex
                                                 color: Theme.overlay0
                                                 font.pixelSize: 11
                                                 Layout.fillWidth: true
@@ -337,21 +356,17 @@ Item {
                                             Layout.preferredWidth: 80
                                             model: [qsTr("Axis"), qsTr("Button")]
                                         }
-                                        TextField {
-                                            id: outChannelField
-                                            Layout.preferredWidth: 44
-                                            placeholderText: qsTr("#")
-                                            color: Theme.text
-                                            validator: IntValidator { bottom: 0; top: 127 }
-                                            background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
+                                        AppComboBox {
+                                            id: outChannelCombo
+                                            Layout.preferredWidth: 150
+                                            model: root.outputChannelNames(outKindCombo.currentIndex === 0)
                                         }
                                         GremblingButton {
                                             text: qsTr("Add")
-                                            enabled: outAliasName.text.trim().length > 0 && outChannelField.text.length > 0
+                                            enabled: outAliasName.text.trim().length > 0 && outChannelCombo.currentIndex >= 0
                                             onClicked: {
-                                                scriptsViewModel.addOutputAlias(scriptDelegate.scriptIndex, outAliasName.text.trim(), parseInt(outChannelField.text), outKindCombo.currentIndex === 0)
+                                                scriptsViewModel.addOutputAlias(scriptDelegate.scriptIndex, outAliasName.text.trim(), outChannelCombo.currentIndex, outKindCombo.currentIndex === 0)
                                                 outAliasName.text = ""
-                                                outChannelField.text = ""
                                             }
                                         }
                                     }
