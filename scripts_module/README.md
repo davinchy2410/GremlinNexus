@@ -14,6 +14,16 @@ the "Nexus Scripts" virtual device alongside your real hardware.
 You do **not** need Python installed on your PC - this module ships its own
 embedded interpreter, used only for scripts launched from the Scripts panel.
 
+## A word on trust
+
+A script you add here runs as a normal Python process with the same access
+to your PC as any other program you run - Nexus does not sandbox it in any
+way (there's no reliable way to sandbox arbitrary Python code). Only add
+scripts from people you trust, same as you would with a Joystick Gremlin
+plugin, a browser extension, or any other third-party code. Use the "View
+code" button in the Scripts panel to read a script's source before adding
+or running it if you're not sure.
+
 ## Writing a script
 
 ```python

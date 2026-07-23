@@ -256,6 +256,23 @@ QString ScriptsViewModel::deviceDisplayName(const QString &systemPath) const
     return systemPath; // Not currently connected - best we can show is its raw path.
 }
 
+QString ScriptsViewModel::readScriptSource(const QString &scriptPath) const
+{
+    const QString localPath = QUrl(scriptPath).isLocalFile() ? QUrl(scriptPath).toLocalFile() : scriptPath;
+    QFile file(localPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString();
+    }
+
+    constexpr qint64 kMaxPreviewBytes = 262144; // 256 KiB - see this method's own docs.
+    const QByteArray data = file.read(kMaxPreviewBytes);
+    QString text = QString::fromUtf8(data);
+    if (!file.atEnd()) {
+        text += QStringLiteral("\n\n[... truncated - file is larger than 256 KB ...]");
+    }
+    return text;
+}
+
 void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJsonObject &message)
 {
     ScriptEntry *entry = nullptr;

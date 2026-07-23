@@ -123,6 +123,12 @@ Item {
                     onClicked: scriptFileDialog.open()
                 }
 
+                ToolButton {
+                    label: qsTr("View code")
+                    enabled: pathField.text.trim().length > 0
+                    onClicked: sourcePopup.openFor(pathField.text, nameField.text.trim().length > 0 ? nameField.text.trim() : qsTr("Selected script"))
+                }
+
                 GremblingButton {
                     text: qsTr("Add")
                     enabled: nameField.text.trim().length > 0 && pathField.text.trim().length > 0
@@ -226,6 +232,11 @@ Item {
                                         border.color: scriptDelegate.scriptData.status === "Running" ? Theme.success
                                                     : scriptDelegate.scriptData.status === "Crashed" ? Theme.danger
                                                     : Theme.overlay0
+                                    }
+
+                                    ToolButton {
+                                        label: qsTr("View code")
+                                        onClicked: sourcePopup.openFor(scriptDelegate.scriptData.scriptPath, scriptDelegate.scriptData.name)
                                     }
 
                                     ToolButton {
@@ -374,6 +385,91 @@ Item {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // Read-only source preview (Fase 19.6): nothing sandboxes what a
+    // script can do once started (see this project's own README on the
+    // trust model), so this is the cheap mitigation - see what a script
+    // actually does before running it. Re-reads the file fresh every time
+    // it opens (readScriptSource() never caches), so there's deliberately
+    // no "Refresh" button - closing and reopening already shows the
+    // current file.
+    Popup {
+        id: sourcePopup
+        modal: true
+        focus: true
+        parent: Overlay.overlay
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        width: parent ? Math.min(parent.width - 80, 700) : 700
+        height: parent ? Math.min(parent.height - 80, 500) : 500
+        padding: 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property string sourceText: ""
+        property string sourceTitle: ""
+
+        function openFor(path, title) {
+            sourcePopup.sourceTitle = title
+            const text = scriptsViewModel.readScriptSource(path)
+            sourcePopup.sourceText = text.length > 0 ? text : qsTr("(could not read this file)")
+            sourcePopup.open()
+        }
+
+        background: Rectangle {
+            color: Theme.surface0
+            radius: Theme.radiusMedium
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.08)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Theme.spacingSm
+
+            Text {
+                Layout.topMargin: Theme.spacingMd
+                Layout.leftMargin: Theme.spacingLg
+                Layout.rightMargin: Theme.spacingLg
+                Layout.fillWidth: true
+                text: sourcePopup.sourceTitle
+                color: Theme.text
+                font.pixelSize: 15
+                font.weight: Font.DemiBold
+                elide: Text.ElideMiddle
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: Theme.spacingLg
+                Layout.rightMargin: Theme.spacingLg
+                clip: true
+
+                TextArea {
+                    readOnly: true
+                    selectByMouse: true
+                    text: sourcePopup.sourceText
+                    color: Theme.text
+                    font.family: "Consolas"
+                    font.pixelSize: 12
+                    wrapMode: TextEdit.NoWrap
+                    background: Item {}
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.spacingLg
+                Layout.rightMargin: Theme.spacingLg
+                Layout.bottomMargin: Theme.spacingMd
+
+                Item { Layout.fillWidth: true }
+                GremblingButton {
+                    text: qsTr("Close")
+                    onClicked: sourcePopup.close()
                 }
             }
         }

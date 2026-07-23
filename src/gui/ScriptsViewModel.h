@@ -114,6 +114,18 @@ public:
     /// InputNaming.h). Empty if systemPath isn't currently connected.
     Q_INVOKABLE QStringList channelNamesForDevice(const QString &systemPath, bool isAxis) const;
 
+    /// Reads scriptPath fresh off disk (never cached) so a script's own
+    /// source can be reviewed before running it - a read-only preview, not
+    /// an editor (see the Scripts panel's own docs on why: nothing here
+    /// sandboxes what a script can do once started, so seeing what you're
+    /// about to run is the cheap mitigation this project settled on).
+    /// scriptPath may be a "file:///..." URL (same normalization addScript()
+    /// does) or a plain local path. Returns an empty string if the file
+    /// can't be read; truncated with a trailing note past 256 KB, since this
+    /// is meant for a human to skim, not to safely render an arbitrarily
+    /// large file on the GUI thread.
+    Q_INVOKABLE QString readScriptSource(const QString &scriptPath) const;
+
     /// Human-readable name for systemPath, for displaying an already-saved
     /// input alias's device (which may not be in availableInputDevices()
     /// right now if it's been unplugged since the alias was created) -
