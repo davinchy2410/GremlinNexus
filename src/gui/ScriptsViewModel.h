@@ -51,6 +51,12 @@ class ScriptBridgeServer;
  * the same [0, 65535] project-wide default otherwise - same convention
  * step 3 already uses for the opposite direction, so a script author works
  * in one consistent unit regardless of which way data is flowing.
+ *
+ * Step 5/6 (safety): teardownProcess() resets every one of the stopping/
+ * crashing script's output aliases to neutral (axis 0, button released)
+ * before it clears the entry's status - MasterPlan.md's own Fase 19 design
+ * calls this out explicitly, so a script dying never leaves e.g. a virtual
+ * brake stuck at full deflection.
  */
 class ScriptsViewModel : public QObject
 {

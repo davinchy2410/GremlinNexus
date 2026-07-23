@@ -473,6 +473,24 @@ void ScriptsViewModel::teardownProcess(ScriptEntry &entry, bool crashed)
     const bool actuallyCrashed = crashed && !entry.stopRequested;
     entry.status = actuallyCrashed ? Status::Crashed : Status::Stopped;
     entry.stopRequested = false;
+
+    // Fase 19.6 step 5/6 (safety): whether this script stopped cleanly or
+    // crashed, every channel of "Nexus Scripts" it was writing to must not
+    // stay stuck at its last value - MasterPlan.md's own Fase 19 design
+    // calls this out explicitly (e.g. a nose-wheel brake output frozen at
+    // full deflection because the script that was driving it died). Axis
+    // neutral is 0 (matches nexus_bridge's own set_axis() convention, where
+    // 0.0 is "idle/released" - not the center of a bipolar stick), button
+    // neutral is released.
+    const QString scriptsPath = EventRouter::scriptsSystemPath();
+    for (const AliasEntry &alias : entry.outputAliases) {
+        if (alias.isAxis) {
+            DeviceManager::instance().injectAxisValue(scriptsPath, alias.channelIndex, 0);
+        } else {
+            DeviceManager::instance().injectButtonPress(scriptsPath, alias.channelIndex, false);
+        }
+    }
+
     emit scriptsChanged();
 }
 
