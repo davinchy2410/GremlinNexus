@@ -42,15 +42,25 @@ Item {
         root.expandedScripts = copy
     }
 
-    // "Nexus Scripts" has no real per-channel meaning (unlike a physical
-    // device's axes/buttons, it's just a fixed bank of generic slots), so
-    // output aliases just get plain numbered names - matches capacity
-    // registered in main.cpp (numAxes: 8, numButtons: 128).
+    // "Nexus Scripts" has no real per-channel meaning of its own (unlike a
+    // physical device's axes/buttons, it's just a fixed bank of generic
+    // slots) - but Device Tester (see its own axisNames array in
+    // DeviceTesterView.qml) already labels this exact device's 8 axes
+    // X/Y/Z/Rx/Ry/Rz/Slider/Dial, same as any other 8-axis device. Reusing
+    // those same names here (rather than a plain "Axis 1".."Axis 8") means
+    // whichever channel you pick while wiring an output alias is called the
+    // same thing when you go check it moving in Device Tester right after -
+    // found via user testing: two different names for the same channel
+    // ("Axis 4" here vs "Rx" there) looked like a mismatch/bug at first
+    // glance. Matches capacity registered in main.cpp (numAxes: 8,
+    // numButtons: 128).
     function outputChannelNames(isAxis) {
-        const count = isAxis ? 8 : 128
+        if (isAxis) {
+            return ["X", "Y", "Z", "Rx", "Ry", "Rz", "Slider", "Dial"]
+        }
         const names = []
-        for (let i = 1; i <= count; ++i) {
-            names.push((isAxis ? qsTr("Axis %1") : qsTr("Button %1")).arg(i))
+        for (let i = 1; i <= 128; ++i) {
+            names.push(qsTr("Button %1").arg(i))
         }
         return names
     }
