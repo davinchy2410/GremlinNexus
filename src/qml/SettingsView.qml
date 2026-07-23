@@ -340,7 +340,17 @@ Item {
                             Text { text: qsTr("Scripts (Beta)"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
                             ToggleSwitch {
                                 enabled: settingsViewModel.scriptsModuleDetected
-                                checked: settingsViewModel.scriptsEnabled
+                                // Shows OFF whenever the module isn't detected, even if
+                                // scriptsEnabled is still true from a previous session (the
+                                // module was removed, or this is the first launch after
+                                // downloading Nexus but before downloading ScriptsModule) -
+                                // otherwise this switch visually reads "on" while Scripts is
+                                // verifiably inert (main.cpp's own refreshScriptBridgeState()
+                                // never starts anything without the module either), which
+                                // reads as a lie next to the disabled-state caption below.
+                                // scriptsEnabled itself stays untouched underneath, so Scripts
+                                // resumes automatically once the module actually appears.
+                                checked: settingsViewModel.scriptsEnabled && settingsViewModel.scriptsModuleDetected
                                 onToggled: (v) => settingsViewModel.scriptsEnabled = v
                             }
                         }
