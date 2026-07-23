@@ -185,13 +185,11 @@ Item {
                             property var scriptData: modelData
                             property int scriptIndex: index
                             readonly property bool expanded: root.expandedScripts[scriptData.name] === true
-                            // Re-fetched only while expanded (a plain
-                            // Q_INVOKABLE snapshot, not a live Q_PROPERTY) -
-                            // collapse/re-expand to pick up a device plugged
-                            // in while this panel is open. Good enough for
-                            // this first pass; not worth a live-updating
-                            // model yet.
-                            property var availableDevices: expanded ? scriptsViewModel.availableInputDevices() : []
+                            // Re-fetched whenever expanded, or whenever
+                            // deviceListVersion changes while already
+                            // expanded (a device connecting/disconnecting) -
+                            // see ScriptsViewModel::deviceListVersion's docs.
+                            property var availableDevices: expanded ? (scriptsViewModel.deviceListVersion, scriptsViewModel.availableInputDevices()) : []
 
                             Layout.fillWidth: true
                             implicitHeight: contentColumn.implicitHeight + Theme.spacingSm * 2
@@ -274,6 +272,14 @@ Item {
                                             spacing: Theme.spacingSm
                                             Text { text: modelData.name; color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 90; elide: Text.ElideRight }
                                             Text {
+                                                // scriptsViewModel.deviceListVersion is read here purely so this
+                                                // binding re-evaluates once DeviceManager's device list changes
+                                                // (e.g. finishes its startup scan, or a device reconnects) - the
+                                                // Q_INVOKABLE calls below have no NOTIFY signal of their own for
+                                                // QML to track, so without this the device name/channel shown
+                                                // could get stuck on "not connected yet" from the very first
+                                                // paint. See ScriptsViewModel::deviceListVersion's own docs.
+                                                readonly property int _deviceListVersion: scriptsViewModel.deviceListVersion
                                                 readonly property var channelNames: scriptsViewModel.channelNamesForDevice(modelData.devicePath, modelData.isAxis)
                                                 text: scriptsViewModel.deviceDisplayName(modelData.devicePath) + "  ·  "
                                                     + (modelData.channelIndex < channelNames.length

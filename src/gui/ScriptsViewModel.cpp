@@ -39,6 +39,8 @@ ScriptsViewModel::ScriptsViewModel(ScriptBridgeServer &bridgeServer, QObject *pa
     connect(&m_bridgeServer, &ScriptBridgeServer::messageReceived, this, &ScriptsViewModel::onScriptMessageReceived);
     connect(&DeviceManager::instance(), &DeviceManager::axisMoved, this, &ScriptsViewModel::onDeviceAxisMoved);
     connect(&DeviceManager::instance(), &DeviceManager::buttonPressed, this, &ScriptsViewModel::onDeviceButtonPressed);
+    connect(&DeviceManager::instance(), &DeviceManager::deviceAdded, this, &ScriptsViewModel::onDeviceListChanged);
+    connect(&DeviceManager::instance(), &DeviceManager::deviceRemoved, this, &ScriptsViewModel::onDeviceListChanged);
 }
 
 ScriptsViewModel::~ScriptsViewModel()
@@ -273,6 +275,12 @@ QString ScriptsViewModel::readScriptSource(const QString &scriptPath) const
     return text;
 }
 
+void ScriptsViewModel::onDeviceListChanged()
+{
+    ++m_deviceListVersion;
+    emit deviceListVersionChanged();
+}
+
 void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJsonObject &message)
 {
     ScriptEntry *entry = nullptr;
@@ -300,7 +308,22 @@ void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJson
         }
     }
     if (!alias) {
-        return; // Script wrote to a name with no output alias configured (yet) - silently dropped.
+        // Script wrote to a name with no output alias configured - most
+        // often a typo, or (as found via real user testing) an alias that
+        // got renamed in the panel without updating the script's own
+        // set_axis()/set_button() call to match, since the *name* is the
+        // literal handshake between the two, not just a display label.
+        // Warned once per (script, name) rather than once per message, since
+        // a script writing on a timer would otherwise spam this every tick.
+        if ((type == QStringLiteral("setAxis") || type == QStringLiteral("setButton"))
+            && !entry->warnedMissingOutputAliases.contains(name)) {
+            entry->warnedMissingOutputAliases.insert(name);
+            qWarning() << "ScriptsViewModel:" << entry->name << "wrote to" << name
+                       << "but no output alias with that exact name is configured for it - dropped."
+                       << "Check the script's own set_axis()/set_button() calls (View code) against"
+                       << "the alias names in the Scripts panel - they must match exactly.";
+        }
+        return;
     }
 
     const QString scriptsPath = EventRouter::scriptsSystemPath();

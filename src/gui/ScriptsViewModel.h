@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include <QSet>
+
 #include <QObject>
 #include <QProcess>
 #include <QStringList>
@@ -63,6 +65,19 @@ class ScriptsViewModel : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList scripts READ scripts NOTIFY scriptsChanged)
+    /// Bumped whenever DeviceManager::deviceAdded/deviceRemoved fires - has
+    /// no meaning of its own, it exists purely so a QML binding that reads
+    /// it (even just via the comma-operator idiom "(scriptsViewModel.
+    /// deviceListVersion, scriptsViewModel.deviceDisplayName(...))") gets a
+    /// dependency to re-evaluate on. Without this, deviceDisplayName()/
+    /// channelNamesForDevice() are plain Q_INVOKABLE calls with no NOTIFY
+    /// signal of their own - QML's binding tracker has no way to know their
+    /// result changed once DeviceManager's device list is populated a
+    /// moment after this ViewModel is constructed (or a device reconnects
+    /// later), so a device's name/channels shown for an alias could get
+    /// stuck on whatever they resolved to the first time (often "not
+    /// connected yet" during startup) and never update.
+    Q_PROPERTY(int deviceListVersion READ deviceListVersion NOTIFY deviceListVersionChanged)
 
 public:
     explicit ScriptsViewModel(ScriptBridgeServer &bridgeServer, QObject *parent = nullptr);
@@ -73,6 +88,8 @@ public:
     /// rather than an enum, since QML only ever needs to display it, not
     /// branch on it as a typed value.
     QVariantList scripts() const;
+
+    int deviceListVersion() const { return m_deviceListVersion; }
 
     Q_INVOKABLE void addScript(const QString &name, const QString &scriptPath);
     Q_INVOKABLE void removeScript(int index);
@@ -134,12 +151,16 @@ public:
 
 signals:
     void scriptsChanged();
+    void deviceListVersionChanged();
 
 private slots:
     /// Resolves an authenticated script's "setAxis"/"setButton" message
     /// against its own output aliases and injects the result into
     /// DeviceManager - see this class' own docs on step 3/6.
     void onScriptMessageReceived(const QString &token, const QJsonObject &message);
+
+    /// Bumps m_deviceListVersion - see that Q_PROPERTY's own docs.
+    void onDeviceListChanged();
 
     /// Forwards a real device's axis/button change to every running
     /// script that claimed it as an input alias - see this class' own
@@ -184,6 +205,12 @@ private:
 
         std::vector<AliasEntry> inputAliases;
         std::vector<AliasEntry> outputAliases;
+
+        /// Names onScriptMessageReceived() has already warned about not
+        /// finding an output alias for - so a script that writes to a
+        /// misconfigured/misspelled name in a tight loop gets exactly one
+        /// qWarning() about it, not one per message.
+        QSet<QString> warnedMissingOutputAliases;
     };
 
     static QString statusToString(Status status);
@@ -202,4 +229,5 @@ private:
 
     ScriptBridgeServer &m_bridgeServer;
     std::vector<std::unique_ptr<ScriptEntry>> m_scripts;
+    int m_deviceListVersion = 0;
 };
