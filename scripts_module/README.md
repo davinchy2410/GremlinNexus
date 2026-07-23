@@ -38,13 +38,10 @@ bridge.run()
 ```
 
 `nexus_bridge` is pure Python standard library - nothing to `pip install`.
-
-- `bridge.set_axis(name, value)` / `bridge.set_button(name, pressed)` - write
-  to a named output channel.
-- `@bridge.on_axis(name)` / `@bridge.on_button(name)` - react to a named
-  input channel.
-- A script that only calls `set_axis`/`set_button` on its own timer doesn't
-  need `bridge.run()` at all - that's only for reacting to incoming updates.
-
 The `name` strings above are whatever alias you've assigned that script's
-input/output in the Scripts panel - see `examples/` for a complete script.
+input/output in the Scripts panel.
+
+**See [`SCRIPTING_GUIDE.md`](SCRIPTING_GUIDE.md)** for the full picture -
+the value convention, keeping state across events, a walkthrough of both
+example scripts' own math, and what to change if you're porting a Joystick
+Gremlin plugin over.

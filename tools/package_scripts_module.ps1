@@ -53,9 +53,10 @@ if (-not $pthFile) {
 }
 Add-Content -Path $pthFile.FullName -Value "`n.."
 
-# 3) Copy the nexus_bridge SDK, README and examples alongside python-embed.
+# 3) Copy the nexus_bridge SDK, docs and examples alongside python-embed.
 Copy-Item -Path (Join-Path $moduleSource "nexus_bridge") -Destination $outDir -Recurse -Force
 Copy-Item -Path (Join-Path $moduleSource "README.md") -Destination $outDir -Force
+Copy-Item -Path (Join-Path $moduleSource "SCRIPTING_GUIDE.md") -Destination $outDir -Force
 Copy-Item -Path (Join-Path $moduleSource "examples") -Destination $outDir -Recurse -Force
 
 # 4) Zip it up for a GitHub Releases upload.
