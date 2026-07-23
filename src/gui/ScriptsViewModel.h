@@ -149,6 +149,14 @@ public:
     /// falls back to the raw systemPath if it's genuinely unknown.
     Q_INVOKABLE QString deviceDisplayName(const QString &systemPath) const;
 
+    /// Whether systemPath is one of DeviceManager's currently-connected
+    /// devices - so an input alias whose physical device got unplugged, or
+    /// whose HID path changed (different USB port, driver reinstall, ...;
+    /// see Profiles' own "Swap Devices" for the same underlying problem at
+    /// device-binding scale) can be shown visibly as offline instead of
+    /// just silently never firing again.
+    Q_INVOKABLE bool isDeviceConnected(const QString &systemPath) const;
+
 signals:
     void scriptsChanged();
     void deviceListVersionChanged();

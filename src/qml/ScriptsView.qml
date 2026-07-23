@@ -280,12 +280,16 @@ Item {
                                                 // could get stuck on "not connected yet" from the very first
                                                 // paint. See ScriptsViewModel::deviceListVersion's own docs.
                                                 readonly property int _deviceListVersion: scriptsViewModel.deviceListVersion
+                                                readonly property bool connected: scriptsViewModel.isDeviceConnected(modelData.devicePath)
                                                 readonly property var channelNames: scriptsViewModel.channelNamesForDevice(modelData.devicePath, modelData.isAxis)
-                                                text: scriptsViewModel.deviceDisplayName(modelData.devicePath) + "  ·  "
+                                                text: (connected ? "" : qsTr("[Offline] "))
+                                                    + scriptsViewModel.deviceDisplayName(modelData.devicePath) + "  ·  "
                                                     + (modelData.channelIndex < channelNames.length
                                                        ? channelNames[modelData.channelIndex]
                                                        : (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex)
-                                                color: Theme.overlay0
+                                                // Same "offline = danger-toned" convention Profiles' own device
+                                                // tree uses for a disconnected/orphaned device row.
+                                                color: connected ? Theme.overlay0 : Theme.danger
                                                 font.pixelSize: 11
                                                 elide: Text.ElideMiddle
                                                 Layout.fillWidth: true

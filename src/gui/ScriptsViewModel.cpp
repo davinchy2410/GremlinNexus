@@ -258,6 +258,16 @@ QString ScriptsViewModel::deviceDisplayName(const QString &systemPath) const
     return systemPath; // Not currently connected - best we can show is its raw path.
 }
 
+bool ScriptsViewModel::isDeviceConnected(const QString &systemPath) const
+{
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        if (device.systemPath == systemPath) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QString ScriptsViewModel::readScriptSource(const QString &scriptPath) const
 {
     const QString localPath = QUrl(scriptPath).isLocalFile() ? QUrl(scriptPath).toLocalFile() : scriptPath;
