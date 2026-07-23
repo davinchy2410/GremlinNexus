@@ -520,8 +520,30 @@ std::shared_ptr<IActionHandler> ProfileManager::instantiateCurveHandler(const QJ
     const QJsonObject parameters = binding.value(QLatin1String("parameters")).toObject();
     int inputMin = parameters.value(QLatin1String("inputMin")).toInt(0);
     int inputMax = parameters.value(QLatin1String("inputMax")).toInt(65535);
-    const int outputMin = parameters.value(QLatin1String("outputMin")).toInt(0);
-    const int outputMax = parameters.value(QLatin1String("outputMax")).toInt(32767);
+    // A ViGEm target's own native output range is NOT vJoy's [0, 32767] -
+    // thumbstick axes (targetAxis 0-3: LX/LY/RX/RY) are signed
+    // [-32768, 32767] and trigger axes (4-5: LT/RT) are [0, 255] (see
+    // ViGEmDevice::setAxis()'s own int16_t/uint8_t casts, and getAxisName()
+    // in ProfileEditorViewModel.cpp for the same axis-index convention).
+    // Falling back to vJoy's range here for a ViGEm binding with no explicit
+    // outputMin/outputMax left every ViGEm-targeted curve centered on the
+    // wrong value - a physically-centered stick produced XInput ~+16384
+    // instead of the true center 0, confirmed via Device Tester 2026-07-23.
+    // Only affects this fallback when a binding's own JSON omits these keys;
+    // an explicitly-saved custom range is always respected as-is.
+    int defaultOutputMin = 0;
+    int defaultOutputMax = 32767;
+    if (device->isViGEmDevice()) {
+        if (targetAxis >= 4) {
+            defaultOutputMin = 0;
+            defaultOutputMax = 255;
+        } else {
+            defaultOutputMin = -32768;
+            defaultOutputMax = 32767;
+        }
+    }
+    const int outputMin = parameters.value(QLatin1String("outputMin")).toInt(defaultOutputMin);
+    const int outputMax = parameters.value(QLatin1String("outputMax")).toInt(defaultOutputMax);
     const double deadzone = parameters.value(QLatin1String("deadzone")).toDouble(0.05);
     const double sensitivity = parameters.value(QLatin1String("sensitivity")).toDouble(1.0);
     const double smoothingFactor = parameters.value(QLatin1String("smoothingFactor")).toDouble(0.0);
