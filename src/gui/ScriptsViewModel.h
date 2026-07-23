@@ -238,6 +238,17 @@ private:
         std::vector<AliasEntry> inputAliases;
         std::vector<AliasEntry> outputAliases;
 
+        /// Last non-empty stderr line seen from this script's own process -
+        /// for an unhandled Python exception (by far the most common way a
+        /// script ends up Status::Crashed) this is the "ExceptionType:
+        /// message" line, which is usually enough on its own to tell a user
+        /// what went wrong (e.g. "ModuleNotFoundError: No module named
+        /// 'gremlin'" for someone who dropped in an unported Joystick
+        /// Gremlin plugin) without having to dig through the Log Console.
+        /// Cleared at the start of every startScript() so a stale error
+        /// from a previous run never lingers on a fresh one.
+        QString lastStderrLine;
+
         /// Names onScriptMessageReceived() has already warned about not
         /// finding an output alias for - so a script that writes to a
         /// misconfigured/misspelled name in a tight loop gets exactly one

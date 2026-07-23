@@ -236,6 +236,17 @@ Item {
                                             elide: Text.ElideMiddle
                                             Layout.fillWidth: true
                                         }
+                                        Text {
+                                            // Shown inline (not just on hover) since "why did this crash"
+                                            // is exactly what a user wants right when they see the red
+                                            // "Crashed" badge, not something to go hunting for.
+                                            visible: scriptDelegate.scriptData.status === "Crashed" && text.length > 0
+                                            text: scriptDelegate.scriptData.lastError
+                                            color: Theme.danger
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
                                     }
 
                                     Badge {
@@ -246,6 +257,15 @@ Item {
                                         border.color: scriptDelegate.scriptData.status === "Running" ? Theme.success
                                                     : scriptDelegate.scriptData.status === "Crashed" ? Theme.danger
                                                     : Theme.overlay0
+
+                                        // The script's own last stderr line - for an unhandled Python
+                                        // exception (the usual way a script ends up Crashed) that's the
+                                        // "ExceptionType: message" line, enough on its own to tell a user
+                                        // what broke without digging through the Log Console.
+                                        ToolTip.visible: scriptDelegate.scriptData.status === "Crashed"
+                                            && scriptDelegate.scriptData.lastError.length > 0 && crashHover.hovered
+                                        ToolTip.text: scriptDelegate.scriptData.lastError
+                                        HoverHandler { id: crashHover }
                                     }
 
                                     ToolButton {

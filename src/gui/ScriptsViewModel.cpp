@@ -85,6 +85,7 @@ QVariantList ScriptsViewModel::scripts() const
         map[QStringLiteral("status")] = statusToString(entry->status);
         map[QStringLiteral("inputAliases")] = aliasesToVariantList(entry->inputAliases);
         map[QStringLiteral("outputAliases")] = aliasesToVariantList(entry->outputAliases);
+        map[QStringLiteral("lastError")] = entry->lastStderrLine;
         result.append(map);
     }
     return result;
@@ -504,6 +505,7 @@ void ScriptsViewModel::startScript(int index)
 
     entry.token = m_bridgeServer.registerScriptToken();
     entry.stopRequested = false;
+    entry.lastStderrLine.clear();
 
     auto *process = new QProcess(this);
     entry.process = process;
@@ -537,11 +539,13 @@ void ScriptsViewModel::startScript(int index)
         const QString text = QString::fromLocal8Bit(process->readAllStandardError());
         for (const QString &line : text.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
             qWarning().noquote() << QStringLiteral("[Script: %1] %2").arg(entry.name, line.trimmed());
+            entry.lastStderrLine = line.trimmed();
         }
     });
     connect(process, &QProcess::errorOccurred, this, [this, &entry](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
             qWarning() << "ScriptsViewModel:" << entry.name << "failed to start (missing python.exe or script file?)";
+            entry.lastStderrLine = QStringLiteral("Failed to start - missing python.exe or script file?");
             teardownProcess(entry, /*crashed=*/true);
         }
         // Other QProcess::ProcessError values (Crashed, Timedout, ...) are
