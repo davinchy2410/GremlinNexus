@@ -262,6 +262,15 @@ Item {
 
                                     Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
 
+                                    Text {
+                                        text: qsTr("The name below must match exactly what the script's own code uses (e.g. @bridge.on_axis(\"rudder\")) - use \"View code\" above to check.")
+                                        color: Theme.overlay0
+                                        font.pixelSize: 10
+                                        font.italic: true
+                                        wrapMode: Text.WordWrap
+                                        Layout.fillWidth: true
+                                    }
+
                                     // --- Input aliases: physical device -> script ---
                                     Text { text: qsTr("Input aliases (physical device → script)"); color: Theme.subtext0; font.pixelSize: 11; font.weight: Font.DemiBold }
 
