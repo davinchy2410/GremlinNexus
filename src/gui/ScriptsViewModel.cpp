@@ -222,6 +222,23 @@ void ScriptsViewModel::teardownProcess(ScriptEntry &entry, bool crashed)
     m_bridgeServer.unregisterScriptToken(entry.token);
     entry.token.clear();
 
+    // Disconnects every signal this connected on entry.process first - the
+    // process can still emit readyReadStandardOutput/errorOccurred/finished
+    // right up until its actual (deferred) destruction below, and every one
+    // of those lambdas (see startScript()) captures &entry by reference.
+    // removeScript() calls this then immediately erases the very ScriptEntry
+    // that reference points at - without disconnecting first, a
+    // late-arriving signal from a process that's still shutting down would
+    // touch already-freed memory.
+    entry.process->disconnect(this);
+    // Safe no-op if the process already exited on its own (the usual
+    // finished()-triggered path here, going through stopScript()'s own
+    // terminate()-then-escalate first) - only matters for removeScript()'s
+    // "delete a still-running script outright" path, so the process
+    // actually dies now instead of QProcess's own deleteLater() destructor
+    // abruptly (and noisily - "QProcess: Destroyed while process is still
+    // running") killing it later.
+    entry.process->kill();
     entry.process->deleteLater();
     entry.process = nullptr;
 

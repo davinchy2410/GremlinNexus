@@ -94,7 +94,18 @@ class _Bridge:
 
     def _send(self, message):
         line = json.dumps(message, separators=(",", ":")) + "\n"
-        self._socket.sendall(line.encode("utf-8"))
+        try:
+            self._socket.sendall(line.encode("utf-8"))
+        except OSError as exc:
+            # Most commonly: Nexus stopped/restarted the Script Bridge (the
+            # Settings toggle, or the app closing) while this script was
+            # still writing to it - a script that only calls set_axis()/
+            # set_button() in its own loop (never bridge.run()) has no other
+            # way to notice this happened, so surface it as a clear
+            # NexusBridgeError instead of a raw ConnectionAbortedError/
+            # BrokenPipeError traceback.
+            self.close()
+            raise NexusBridgeError(f"Lost connection to Nexus: {exc}") from exc
 
     def _read_message(self):
         line = self._file.readline()
