@@ -106,6 +106,14 @@ public:
     Q_INVOKABLE void addInputAlias(int scriptIndex, const QString &name, const QString &devicePath, int channelIndex, bool isAxis);
     Q_INVOKABLE void removeInputAlias(int scriptIndex, int aliasIndex);
 
+    /// Edits an existing input alias in place - same fields and validation
+    /// as addInputAlias(), but replaces aliasIndex's own entry instead of
+    /// appending, so its position in the list is preserved (unlike a
+    /// remove+re-add, which would put it at the end). The duplicate-name
+    /// check excludes aliasIndex itself, so keeping its own name unchanged
+    /// is always allowed.
+    Q_INVOKABLE void updateInputAlias(int scriptIndex, int aliasIndex, const QString &name, const QString &devicePath, int channelIndex, bool isAxis);
+
     /// Output alias: "name" is what the script's own bridge.set_axis(name,
     /// value)/bridge.set_button(name, pressed) refers to; channelIndex+
     /// isAxis identify which channel of the shared "Nexus Scripts" virtual
@@ -114,6 +122,10 @@ public:
     /// always that one fixed virtual device.
     Q_INVOKABLE void addOutputAlias(int scriptIndex, const QString &name, int channelIndex, bool isAxis);
     Q_INVOKABLE void removeOutputAlias(int scriptIndex, int aliasIndex);
+
+    /// Edits an existing output alias in place - see updateInputAlias()'s
+    /// own docs on why this preserves position instead of a remove+re-add.
+    Q_INVOKABLE void updateOutputAlias(int scriptIndex, int aliasIndex, const QString &name, int channelIndex, bool isAxis);
 
     /// Physical devices an input alias can point at: one QVariantMap per
     /// connected device - {deviceName, systemPath, numAxes, numButtons} -

@@ -201,6 +201,12 @@ Item {
                             // see ScriptsViewModel::deviceListVersion's docs.
                             property var availableDevices: expanded ? (scriptsViewModel.deviceListVersion, scriptsViewModel.availableInputDevices()) : []
 
+                            // -1 means the add-row below is in "add new" mode; >= 0 means
+                            // it's editing that alias index instead - see the Edit
+                            // ToolButton and Save/Cancel handling further down.
+                            property int editingInputIndex: -1
+                            property int editingOutputIndex: -1
+
                             Layout.fillWidth: true
                             implicitHeight: contentColumn.implicitHeight + Theme.spacingSm * 2
                             radius: Theme.radiusSmall
@@ -289,7 +295,24 @@ Item {
                                         delegate: RowLayout {
                                             Layout.fillWidth: true
                                             spacing: Theme.spacingSm
-                                            Text { text: modelData.name; color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 90; elide: Text.ElideRight }
+                                            Text {
+                                                // Cross-checks this alias's own name against the script's own
+                                                // detected on_axis()/on_button() calls (same scan the "Suggested"
+                                                // picker below uses) - an empty _knownNames means the scan found
+                                                // nothing of this kind at all, which is ambiguous (could be a
+                                                // script with no input calls, or one that builds names
+                                                // dynamically) so it's deliberately NOT treated as a mismatch.
+                                                readonly property var _knownNames: scriptsViewModel.suggestedAliasNames(scriptDelegate.scriptData.scriptPath, true)
+                                                readonly property bool nameUnknown: _knownNames.length > 0 && _knownNames.indexOf(modelData.name) < 0
+                                                text: modelData.name
+                                                color: nameUnknown ? Theme.warning : Theme.text
+                                                font.pixelSize: 12
+                                                Layout.preferredWidth: 150
+                                                elide: Text.ElideRight
+                                                ToolTip.visible: nameUnknown && nameHover.hovered
+                                                ToolTip.text: qsTr("Not found in this script's own on_axis()/on_button() calls - check \"View code\" (it may just build the name dynamically).")
+                                                HoverHandler { id: nameHover }
+                                            }
                                             Text {
                                                 // scriptsViewModel.deviceListVersion is read here purely so this
                                                 // binding re-evaluates once DeviceManager's device list changes
@@ -321,6 +344,20 @@ Item {
                                                 elide: Text.ElideMiddle
                                                 Layout.fillWidth: true
                                             }
+                                            ToolButton {
+                                                label: qsTr("Edit")
+                                                onClicked: {
+                                                    scriptDelegate.editingInputIndex = index
+                                                    inAliasName.text = modelData.name
+                                                    inKindCombo.currentIndex = modelData.isAxis ? 0 : 1
+                                                    let devIdx = -1
+                                                    for (let i = 0; i < scriptDelegate.availableDevices.length; ++i) {
+                                                        if (scriptDelegate.availableDevices[i].systemPath === modelData.devicePath) { devIdx = i; break }
+                                                    }
+                                                    inDeviceCombo.currentIndex = devIdx
+                                                    inChannelCombo.currentIndex = modelData.channelIndex
+                                                }
+                                            }
                                             ToolButton { label: qsTr("×"); onClicked: scriptsViewModel.removeInputAlias(scriptDelegate.scriptIndex, index) }
                                         }
                                     }
@@ -331,7 +368,7 @@ Item {
 
                                         TextField {
                                             id: inAliasName
-                                            Layout.preferredWidth: 90
+                                            Layout.preferredWidth: 150
                                             placeholderText: qsTr("name")
                                             color: Theme.text
                                             background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
@@ -369,11 +406,24 @@ Item {
                                                 : []
                                         }
                                         GremblingButton {
-                                            text: qsTr("Add")
+                                            text: scriptDelegate.editingInputIndex >= 0 ? qsTr("Save") : qsTr("Add")
                                             enabled: inAliasName.text.trim().length > 0 && inChannelCombo.currentIndex >= 0 && inChannelCombo.count > 0 && inDeviceCombo.currentIndex >= 0 && scriptDelegate.availableDevices.length > 0
                                             onClicked: {
                                                 const dev = scriptDelegate.availableDevices[inDeviceCombo.currentIndex]
-                                                scriptsViewModel.addInputAlias(scriptDelegate.scriptIndex, inAliasName.text.trim(), dev.systemPath, inChannelCombo.currentIndex, inKindCombo.currentIndex === 0)
+                                                if (scriptDelegate.editingInputIndex >= 0) {
+                                                    scriptsViewModel.updateInputAlias(scriptDelegate.scriptIndex, scriptDelegate.editingInputIndex, inAliasName.text.trim(), dev.systemPath, inChannelCombo.currentIndex, inKindCombo.currentIndex === 0)
+                                                    scriptDelegate.editingInputIndex = -1
+                                                } else {
+                                                    scriptsViewModel.addInputAlias(scriptDelegate.scriptIndex, inAliasName.text.trim(), dev.systemPath, inChannelCombo.currentIndex, inKindCombo.currentIndex === 0)
+                                                }
+                                                inAliasName.text = ""
+                                            }
+                                        }
+                                        ToolButton {
+                                            label: qsTr("Cancel")
+                                            visible: scriptDelegate.editingInputIndex >= 0
+                                            onClicked: {
+                                                scriptDelegate.editingInputIndex = -1
                                                 inAliasName.text = ""
                                             }
                                         }
@@ -387,13 +437,34 @@ Item {
                                         delegate: RowLayout {
                                             Layout.fillWidth: true
                                             spacing: Theme.spacingSm
-                                            Text { text: modelData.name; color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 90; elide: Text.ElideRight }
+                                            Text {
+                                                // See the input-alias row's own docs on this same pattern.
+                                                readonly property var _knownNames: scriptsViewModel.suggestedAliasNames(scriptDelegate.scriptData.scriptPath, false)
+                                                readonly property bool nameUnknown: _knownNames.length > 0 && _knownNames.indexOf(modelData.name) < 0
+                                                text: modelData.name
+                                                color: nameUnknown ? Theme.warning : Theme.text
+                                                font.pixelSize: 12
+                                                Layout.preferredWidth: 150
+                                                elide: Text.ElideRight
+                                                ToolTip.visible: nameUnknown && nameHover.hovered
+                                                ToolTip.text: qsTr("Not found in this script's own set_axis()/set_button() calls - check \"View code\" (it may just build the name dynamically).")
+                                                HoverHandler { id: nameHover }
+                                            }
                                             Text {
                                                 readonly property var channelName: root.outputChannelNames(modelData.isAxis)[modelData.channelIndex]
                                                 text: channelName !== undefined ? channelName : (modelData.isAxis ? qsTr("Axis") : qsTr("Button")) + " " + modelData.channelIndex
                                                 color: Theme.overlay0
                                                 font.pixelSize: 11
                                                 Layout.fillWidth: true
+                                            }
+                                            ToolButton {
+                                                label: qsTr("Edit")
+                                                onClicked: {
+                                                    scriptDelegate.editingOutputIndex = index
+                                                    outAliasName.text = modelData.name
+                                                    outKindCombo.currentIndex = modelData.isAxis ? 0 : 1
+                                                    outChannelCombo.currentIndex = modelData.channelIndex
+                                                }
                                             }
                                             ToolButton { label: qsTr("×"); onClicked: scriptsViewModel.removeOutputAlias(scriptDelegate.scriptIndex, index) }
                                         }
@@ -405,7 +476,7 @@ Item {
 
                                         TextField {
                                             id: outAliasName
-                                            Layout.preferredWidth: 90
+                                            Layout.preferredWidth: 150
                                             placeholderText: qsTr("name")
                                             color: Theme.text
                                             background: Rectangle { color: Theme.surface2; radius: Theme.radiusSmall; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.08) }
@@ -432,10 +503,23 @@ Item {
                                             model: root.outputChannelNames(outKindCombo.currentIndex === 0)
                                         }
                                         GremblingButton {
-                                            text: qsTr("Add")
+                                            text: scriptDelegate.editingOutputIndex >= 0 ? qsTr("Save") : qsTr("Add")
                                             enabled: outAliasName.text.trim().length > 0 && outChannelCombo.currentIndex >= 0
                                             onClicked: {
-                                                scriptsViewModel.addOutputAlias(scriptDelegate.scriptIndex, outAliasName.text.trim(), outChannelCombo.currentIndex, outKindCombo.currentIndex === 0)
+                                                if (scriptDelegate.editingOutputIndex >= 0) {
+                                                    scriptsViewModel.updateOutputAlias(scriptDelegate.scriptIndex, scriptDelegate.editingOutputIndex, outAliasName.text.trim(), outChannelCombo.currentIndex, outKindCombo.currentIndex === 0)
+                                                    scriptDelegate.editingOutputIndex = -1
+                                                } else {
+                                                    scriptsViewModel.addOutputAlias(scriptDelegate.scriptIndex, outAliasName.text.trim(), outChannelCombo.currentIndex, outKindCombo.currentIndex === 0)
+                                                }
+                                                outAliasName.text = ""
+                                            }
+                                        }
+                                        ToolButton {
+                                            label: qsTr("Cancel")
+                                            visible: scriptDelegate.editingOutputIndex >= 0
+                                            onClicked: {
+                                                scriptDelegate.editingOutputIndex = -1
                                                 outAliasName.text = ""
                                             }
                                         }

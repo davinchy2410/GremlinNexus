@@ -171,6 +171,29 @@ void ScriptsViewModel::removeInputAlias(int scriptIndex, int aliasIndex)
     emit scriptsChanged();
 }
 
+void ScriptsViewModel::updateInputAlias(int scriptIndex, int aliasIndex, const QString &name, const QString &devicePath, int channelIndex, bool isAxis)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    if (name.trimmed().isEmpty() || devicePath.trimmed().isEmpty() || channelIndex < 0) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    if (aliasIndex < 0 || static_cast<std::size_t>(aliasIndex) >= entry.inputAliases.size()) {
+        return;
+    }
+    for (std::size_t i = 0; i < entry.inputAliases.size(); ++i) {
+        if (static_cast<int>(i) != aliasIndex && entry.inputAliases[i].name == name) {
+            qWarning() << "ScriptsViewModel:" << entry.name << "already has an input alias named" << name << "- ignoring edit";
+            return;
+        }
+    }
+    entry.inputAliases[static_cast<std::size_t>(aliasIndex)] = AliasEntry{name, devicePath, channelIndex, isAxis};
+    saveScripts();
+    emit scriptsChanged();
+}
+
 void ScriptsViewModel::addOutputAlias(int scriptIndex, const QString &name, int channelIndex, bool isAxis)
 {
     if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
@@ -204,6 +227,29 @@ void ScriptsViewModel::removeOutputAlias(int scriptIndex, int aliasIndex)
         return;
     }
     entry.outputAliases.erase(entry.outputAliases.begin() + aliasIndex);
+    saveScripts();
+    emit scriptsChanged();
+}
+
+void ScriptsViewModel::updateOutputAlias(int scriptIndex, int aliasIndex, const QString &name, int channelIndex, bool isAxis)
+{
+    if (scriptIndex < 0 || static_cast<std::size_t>(scriptIndex) >= m_scripts.size()) {
+        return;
+    }
+    if (name.trimmed().isEmpty() || channelIndex < 0) {
+        return;
+    }
+    ScriptEntry &entry = *m_scripts[static_cast<std::size_t>(scriptIndex)];
+    if (aliasIndex < 0 || static_cast<std::size_t>(aliasIndex) >= entry.outputAliases.size()) {
+        return;
+    }
+    for (std::size_t i = 0; i < entry.outputAliases.size(); ++i) {
+        if (static_cast<int>(i) != aliasIndex && entry.outputAliases[i].name == name) {
+            qWarning() << "ScriptsViewModel:" << entry.name << "already has an output alias named" << name << "- ignoring edit";
+            return;
+        }
+    }
+    entry.outputAliases[static_cast<std::size_t>(aliasIndex)] = AliasEntry{name, QString(), channelIndex, isAxis};
     saveScripts();
     emit scriptsChanged();
 }
