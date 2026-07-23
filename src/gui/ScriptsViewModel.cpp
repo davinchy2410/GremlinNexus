@@ -8,7 +8,9 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPointer>
 #include <QProcessEnvironment>
+#include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -87,7 +89,7 @@ void ScriptsViewModel::addScript(const QString &name, const QString &scriptPath)
 
     auto entry = std::make_unique<ScriptEntry>();
     entry->name = name;
-    entry->scriptPath = scriptPath;
+    entry->scriptPath = localPath;
     m_scripts.push_back(std::move(entry));
     saveScripts();
     emit scriptsChanged();
@@ -124,6 +126,7 @@ void ScriptsViewModel::startScript(int index)
     }
 
     entry.token = m_bridgeServer.registerScriptToken();
+    entry.stopRequested = false;
 
     auto *process = new QProcess(this);
     entry.process = process;
@@ -135,6 +138,13 @@ void ScriptsViewModel::startScript(int index)
     // Lets `import nexus_bridge` resolve with nothing for the script author
     // to install - see MasterPlan.md's own "SDK Python" decision.
     env.insert(QStringLiteral("PYTHONPATH"), ScriptsModuleLocator::bridgeSdkDir());
+    // Python block-buffers stdout/stderr whenever they aren't a real
+    // terminal (true here - they're piped straight into this QProcess), so
+    // without this a script's own print() output would sit in Python's
+    // internal buffer and never reach readyReadStandardOutput below until
+    // that buffer filled or the process exited - making the Log Console
+    // look silent for a script that's actually running fine.
+    env.insert(QStringLiteral("PYTHONUNBUFFERED"), QStringLiteral("1"));
     process->setProcessEnvironment(env);
 
     // this-based lookup (not an index capture) - entry's own storage is
@@ -183,15 +193,24 @@ void ScriptsViewModel::stopScript(int index)
     if (!entry.process) {
         return; // Already stopped.
     }
+    entry.stopRequested = true;
     entry.process->terminate();
     // Gives the script's own Python interpreter a chance to shut down
-    // cleanly (e.g. close its own bridge socket) before escalating -
-    // teardownProcess() itself (called from the finished() handler this
-    // triggers, or here directly if it doesn't exit in time) is what
-    // actually clears entry.process/token.
-    if (!entry.process->waitForFinished(2000)) {
-        entry.process->kill();
-    }
+    // cleanly (e.g. close its own bridge socket) before escalating to a
+    // hard kill() - via a timer, not QProcess::waitForFinished(), which
+    // blocks this (the GUI) thread synchronously and freezes the whole UI
+    // for up to the full timeout. teardownProcess() (called from the
+    // finished() handler this triggers, one way or another) is what
+    // actually clears entry.process/token - this timer only ever escalates.
+    // QPointer so this safely no-ops if the process already finished on its
+    // own by then (deleteLater()'d from teardownProcess()) or the script
+    // entry was removed entirely (removeScript() torn its process down too).
+    QPointer<QProcess> processGuard(entry.process);
+    QTimer::singleShot(2000, this, [processGuard]() {
+        if (processGuard) {
+            processGuard->kill();
+        }
+    });
 }
 
 void ScriptsViewModel::teardownProcess(ScriptEntry &entry, bool crashed)
@@ -206,7 +225,13 @@ void ScriptsViewModel::teardownProcess(ScriptEntry &entry, bool crashed)
     entry.process->deleteLater();
     entry.process = nullptr;
 
-    entry.status = crashed ? Status::Crashed : Status::Stopped;
+    // A Stop-requested forced kill() reports as QProcess::CrashExit too
+    // (Windows has no graceful way to end a console-less child that isn't
+    // already listening for it) - stopRequested means this exit was asked
+    // for, so it belongs in Status::Stopped, not the misleading Crashed.
+    const bool actuallyCrashed = crashed && !entry.stopRequested;
+    entry.status = actuallyCrashed ? Status::Crashed : Status::Stopped;
+    entry.stopRequested = false;
     emit scriptsChanged();
 }
 

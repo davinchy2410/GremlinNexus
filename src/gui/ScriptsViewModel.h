@@ -71,6 +71,13 @@ private:
         Status status = Status::Stopped;
         QProcess *process = nullptr; ///< nullptr whenever status != Running.
         QString token;                ///< Valid only while process is non-null - see ScriptBridgeServer::registerScriptToken().
+        /// Set by stopScript() before it terminates/kills the process - lets
+        /// teardownProcess() tell a user-requested Stop's forced kill() (see
+        /// its own docs on why Windows console-less child processes rarely
+        /// exit gracefully from terminate() alone) apart from the process
+        /// actually crashing on its own, so a deliberate Stop still lands on
+        /// Status::Stopped instead of the misleading Status::Crashed.
+        bool stopRequested = false;
     };
 
     static QString statusToString(Status status);
