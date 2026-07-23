@@ -35,6 +35,7 @@ ScriptsViewModel::ScriptsViewModel(ScriptBridgeServer &bridgeServer, QObject *pa
     , m_bridgeServer(bridgeServer)
 {
     loadScripts();
+    connect(&m_bridgeServer, &ScriptBridgeServer::messageReceived, this, &ScriptsViewModel::onScriptMessageReceived);
 }
 
 ScriptsViewModel::~ScriptsViewModel()
@@ -217,6 +218,50 @@ QVariantList ScriptsViewModel::availableInputDevices() const
         result.append(map);
     }
     return result;
+}
+
+void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJsonObject &message)
+{
+    ScriptEntry *entry = nullptr;
+    for (auto &candidate : m_scripts) {
+        if (candidate->token == token) {
+            entry = candidate.get();
+            break;
+        }
+    }
+    if (!entry) {
+        return; // Stale/unknown token - nothing to route this to.
+    }
+
+    const QString type = message.value(QStringLiteral("type")).toString();
+    const QString name = message.value(QStringLiteral("name")).toString();
+    if (name.isEmpty()) {
+        return;
+    }
+
+    const AliasEntry *alias = nullptr;
+    for (const auto &candidate : entry->outputAliases) {
+        if (candidate.name == name) {
+            alias = &candidate;
+            break;
+        }
+    }
+    if (!alias) {
+        return; // Script wrote to a name with no output alias configured (yet) - silently dropped.
+    }
+
+    const QString scriptsPath = EventRouter::scriptsSystemPath();
+    if (type == QStringLiteral("setAxis") && alias->isAxis) {
+        const double normalized = qBound(0.0, message.value(QStringLiteral("value")).toDouble(), 1.0);
+        // [0, 65535] - the project-wide default raw-range fallback for a
+        // device with no real HID logical min/max (see DeviceManager::
+        // injectAxisValue()'s own docs).
+        const int rawValue = qRound(normalized * 65535.0);
+        DeviceManager::instance().injectAxisValue(scriptsPath, alias->channelIndex, rawValue);
+    } else if (type == QStringLiteral("setButton") && !alias->isAxis) {
+        const bool pressed = message.value(QStringLiteral("pressed")).toBool();
+        DeviceManager::instance().injectButtonPress(scriptsPath, alias->channelIndex, pressed);
+    }
 }
 
 void ScriptsViewModel::startScript(int index)

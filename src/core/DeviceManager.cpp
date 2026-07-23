@@ -1800,6 +1800,11 @@ void DeviceManager::injectButtonPress(const QString &systemPath, int buttonIndex
     emit buttonPressed(systemPath, buttonIndex, pressed);
 }
 
+void DeviceManager::injectAxisValue(const QString &systemPath, int axisIndex, int value)
+{
+    emit axisMoved(systemPath, axisIndex, value);
+}
+
 void DeviceManager::onAxisMoved(const QString &systemPath, int axisIndex, int value)
 {
     emit axisMoved(systemPath, axisIndex, value);

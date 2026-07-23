@@ -8,6 +8,7 @@
 #include <QVariantList>
 
 class QJsonArray;
+class QJsonObject;
 class ScriptBridgeServer;
 
 /**
@@ -24,17 +25,21 @@ class ScriptBridgeServer;
  * hardcoded or typed by the user, and PYTHONPATH points at the module's own
  * nexus_bridge SDK so `import nexus_bridge` just works.
  *
- * Alias routing (Fase 19.6, step 1/6 - data model + persistence only): each
- * script now carries its own input alias list (which physical device axis/
- * button a name like "rudder" means) and output alias list (which channel
- * of the shared "Nexus Scripts" virtual device a name like
- * "toebrakeOutput" writes to), persisted alongside it in scripts_config.json.
- * Deliberately no UI to edit these yet (that's step 2) and no C++ plumbing
- * that actually forwards physical input to a script or a script's output to
- * "Nexus Scripts" yet (steps 3-4) - a running script can authenticate with
- * ScriptBridgeServer and would receive/send messages if it did, but nothing
- * yet interprets what those messages mean for real input routing. This step
- * only adds the data these later steps will read/write.
+ * Alias routing (Fase 19.6): each script carries its own input alias list
+ * (which physical device axis/button a name like "rudder" means) and output
+ * alias list (which channel of the shared "Nexus Scripts" virtual device a
+ * name like "toebrakeOutput" writes to), persisted alongside it in
+ * scripts_config.json, editable from the Scripts panel (step 2).
+ *
+ * Step 3/6 (this step) wires the OUTGOING half: onScriptMessageReceived()
+ * listens to every authenticated script's ScriptBridgeServer::
+ * messageReceived(), resolves a "setAxis"/"setButton" message's own "name"
+ * against the sending script's output aliases, and injects it into
+ * DeviceManager exactly like a real device would (injectAxisValue()/
+ * injectButtonPress()) - so a binding placed on "Nexus Scripts" in Profiles
+ * finally fires for real. The INCOMING half (a physical device's axis/
+ * button reaching a script's own input aliases) is still step 4 - a script
+ * can authenticate and write output now, but doesn't receive anything yet.
  */
 class ScriptsViewModel : public QObject
 {
@@ -85,6 +90,12 @@ public:
 
 signals:
     void scriptsChanged();
+
+private slots:
+    /// Resolves an authenticated script's "setAxis"/"setButton" message
+    /// against its own output aliases and injects the result into
+    /// DeviceManager - see this class' own docs on step 3/6.
+    void onScriptMessageReceived(const QString &token, const QJsonObject &message);
 
 private:
     enum class Status { Stopped, Running, Crashed };

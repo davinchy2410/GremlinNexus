@@ -105,6 +105,18 @@ public slots:
     /// finding out.
     void injectButtonPress(const QString &systemPath, int buttonIndex, bool pressed);
 
+    /// Injects a synthetic axis reading as if it came from real hardware, by
+    /// simply emitting axisMoved() - same reasoning/pattern as
+    /// injectButtonPress() above, added for the Script Bridge's output alias
+    /// wiring (Fase 19.6 step 3) so a script's set_axis() reaches
+    /// EventRouter/DeviceTesterViewModel/Quick Bind exactly like a physical
+    /// axis would. value is raw HID-logical-range units, [0, 65535] by
+    /// convention for a device with no real axisLogicalMin/Max of its own
+    /// (see ProfileManager.cpp's applyAxisLogicalRange() and its own docs on
+    /// why 65535 is the project-wide default fallback) - "Nexus Scripts" is
+    /// exactly such a device, having no real HID descriptor.
+    void injectAxisValue(const QString &systemPath, int axisIndex, int value);
+
 signals:
     /// Emitted when a new device is discovered (initial scan or hot-plug),
     /// or when a catalogued device's metadata is refreshed.
