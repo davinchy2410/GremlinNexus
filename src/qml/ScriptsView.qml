@@ -26,6 +26,22 @@ import GremblingNexus
 Item {
     id: root
 
+    // Which scripts' alias panels are expanded, keyed by script name - kept
+    // here rather than as local per-delegate state, because
+    // scriptsViewModel.scripts is a plain QVariantList Q_PROPERTY (not a
+    // real QAbstractListModel), so every scriptsChanged() emission - which
+    // addInputAlias()/addOutputAlias() themselves trigger - makes the
+    // Repeater below rebuild every delegate from scratch. A property local
+    // to the delegate would reset to false right as you added an alias,
+    // collapsing the panel you were just typing into.
+    property var expandedScripts: ({})
+
+    function toggleExpanded(scriptName) {
+        const copy = Object.assign({}, root.expandedScripts)
+        copy[scriptName] = !copy[scriptName]
+        root.expandedScripts = copy
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.base
@@ -149,7 +165,7 @@ Item {
                             id: scriptDelegate
                             property var scriptData: modelData
                             property int scriptIndex: index
-                            property bool expanded: false
+                            readonly property bool expanded: root.expandedScripts[scriptData.name] === true
                             // Re-fetched only while expanded (a plain
                             // Q_INVOKABLE snapshot, not a live Q_PROPERTY) -
                             // collapse/re-expand to pick up a device plugged
@@ -201,7 +217,7 @@ Item {
 
                                     ToolButton {
                                         label: qsTr("Aliases (%1 in, %2 out)").arg(scriptDelegate.scriptData.inputAliases.length).arg(scriptDelegate.scriptData.outputAliases.length)
-                                        onClicked: scriptDelegate.expanded = !scriptDelegate.expanded
+                                        onClicked: root.toggleExpanded(scriptDelegate.scriptData.name)
                                     }
 
                                     ToolButton {
