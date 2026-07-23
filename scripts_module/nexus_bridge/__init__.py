@@ -20,8 +20,8 @@ Wire protocol (matches ScriptBridgeServer on the Nexus side):
     <- {"type": "authResult", "success": true}
     -> {"type": "setAxis", "name": "<alias>", "value": 0.0-1.0}
     -> {"type": "setButton", "name": "<alias>", "pressed": true|false}
-    <- {"type": "axisUpdate", "name": "<alias>", "value": 0.0-1.0}
-    <- {"type": "buttonUpdate", "name": "<alias>", "pressed": true|false}
+    <- {"type": "axisState", "name": "<alias>", "value": 0.0-1.0}
+    <- {"type": "buttonState", "name": "<alias>", "pressed": true|false}
 
 "<alias>" is a free-form name chosen by whoever wires up the Scripts panel's
 input/output mapping for this script - nexus_bridge itself has no idea what
@@ -153,10 +153,10 @@ class _Bridge:
                     break  # Nexus closed the connection (Scripts panel Stop, or app shutdown).
                 msg_type = message.get("type")
                 name = message.get("name")
-                if msg_type == "axisUpdate":
+                if msg_type == "axisState":
                     for handler in self._axis_handlers.get(name, []):
                         handler(message.get("value"))
-                elif msg_type == "buttonUpdate":
+                elif msg_type == "buttonState":
                     for handler in self._button_handlers.get(name, []):
                         handler(bool(message.get("pressed")))
         except OSError:

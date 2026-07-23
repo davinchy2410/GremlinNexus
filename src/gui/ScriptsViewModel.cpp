@@ -36,6 +36,8 @@ ScriptsViewModel::ScriptsViewModel(ScriptBridgeServer &bridgeServer, QObject *pa
 {
     loadScripts();
     connect(&m_bridgeServer, &ScriptBridgeServer::messageReceived, this, &ScriptsViewModel::onScriptMessageReceived);
+    connect(&DeviceManager::instance(), &DeviceManager::axisMoved, this, &ScriptsViewModel::onDeviceAxisMoved);
+    connect(&DeviceManager::instance(), &DeviceManager::buttonPressed, this, &ScriptsViewModel::onDeviceButtonPressed);
 }
 
 ScriptsViewModel::~ScriptsViewModel()
@@ -261,6 +263,74 @@ void ScriptsViewModel::onScriptMessageReceived(const QString &token, const QJson
     } else if (type == QStringLiteral("setButton") && !alias->isAxis) {
         const bool pressed = message.value(QStringLiteral("pressed")).toBool();
         DeviceManager::instance().injectButtonPress(scriptsPath, alias->channelIndex, pressed);
+    }
+}
+
+namespace {
+/// Normalizes a raw HID axis reading to [0.0, 1.0] using systemPath's own
+/// real logical range if DeviceManager currently knows it, else the same
+/// [0, 65535] project-wide default fallback ProfileManager.cpp's
+/// applyAxisLogicalRange() uses (see this class' own docs on step 4/6).
+double normalizeAxisValue(const QString &systemPath, int axisIndex, int rawValue)
+{
+    int inputMin = 0;
+    int inputMax = 65535;
+    for (const DeviceInfo &device : DeviceManager::instance().getConnectedDevices()) {
+        if (device.systemPath == systemPath && axisIndex >= 0 && axisIndex < device.axisLogicalMin.size()) {
+            inputMin = device.axisLogicalMin[axisIndex];
+            inputMax = device.axisLogicalMax[axisIndex];
+            break;
+        }
+    }
+    if (inputMax <= inputMin) {
+        return 0.0; // Degenerate/unknown range - avoid a divide-by-zero.
+    }
+    return qBound(0.0, static_cast<double>(rawValue - inputMin) / static_cast<double>(inputMax - inputMin), 1.0);
+}
+} // namespace
+
+void ScriptsViewModel::onDeviceAxisMoved(const QString &systemPath, int axisIndex, int value)
+{
+    if (m_scripts.empty()) {
+        return; // Cheap early-out - this fires on every axis report from every physical device.
+    }
+    const double normalized = normalizeAxisValue(systemPath, axisIndex, value);
+    for (const auto &entry : m_scripts) {
+        if (entry->token.isEmpty()) {
+            continue; // Not currently running/authenticated - nothing to send to.
+        }
+        for (const AliasEntry &alias : entry->inputAliases) {
+            if (alias.isAxis && alias.devicePath == systemPath && alias.channelIndex == axisIndex) {
+                const QJsonObject message{
+                    {QStringLiteral("type"), QStringLiteral("axisState")},
+                    {QStringLiteral("name"), alias.name},
+                    {QStringLiteral("value"), normalized},
+                };
+                m_bridgeServer.sendToScript(entry->token, message);
+            }
+        }
+    }
+}
+
+void ScriptsViewModel::onDeviceButtonPressed(const QString &systemPath, int buttonIndex, bool pressed)
+{
+    if (m_scripts.empty()) {
+        return;
+    }
+    for (const auto &entry : m_scripts) {
+        if (entry->token.isEmpty()) {
+            continue;
+        }
+        for (const AliasEntry &alias : entry->inputAliases) {
+            if (!alias.isAxis && alias.devicePath == systemPath && alias.channelIndex == buttonIndex) {
+                const QJsonObject message{
+                    {QStringLiteral("type"), QStringLiteral("buttonState")},
+                    {QStringLiteral("name"), alias.name},
+                    {QStringLiteral("pressed"), pressed},
+                };
+                m_bridgeServer.sendToScript(entry->token, message);
+            }
+        }
     }
 }
 

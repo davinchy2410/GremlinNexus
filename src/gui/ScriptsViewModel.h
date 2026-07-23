@@ -31,15 +31,26 @@ class ScriptBridgeServer;
  * name like "toebrakeOutput" writes to), persisted alongside it in
  * scripts_config.json, editable from the Scripts panel (step 2).
  *
- * Step 3/6 (this step) wires the OUTGOING half: onScriptMessageReceived()
- * listens to every authenticated script's ScriptBridgeServer::
- * messageReceived(), resolves a "setAxis"/"setButton" message's own "name"
- * against the sending script's output aliases, and injects it into
- * DeviceManager exactly like a real device would (injectAxisValue()/
- * injectButtonPress()) - so a binding placed on "Nexus Scripts" in Profiles
- * finally fires for real. The INCOMING half (a physical device's axis/
- * button reaching a script's own input aliases) is still step 4 - a script
- * can authenticate and write output now, but doesn't receive anything yet.
+ * Step 3/6 wired the OUTGOING half: onScriptMessageReceived() listens to
+ * every authenticated script's ScriptBridgeServer::messageReceived(),
+ * resolves a "setAxis"/"setButton" message's own "name" against the sending
+ * script's output aliases, and injects it into DeviceManager exactly like a
+ * real device would (injectAxisValue()/injectButtonPress()) - so a binding
+ * placed on "Nexus Scripts" in Profiles fires for real.
+ *
+ * Step 4/6 (this step) wires the INCOMING half: onDeviceAxisMoved()/
+ * onDeviceButtonPressed() listen to every DeviceManager axis/button change
+ * (real hardware only - the "Nexus Scripts" virtual device itself is never
+ * a legitimate input source, see availableInputDevices()), resolve it
+ * against every running script's own input aliases, and push an
+ * "axisState"/"buttonState" message to whichever script(s) claimed that
+ * exact device+channel - matching MasterPlan.md's own Fase 19 protocol
+ * naming (nexus_bridge's on_axis()/on_button() dispatch on these exact
+ * type strings). An axis value is normalized to [0.0, 1.0] using the
+ * source device's own real HID logical range when known, falling back to
+ * the same [0, 65535] project-wide default otherwise - same convention
+ * step 3 already uses for the opposite direction, so a script author works
+ * in one consistent unit regardless of which way data is flowing.
  */
 class ScriptsViewModel : public QObject
 {
@@ -96,6 +107,12 @@ private slots:
     /// against its own output aliases and injects the result into
     /// DeviceManager - see this class' own docs on step 3/6.
     void onScriptMessageReceived(const QString &token, const QJsonObject &message);
+
+    /// Forwards a real device's axis/button change to every running
+    /// script that claimed it as an input alias - see this class' own
+    /// docs on step 4/6.
+    void onDeviceAxisMoved(const QString &systemPath, int axisIndex, int value);
+    void onDeviceButtonPressed(const QString &systemPath, int buttonIndex, bool pressed);
 
 private:
     enum class Status { Stopped, Running, Crashed };
