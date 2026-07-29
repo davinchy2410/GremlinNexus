@@ -83,7 +83,7 @@ Item {
                     font.weight: Font.DemiBold
                 }
                 Text {
-                    text: qsTr("Import your Star Citizen control mapping (actionmaps.xml) and compare it against your Grembling Nexus profile")
+                    text: qsTr("Import your Star Citizen control mapping (actionmaps.xml) and compare it against your GremlinNexus profile")
                     color: Theme.subtext0
                     font.pixelSize: 13
                 }

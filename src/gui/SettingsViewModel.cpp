@@ -149,3 +149,17 @@ void SettingsViewModel::refreshDiagnostics()
 {
     emit diagnosticsRefreshed();
 }
+
+QString SettingsViewModel::appVersion() const
+{
+#ifdef NEXUS_APP_VERSION
+    return QStringLiteral(NEXUS_APP_VERSION);
+#else
+    return QStringLiteral("dev");
+#endif
+}
+
+QString SettingsViewModel::qtRuntimeVersion() const
+{
+    return QStringLiteral(QT_VERSION_STR);
+}

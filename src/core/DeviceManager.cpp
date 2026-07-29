@@ -814,6 +814,44 @@ private:
         ctx.lastButtonStates.assign(ctx.buttonCount, false);
         ctx.lastAxisValues.assign(ctx.axisCount, std::numeric_limits<int>::min());
 
+        // Try to read this device's ACTUAL current state right now, rather
+        // than leaving lastButtonStates/lastAxisValues at the seeded
+        // defaults above and passively waiting for the next WM_INPUT
+        // report - a button/switch that's already been held/toggled since
+        // before this registration (e.g. a 2-position panel switch that
+        // only reports when its own state actually changes) can otherwise
+        // never get reconciled: if the device happens to send no report at
+        // all while it stays in that position, DeviceManager's belief
+        // stays wrong indefinitely, and anything reading it later (Fase
+        // 19's Script Bridge pushing a newly-connected script its current
+        // input state, found via a Virpil panel switch always sitting in
+        // one of its two positions) inherits that same wrong belief.
+        // HidD_GetInputReport performs a synchronous, on-demand read of the
+        // device's current input report - not every HID minidriver
+        // implements this IOCTL, so a failure here is deliberately NOT
+        // treated as an error, just left to the existing passive WM_INPUT
+        // path exactly as before this was added.
+        {
+            HANDLE fileHandle = CreateFileW(reinterpret_cast<LPCWSTR>(devicePath.utf16()),
+                                             GENERIC_READ | GENERIC_WRITE,
+                                             FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+            if (fileHandle != INVALID_HANDLE_VALUE) {
+                std::vector<BYTE> reportBuffer(caps.InputReportByteLength, 0);
+                if (HidD_GetInputReport(fileHandle, reportBuffer.data(), static_cast<ULONG>(reportBuffer.size()))) {
+                    parseHidReport(ctx, reportBuffer.data(), static_cast<DWORD>(reportBuffer.size()));
+                } else {
+                    logShutdownTrace(QStringLiteral("registerHidDevice: %1 - HidD_GetInputReport returned no initial state, relying on WM_INPUT instead").arg(devicePath));
+                }
+                if (!CloseHandle(fileHandle)) {
+                    logShutdownTrace(QStringLiteral("registerHidDevice: %1 - CloseHandle (initial state read) FAILED - %2")
+                                          .arg(devicePath, formatLastError(GetLastError())));
+                }
+            } else {
+                logShutdownTrace(QStringLiteral("registerHidDevice: %1 - CreateFileW (initial state read) FAILED - %2")
+                                      .arg(devicePath, formatLastError(GetLastError())));
+            }
+        }
+
         DeviceInfo info;
         info.systemPath = devicePath;
         info.deviceName = queryProductName(devicePath);
@@ -1766,6 +1804,18 @@ QList<DeviceInfo> DeviceManager::getConnectedDevices() const
     return m_devices;
 }
 
+bool DeviceManager::currentButtonState(const QString &systemPath, int buttonIndex) const
+{
+    QReadLocker locker(&m_devicesLock);
+    return m_buttonStates.value(systemPath).value(buttonIndex, false);
+}
+
+int DeviceManager::currentAxisValue(const QString &systemPath, int axisIndex) const
+{
+    QReadLocker locker(&m_devicesLock);
+    return m_axisValues.value(systemPath).value(axisIndex, -1);
+}
+
 void DeviceManager::addOrUpdateDevice(const DeviceInfo &device)
 {
     {
@@ -1791,6 +1841,14 @@ void DeviceManager::removeDevice(const QString &systemPath)
                 ++it;
             }
         }
+        // Drop this device's cached button/axis state too - a stale entry
+        // here would otherwise sit around indefinitely (systemPath keys
+        // are never proactively pruned elsewhere), and if the same
+        // physical device reconnects with the same systemPath, its old
+        // pre-disconnect state shouldn't be handed to a script as if it
+        // were current.
+        m_buttonStates.remove(systemPath);
+        m_axisValues.remove(systemPath);
     }
     emit deviceRemoved(systemPath);
 }
@@ -1807,16 +1865,30 @@ void DeviceManager::injectAxisValue(const QString &systemPath, int axisIndex, in
 
 void DeviceManager::onAxisMoved(const QString &systemPath, int axisIndex, int value)
 {
+    {
+        QWriteLocker locker(&m_devicesLock);
+        m_axisValues[systemPath][axisIndex] = value;
+    }
     emit axisMoved(systemPath, axisIndex, value);
 }
 
 void DeviceManager::onButtonPressed(const QString &systemPath, int buttonIndex, bool pressed)
 {
+    {
+        QWriteLocker locker(&m_devicesLock);
+        m_buttonStates[systemPath][buttonIndex] = pressed;
+    }
     emit buttonPressed(systemPath, buttonIndex, pressed);
 }
 
 void DeviceManager::onButtonsChanged(const QVector<ButtonEvent> &events)
 {
+    {
+        QWriteLocker locker(&m_devicesLock);
+        for (const ButtonEvent &event : events) {
+            m_buttonStates[event.systemPath][event.buttonIndex] = event.pressed;
+        }
+    }
     emit buttonsChanged(events);
 }
 

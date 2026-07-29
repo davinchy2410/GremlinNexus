@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 
 class AutoSwitchManager;
 
@@ -30,6 +31,8 @@ class SettingsViewModel : public QObject
     Q_PROPERTY(bool vigemBusDetected READ vigemBusDetected NOTIFY diagnosticsRefreshed)
     Q_PROPERTY(bool scriptsModuleDetected READ scriptsModuleDetected NOTIFY diagnosticsRefreshed)
     Q_PROPERTY(bool scriptsEnabled READ scriptsEnabled WRITE setScriptsEnabled NOTIFY scriptsEnabledChanged)
+    Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
+    Q_PROPERTY(QString qtRuntimeVersion READ qtRuntimeVersion CONSTANT)
 
 public:
     explicit SettingsViewModel(AutoSwitchManager &autoSwitch, QObject *parent = nullptr);
@@ -109,6 +112,18 @@ public:
     /// the Scripts module) installed/removed since launch shows up without
     /// requiring an app restart.
     Q_INVOKABLE void refreshDiagnostics();
+
+    /// "Acerca de" panel: the running build's version, baked in at compile
+    /// time from NEXUS_APP_VERSION (see CMakeLists.txt - prefers the
+    /// nearest git tag, e.g. "1.1.0-beta.1", falling back to the plain
+    /// project() version when built outside a git checkout). CONSTANT
+    /// since it can never change for the lifetime of this process.
+    QString appVersion() const;
+
+    /// Same panel: which Qt runtime this build is actually linked against
+    /// (QT_VERSION_STR), so a bug report can tell "built against 6.8.1"
+    /// apart from whatever Qt version happens to be on the dev machine.
+    QString qtRuntimeVersion() const;
 
 signals:
     void runOnStartupChanged();

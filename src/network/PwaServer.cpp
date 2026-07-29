@@ -34,7 +34,7 @@ void PwaServer::start(quint16 port)
 {
     stop();
 
-    m_server = new QWebSocketServer(QStringLiteral("GremblingEx PWA Server"), QWebSocketServer::NonSecureMode, this);
+    m_server = new QWebSocketServer(QStringLiteral("GremlinNexus PWA Server"), QWebSocketServer::NonSecureMode, this);
     if (!m_server->listen(QHostAddress::Any, port)) {
         qWarning() << "PwaServer: failed to listen on port" << port << "-" << m_server->errorString();
         m_server->deleteLater();

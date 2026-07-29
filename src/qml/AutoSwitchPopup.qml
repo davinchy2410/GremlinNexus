@@ -200,7 +200,7 @@ Popup {
     FileDialog {
         id: defaultProfileDialog
         title: qsTr("Select Default Profile")
-        nameFilters: [qsTr("Grembling Nexus Profiles (*.json)")]
+        nameFilters: [qsTr("GremlinNexus Profiles (*.json)")]
         fileMode: FileDialog.OpenFile
         onAccepted: {
             profileEditorViewModel.setAutoSwitchDefaultProfile(selectedFile.toString().replace("file:///", ""))
@@ -211,7 +211,7 @@ Popup {
     FileDialog {
         id: ruleProfileDialog
         title: qsTr("Select Profile for Rule")
-        nameFilters: [qsTr("Grembling Nexus Profiles (*.json)")]
+        nameFilters: [qsTr("GremlinNexus Profiles (*.json)")]
         fileMode: FileDialog.OpenFile
         onAccepted: {
             if (exeInput.text.trim() !== "") {

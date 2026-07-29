@@ -200,6 +200,17 @@ private slots:
     void onDeviceAxisMoved(const QString &systemPath, int axisIndex, int value);
     void onDeviceButtonPressed(const QString &systemPath, int buttonIndex, bool pressed);
 
+    /// Fires once a script's connection actually authenticates (not at
+    /// startScript() - the process hasn't even launched yet at that
+    /// point). Pushes DeviceManager's current known state of every one of
+    /// that script's input aliases, so a script that starts (or is
+    /// restarted) while a button is already held, or an axis is already
+    /// off-center, isn't left "blind" to that until the next real
+    /// transition - see MasterPlan.md's own Fase 19 notes on this gap
+    /// (found via a Virpil panel toggle switch that's always in one of
+    /// its two positions, never "released").
+    void onScriptConnected(const QString &token);
+
 private:
     enum class Status { Stopped, Running, Crashed };
 

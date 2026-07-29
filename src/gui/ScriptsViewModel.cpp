@@ -38,6 +38,7 @@ ScriptsViewModel::ScriptsViewModel(ScriptBridgeServer &bridgeServer, QObject *pa
 {
     loadScripts();
     connect(&m_bridgeServer, &ScriptBridgeServer::messageReceived, this, &ScriptsViewModel::onScriptMessageReceived);
+    connect(&m_bridgeServer, &ScriptBridgeServer::scriptConnected, this, &ScriptsViewModel::onScriptConnected);
     connect(&DeviceManager::instance(), &DeviceManager::axisMoved, this, &ScriptsViewModel::onDeviceAxisMoved);
     connect(&DeviceManager::instance(), &DeviceManager::buttonPressed, this, &ScriptsViewModel::onDeviceButtonPressed);
     connect(&DeviceManager::instance(), &DeviceManager::deviceAdded, this, &ScriptsViewModel::onDeviceListChanged);
@@ -484,6 +485,52 @@ void ScriptsViewModel::onDeviceButtonPressed(const QString &systemPath, int butt
                 };
                 m_bridgeServer.sendToScript(entry->token, message);
             }
+        }
+    }
+}
+
+void ScriptsViewModel::onScriptConnected(const QString &token)
+{
+    ScriptEntry *entry = nullptr;
+    for (const auto &candidate : m_scripts) {
+        if (candidate->token == token) {
+            entry = candidate.get();
+            break;
+        }
+    }
+    if (!entry) {
+        return; // A token from something other than one of our own scripts - shouldn't happen, but not our problem either way.
+    }
+
+    for (const AliasEntry &alias : entry->inputAliases) {
+        if (alias.isAxis) {
+            const int rawValue = DeviceManager::instance().currentAxisValue(alias.devicePath, alias.channelIndex);
+            if (rawValue < 0) {
+                continue; // Never reported since Nexus started - nothing real to push yet.
+            }
+            const double normalized = normalizeAxisValue(alias.devicePath, alias.channelIndex, rawValue);
+            const QJsonObject message{
+                {QStringLiteral("type"), QStringLiteral("axisState")},
+                {QStringLiteral("name"), alias.name},
+                {QStringLiteral("value"), normalized},
+            };
+            m_bridgeServer.sendToScript(token, message);
+        } else {
+            // No "never reported" skip for buttons, unlike the axis case above -
+            // DeviceManager::currentButtonState() already defaults to false
+            // (not pressed) for one it's never seen, which is exactly the
+            // same assumption a freshly-connected script would otherwise be
+            // left silently making on its own - sending it explicitly here
+            // is never worse than that, and is correct the moment the
+            // button HAS been pressed before, which is the actual gap this
+            // fixes.
+            const bool pressed = DeviceManager::instance().currentButtonState(alias.devicePath, alias.channelIndex);
+            const QJsonObject message{
+                {QStringLiteral("type"), QStringLiteral("buttonState")},
+                {QStringLiteral("name"), alias.name},
+                {QStringLiteral("pressed"), pressed},
+            };
+            m_bridgeServer.sendToScript(token, message);
         }
     }
 }

@@ -1275,7 +1275,8 @@ void ProfileEditorViewModel::recordVjoyButtonAssigned(int targetOutputId, int ta
     m_lastAssignedVjoyButton[targetOutputId] = targetButton;
 }
 
-bool ProfileEditorViewModel::create1to1Mapping(const QString &devicePath, int targetOutputId)
+bool ProfileEditorViewModel::create1to1Mapping(const QString &devicePath, int targetOutputId,
+                                                const QVariantMap &targetOverrides)
 {
     const int deviceRow = indexOfSystemPath(devicePath);
     if (deviceRow < 0) {
@@ -1319,26 +1320,41 @@ bool ProfileEditorViewModel::create1to1Mapping(const QString &devicePath, int ta
         const int inputIndex = input.value(QStringLiteral("inputIndex")).toInt();
         const bool isAxis = kind == QStringLiteral("axis");
 
+        // Skip sentinel (see targetOverrides' own docs) - checked for both
+        // axes and plain buttons before touching the router at all, so a
+        // skipped input's existing binding (if any) is left completely
+        // alone rather than replaced with anything.
+        if (targetOverrides.contains(inputName) && targetOverrides.value(inputName).toInt() < 0) {
+            continue;
+        }
+
         QJsonObject binding;
         binding[QStringLiteral("sourceDevice")] = devicePath;
         binding[QStringLiteral("mode")] = m_currentMode;
         binding[QStringLiteral("targetOutputId")] = targetOutputId;
 
         if (isAxis) {
+            const int targetAxis = targetOverrides.contains(inputName) ? targetOverrides.value(inputName).toInt()
+                                                                         : inputIndex;
             binding[QStringLiteral("sourceAxis")] = inputIndex;
             binding[QStringLiteral("actionType")] = QStringLiteral("CurveHandler");
-            binding[QStringLiteral("targetAxis")] = inputIndex;
+            binding[QStringLiteral("targetAxis")] = targetAxis;
         } else {
             if (inputIndex >= physicalButtons && physicalButtons > 0) {
+                // Hats are always mapped straight through 1:1 - see
+                // targetOverrides' own docs on why a single target index
+                // can't express a remapped hat/direction pair.
                 const int hatFlat = inputIndex - physicalButtons;
                 binding[QStringLiteral("sourceButton")] = inputIndex;
                 binding[QStringLiteral("actionType")] = QStringLiteral("HatRemapHandler");
                 binding[QStringLiteral("targetHat")] = hatFlat / 4;
                 binding[QStringLiteral("targetDirection")] = hatFlat % 4;
             } else {
+                const int targetButton = targetOverrides.contains(inputName)
+                    ? targetOverrides.value(inputName).toInt() : inputIndex;
                 binding[QStringLiteral("sourceButton")] = inputIndex;
                 binding[QStringLiteral("actionType")] = QStringLiteral("ButtonRemapHandler");
-                binding[QStringLiteral("targetButton")] = inputIndex;
+                binding[QStringLiteral("targetButton")] = targetButton;
             }
         }
 

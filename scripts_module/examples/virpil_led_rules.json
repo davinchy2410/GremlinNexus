@@ -1,0 +1,395 @@
+{
+  "selfTestOnStart": true,
+  "allOffButtonAlias": "paneloff",
+  "initialColors": [
+    {
+      "ledId": 1,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 2,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 3,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 4,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 5,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 6,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 7,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 8,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 9,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "ledId": 10,
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "device": "panel"
+    },
+    {
+      "device": "aeromax",
+      "ledId": 22,
+      "color": [
+        0,
+        2,
+        2
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "actionType": "chase",
+      "alias": "chasebutton",
+      "modifierAlias": "",
+      "triggerAlias": "",
+      "ledId": 1,
+      "ledIds": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "colorOn": [
+        0,
+        3,
+        0
+      ],
+      "colorOff": [
+        3,
+        3,
+        0
+      ],
+      "colorA": [
+        3,
+        0,
+        0
+      ],
+      "colorB": [
+        0,
+        3,
+        0
+      ],
+      "colorReleased": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0,
+        3,
+        0
+      ],
+      "interval": 0.3,
+      "cycleSeconds": 2.0,
+      "device": "panel"
+    },
+    {
+      "actionType": "on",
+      "alias": "poweron",
+      "modifierAlias": "",
+      "triggerAlias": "",
+      "ledId": 1,
+      "ledIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "colorOn": [
+        0,
+        3,
+        0
+      ],
+      "colorOff": [
+        3,
+        3,
+        0
+      ],
+      "colorA": [
+        3,
+        0,
+        0
+      ],
+      "colorB": [
+        0,
+        3,
+        0
+      ],
+      "colorReleased": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "interval": 0.3,
+      "cycleSeconds": 2.0,
+      "device": "panel"
+    },
+    {
+      "actionType": "on",
+      "device": "aeromax",
+      "alias": "poweronae",
+      "modifierAlias": "",
+      "triggerAlias": "",
+      "ledId": 1,
+      "ledIds": [
+        22
+      ],
+      "colorOn": [
+        0,
+        3,
+        0
+      ],
+      "colorOff": [
+        3,
+        3,
+        0
+      ],
+      "colorA": [
+        3,
+        0,
+        0
+      ],
+      "colorB": [
+        0,
+        3,
+        0
+      ],
+      "colorReleased": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0,
+        2,
+        2
+      ],
+      "interval": 0.3,
+      "cycleSeconds": 2.0
+    },
+    {
+      "actionType": "toggle",
+      "alias": "weaponsPower",
+      "device": "panel",
+      "ledId": 1,
+      "colorA": [0, 3, 0],
+      "colorB": [3, 0, 0]
+    },
+    {
+      "actionType": "toggle",
+      "alias": "thrustersPower",
+      "device": "panel",
+      "ledId": 2,
+      "colorA": [0, 3, 0],
+      "colorB": [3, 0, 0]
+    },
+    {
+      "actionType": "toggle",
+      "alias": "shieldsPower",
+      "device": "panel",
+      "ledId": 3,
+      "colorA": [0, 3, 0],
+      "colorB": [3, 0, 0]
+    },
+    {
+      "actionType": "toggle",
+      "alias": "masterPower",
+      "device": "panel",
+      "ledId": 4,
+      "colorA": [0, 3, 0],
+      "colorB": [3, 0, 0]
+    },
+    {
+      "actionType": "blinkonoff",
+      "onAlias": "gearDown",
+      "offAlias": "gearUp",
+      "device": "panel",
+      "ledId": 8,
+      "blinkColorOn": [0, 3, 0],
+      "blinkColorOff": [3, 0, 0],
+      "blinkInterval": 0.3,
+      "blinkDuration": 2.0,
+      "colorOn": null,
+      "colorOff": null
+    },
+    {
+      "actionType": "blinkonoff",
+      "onAlias": "vtolOn",
+      "offAlias": "vtolOff",
+      "device": "panel",
+      "ledId": 9,
+      "blinkColorOn": [0, 3, 0],
+      "blinkColorOff": [3, 0, 0],
+      "blinkInterval": 0.3,
+      "blinkDuration": 2.0,
+      "colorOn": null,
+      "colorOff": null
+    },
+    {
+      "actionType": "onoff",
+      "onAlias": "cruiseOn",
+      "offAlias": "cruiseOff",
+      "device": "panel",
+      "ledId": 5,
+      "colorOn": [0, 3, 0],
+      "colorOff": [0, 2, 2]
+    },
+    {
+      "actionType": "onoff",
+      "onAlias": "navMode",
+      "offAlias": "scmMode",
+      "device": "panel",
+      "ledId": 10,
+      "colorOn": [0, 3, 3],
+      "colorOff": [3, 1, 0]
+    },
+    {
+      "actionType": "alarm",
+      "alias": "masterArm",
+      "device": "panel",
+      "ledIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      "color": [3, 0, 0]
+    },
+    {
+      "actionType": "pulse",
+      "alias": "lightsOn",
+      "device": "panel",
+      "ledId": 7,
+      "color": [3, 3, 3],
+      "duration": 0.3
+    },
+    {
+      "actionType": "pulse",
+      "alias": "lightsOff",
+      "device": "panel",
+      "ledId": 7,
+      "color": [0, 0, 1],
+      "duration": 0.3
+    },
+    {
+      "actionType": "blinkonoff",
+      "onAlias": "nvOn",
+      "offAlias": "nvOff",
+      "device": "panel",
+      "ledId": 6,
+      "blinkColorOn": [0, 3, 0],
+      "blinkColorOff": [0, 3, 0],
+      "blinkInterval": 0.3,
+      "blinkDuration": 3.0,
+      "colorOn": [0, 1, 0],
+      "colorOff": [0, 2, 2]
+    },
+    {
+      "actionType": "blinkpulse",
+      "alias": "atcHangarRequest",
+      "device": "panel",
+      "ledId": 7,
+      "color": [0, 3, 3],
+      "interval": 0.2,
+      "duration": 1.5,
+      "debounce": 0.25
+    },
+    {
+      "actionType": "doorchase",
+      "aliasA": "doorsOpen",
+      "aliasB": "doorsClose",
+      "device": "panel",
+      "ledIdsA": [1, 2, 3, 4],
+      "ledIdsB": [4, 3, 2, 1],
+      "colorA": [0, 3, 0],
+      "colorB": [3, 0, 0],
+      "interval": 0.15,
+      "loops": 2
+    }
+  ],
+  "devices": [
+    {
+      "name": "panel",
+      "vid": "3344",
+      "pid": "025c"
+    },
+    {
+      "name": "aeromax",
+      "vid": "3344",
+      "pid": "c4b0"
+    }
+  ],
+  "defaultDevice": "panel"
+}

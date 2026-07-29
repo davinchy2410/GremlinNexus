@@ -4,11 +4,13 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QStandardPaths>
 
 namespace {
 constexpr int kPollIntervalMs = 1000;
@@ -109,7 +111,19 @@ void AutoSwitchManager::poll()
 
 QString AutoSwitchManager::rulesFilePath()
 {
-    return QCoreApplication::applicationDirPath() + QStringLiteral("/autoswitch_rules.json");
+    // NOT applicationDirPath() (bug fixed 2026-07-28): a standard
+    // (non-elevated) install lands under Program Files, which a normal
+    // user process cannot write to - saveRules() below was silently
+    // failing every time (only a qWarning(), never surfaced to the user),
+    // so "enabled" and every configured rule quietly reverted to whatever
+    // loadRules() last found - "true" if the file couldn't be read yet -
+    // on the very next launch. AppLocalDataLocation resolves to
+    // %LOCALAPPDATA%\Antigravity\GremblingEx (see main.cpp's
+    // setOrganizationName/setApplicationName), always writable by the
+    // user who's running the app regardless of install location.
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir().mkpath(dir);
+    return dir + QStringLiteral("/autoswitch_rules.json");
 }
 
 void AutoSwitchManager::loadRules()

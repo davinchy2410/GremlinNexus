@@ -342,8 +342,30 @@ public:
     /// systemPath, index)" semantics are what keeps re-running this from
     /// ever producing duplicate bindings for a device that already had some
     /// (custom or otherwise) - there is nothing extra to "clear" first.
+    ///
+    /// targetOverrides (Sprint: 1:1 Map manual override) lets the caller
+    /// redirect specific inputs to a target index other than their own -
+    /// keyed by the input's own "name" (exactly as makeInputEntry() built
+    /// it, e.g. "Axis X"/"Button 5" - the same string OneToOnePopup.qml's
+    /// Preview rows already display), value is the target axis/button index
+    /// to use instead of inputIndex. Absent from the map (the default,
+    /// empty-map call every existing site still makes) means "map straight
+    /// through", identical to this method's behavior before overrides
+    /// existed. A negative override value is a "skip" sentinel - this input
+    /// is left completely untouched (no binding created, whatever was
+    /// already routed there before this call stays exactly as-is) rather
+    /// than falling back to straight-through; this is how OneToOnePopup.qml's
+    /// "Buttons end at" range cap excludes inputs whose shifted target would
+    /// land past the caller's chosen last slot. Deliberately NOT consulted
+    /// for a hat's synthetic direction buttons (see the physicalButtons/
+    /// hatFlat math below) - remapping a single POV direction to an
+    /// arbitrary target hat/direction pair needs two coupled numbers (hat
+    /// index AND direction) that a single "target index" can't express, and
+    /// no caller has asked for that yet; hats still always go straight
+    /// through 1:1.
     /// Returns whether at least one input mapped successfully.
-    Q_INVOKABLE bool create1to1Mapping(const QString &devicePath, int targetOutputId);
+    Q_INVOKABLE bool create1to1Mapping(const QString &devicePath, int targetOutputId,
+                                        const QVariantMap &targetOverrides = QVariantMap());
 
     /// Display names (DeviceEntry::name) of every device row, in row order -
     /// for the "Swap Devices" dialog's two device ComboBoxes; combine with

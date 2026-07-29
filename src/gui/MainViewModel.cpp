@@ -8,7 +8,7 @@ MainViewModel::MainViewModel(QObject *parent)
 
 QString MainViewModel::windowTitle() const
 {
-    return QStringLiteral("Grembling Nexus");
+    return QStringLiteral("GremlinNexus");
 }
 
 QString MainViewModel::currentView() const

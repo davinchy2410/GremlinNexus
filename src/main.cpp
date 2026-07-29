@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         // A native Win32 MessageBoxA rather than a QML dialog - no need to
         // spin up QGuiApplication/the QML engine just to report this.
-        MessageBoxA(NULL, "GremblingEx ya se está ejecutando (revisa la bandeja del sistema).", "Instancia Duplicada", MB_ICONWARNING | MB_OK);
+        MessageBoxA(NULL, "GremlinNexus ya se está ejecutando (revisa la bandeja del sistema).", "Instancia Duplicada", MB_ICONWARNING | MB_OK);
         return 0;
     }
 

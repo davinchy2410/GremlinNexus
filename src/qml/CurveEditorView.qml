@@ -222,7 +222,7 @@ Item {
         // --- Routing header: which device/axis this curve applies to ----
         // Fully wired (see "Fase (per-profile Curve wiring)" at the top of
         // this file): selecting a device/axis here loads the real
-        // CurveHandler already bound to it, and "Save to Profile" writes
+        // CurveHandler already bound to it, and "Apply Curve" writes
         // straight back into that same live binding via bindAction() - this
         // is NOT a visual-only mockup.
         Rectangle {
@@ -274,8 +274,15 @@ Item {
                 Text {
                     Layout.alignment: Qt.AlignVCenter
                     Layout.maximumWidth: 220
-                    visible: !root.hasEditableCurve
-                    text: qsTr("No vJoy Remap on this axis - assign one from Profiles first")
+                    // "Apply Curve" only updates the live binding, not the
+                    // profile file on disk (see saveCurveToProfile()'s own
+                    // docs) - the old "Save to Profile" label misled users
+                    // into thinking this step alone persisted the shaped
+                    // curve, when the profile still needed its own separate
+                    // Save (Profiles / Ctrl+S) afterward to not lose it.
+                    text: root.hasEditableCurve
+                        ? qsTr("Remember to save the profile (Ctrl+S) to keep this")
+                        : qsTr("No vJoy Remap on this axis - assign one from Profiles first")
                     color: Theme.overlay0
                     font.pixelSize: 11
                     font.italic: true
@@ -284,7 +291,7 @@ Item {
                 }
                 ToolButton {
                     Layout.alignment: Qt.AlignVCenter
-                    label: qsTr("Save to Profile")
+                    label: qsTr("Apply Curve")
                     enabled: root.hasEditableCurve
                     opacity: enabled ? 1.0 : 0.5
                     onClicked: root.saveCurveToProfile()

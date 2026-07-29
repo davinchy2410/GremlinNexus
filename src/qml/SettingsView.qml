@@ -368,6 +368,50 @@ Item {
                     Item { Layout.fillHeight: true }
                 }
             }
+
+            // --- About Panel ---------------------------------------------
+            // Version comes from NEXUS_APP_VERSION (CMakeLists.txt), which
+            // prefers the nearest git tag at build time - so this label
+            // tracks whatever GitHub release tag the build was cut from
+            // (e.g. "1.1.0-beta.1") without needing a hand-edit here on
+            // every release.
+            Item {
+                Layout.preferredWidth: 260
+                Layout.fillHeight: true
+
+                GlassPanel {
+                    anchors.fill: parent
+                    cornerRadius: Theme.radiusLarge
+                    bgOpacity: 0.7
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingLg
+                    spacing: Theme.spacingSm
+
+                    Text { text: qsTr("About"); color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
+
+                    ColumnLayout {
+                        spacing: 2
+                        Layout.topMargin: Theme.spacingXs
+                        Text { text: qsTr("GremlinNexus"); color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { text: qsTr("Version %1").arg(settingsViewModel.appVersion); color: Theme.subtext0; font.pixelSize: 12 }
+                        Text { text: qsTr("Qt %1").arg(settingsViewModel.qtRuntimeVersion); color: Theme.subtext0; font.pixelSize: 12 }
+                    }
+
+                    Text {
+                        text: qsTr("A modern rewrite of Joystick Gremlin - device management, profile binding, curve editing and Script Bridge automation for HOTAS/simpit setups, built in C++ and Qt/QML.")
+                        color: Theme.subtext0
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        Layout.topMargin: Theme.spacingMd
+                    }
+
+                    Item { Layout.fillHeight: true }
+                }
+            }
         }
     }
 }

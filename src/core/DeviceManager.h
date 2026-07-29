@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QReadWriteLock>
@@ -80,6 +81,27 @@ public:
      * holding any lock or racing with the monitoring thread.
      */
     QList<DeviceInfo> getConnectedDevices() const;
+
+    /**
+     * @brief Last-known state of one button, for a caller that needs "what
+     *        is it doing right now" rather than waiting for the next
+     *        buttonPressed() transition (e.g. ScriptsViewModel pushing a
+     *        newly-connected script its already-wired inputs' current
+     *        state - Fase 19, see its onScriptConnected()). Returns false
+     *        if this (systemPath, buttonIndex) has never been reported.
+     */
+    bool currentButtonState(const QString &systemPath, int buttonIndex) const;
+
+    /**
+     * @brief Last-known raw HID-logical axis value, same reasoning as
+     *        currentButtonState() above. Returns -1 (never a valid HID
+     *        logical value) if this (systemPath, axisIndex) has never been
+     *        reported, so a caller can tell "never seen" apart from "seen,
+     *        currently 0" - use has(...) semantics via the -1 sentinel
+     *        rather than a separate bool out-param, to keep this a single
+     *        cheap value-returning call.
+     */
+    int currentAxisValue(const QString &systemPath, int axisIndex) const;
 
 public slots:
     /// Thread-safe insert/update of a device in the catalogue; emits
@@ -169,6 +191,15 @@ private:
 
     /// Authoritative device catalogue. Guarded by m_devicesLock.
     QList<DeviceInfo> m_devices;
+
+    /// Last-known button/axis state per device, for currentButtonState()/
+    /// currentAxisValue() above - populated in onButtonPressed()/
+    /// onButtonsChanged()/onAxisMoved() alongside their existing signal
+    /// relaying, guarded by the same m_devicesLock (not a separate lock;
+    /// this data changes at the same cadence and from the same thread as
+    /// m_devices does, no reason to add a second lock for it).
+    QHash<QString, QHash<int, bool>> m_buttonStates;
+    QHash<QString, QHash<int, int>> m_axisValues;
 
     /// Dedicated thread hosting the monitor worker so that hardware
     /// notification handling never blocks the caller of initialize().

@@ -95,8 +95,19 @@ ApplicationWindow {
         // OS tray, unlike QML's own Image/Loader, does not resolve a plain
         // relative path against this document's own base URL, so the icon
         // silently failed to appear in the system tray.
-        icon.source: "qrc:/qt/qml/GremblingNexus/src/qml/grembling_icon.svg"
-        tooltip: qsTr("Gremlin Nexus - Engine Active")
+        //
+        // QoL: swaps between a lit/glowing icon and a dimmed one (plus the
+        // tooltip text below) as engineViewModel.isEngineRunning changes -
+        // previously a single static icon plus a tooltip that always said
+        // "Engine Active" regardless of the real state, which was actively
+        // misleading once the window is minimized/hidden to the tray and
+        // TopHeader's own ON/OFF switch is no longer visible to check.
+        icon.source: engineViewModel.isEngineRunning
+            ? "qrc:/qt/qml/GremblingNexus/src/qml/grembling_icon_active.svg"
+            : "qrc:/qt/qml/GremblingNexus/src/qml/grembling_icon_stopped.svg"
+        tooltip: engineViewModel.isEngineRunning
+            ? qsTr("Gremlin Nexus - Engine Active")
+            : qsTr("Gremlin Nexus - Engine Stopped")
 
         onActivated: function(reason) {
             if (reason === SystemTrayIcon.Trigger || reason === SystemTrayIcon.DoubleClick) {

@@ -1,6 +1,28 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(GremblingNexus LANGUAGES CXX)
+project(GremblingNexus VERSION 1.1.0 LANGUAGES CXX)
+
+# Full version string shown in the app's own "Acerca de" panel (Settings).
+# Prefers the nearest git tag (e.g. "1.1.0-beta.1", matching this project's
+# actual GitHub release tags - see MasterPlan.md/Memory.md for the release
+# process) so the banner tracks new tags automatically without having to
+# hand-edit the VERSION above on every release. Falls back to the plain
+# project() version if building from a source snapshot with no .git
+# directory (e.g. a downloaded zip, or a from-source package build).
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE NEXUS_APP_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+endif()
+if(NOT NEXUS_APP_VERSION)
+    set(NEXUS_APP_VERSION "${PROJECT_VERSION}")
+endif()
+message(STATUS "Grembling Nexus version: ${NEXUS_APP_VERSION}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -342,6 +364,8 @@ target_include_directories(GremblingNexus
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vendor/qrcodegen
 )
 
+target_compile_definitions(GremblingNexus PRIVATE NEXUS_APP_VERSION="${NEXUS_APP_VERSION}")
+
 # QML_FILES compiles every listed .qml into the binary as Qt Resource data
 # (qrc:/qt/qml/GremblingNexus/...), so there is no loose .qml file to ship or
 # lose track of at runtime - satisfies the "compile the .qml into the
@@ -407,6 +431,8 @@ qt_add_qml_module(GremblingNexus
         src/qml/icons/log.svg
         src/qml/icons/engine.svg
         src/qml/grembling_icon.svg
+        src/qml/grembling_icon_active.svg
+        src/qml/grembling_icon_stopped.svg
 )
 
 target_link_libraries(GremblingNexus

@@ -59,6 +59,24 @@ Copy-Item -Path (Join-Path $moduleSource "README.md") -Destination $outDir -Forc
 Copy-Item -Path (Join-Path $moduleSource "SCRIPTING_GUIDE.md") -Destination $outDir -Force
 Copy-Item -Path (Join-Path $moduleSource "examples") -Destination $outDir -Recurse -Force
 
+# Strip anything from examples/ that's personal runtime state rather than
+# a generic example - a developer's own hand-built virpil_led_rules.json
+# (their specific hardware's LED map) or the toggle-state file it produces
+# while running has no business in a release other users download, and
+# __pycache__ is just build junk that occasionally sweeps in from local runs.
+$examplesOut = Join-Path $outDir "examples"
+Remove-Item -Path (Join-Path $examplesOut "virpil_led_rules.json") -Force -ErrorAction SilentlyContinue
+Remove-Item -Path (Join-Path $examplesOut "virpil_led_toggle_state.json") -Force -ErrorAction SilentlyContinue
+Remove-Item -Path (Join-Path $examplesOut "__pycache__") -Recurse -Force -ErrorAction SilentlyContinue
+
+# Also bundle the standalone LED rules editor (a PC-side Tkinter GUI, run
+# with the user's own system Python, NOT the embedded interpreter shipped
+# here - see that file's own docstring) so other Virpil owners can build
+# their own virpil_led_rules.json instead of hand-editing Python dicts.
+$toolsOut = Join-Path $outDir "tools"
+New-Item -ItemType Directory -Force -Path $toolsOut | Out-Null
+Copy-Item -Path (Join-Path $repoRoot "tools/virpil_led_rules_editor.py") -Destination $toolsOut -Force
+
 # 4) Zip it up for a GitHub Releases upload.
 $zipOutput = Join-Path $repoRoot "dist/ScriptsModule.zip"
 if (Test-Path $zipOutput) {
