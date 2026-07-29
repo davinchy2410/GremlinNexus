@@ -13,7 +13,15 @@
 ; 3 drivers para que el usuario los instale el mismo, por separado.
 
 #define MyAppName "Gremlin Nexus"
-#define MyAppVersion "1.0"
+; Overridable from the command line (tools/package_release.ps1 passes the
+; real git-tag-derived version via /DMyAppVersion=... so the installer's own
+; AppVersion and output filename actually track each release instead of
+; staying frozen at this fallback - #ifndef, not a plain #define, is what
+; lets a /D value from the command line win instead of being silently
+; clobbered back to "1.0" by this line.
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0"
+#endif
 #define MyAppExeName "GremlinNexus.exe"
 
 [Setup]
@@ -22,7 +30,7 @@ AppVersion={#MyAppVersion}
 DefaultDirName={autopf}\Gremlin Nexus
 DefaultGroupName={#MyAppName}
 PrivilegesRequired=admin
-OutputBaseFilename=GremlinNexus_Installer
+OutputBaseFilename=GremlinNexus_Installer_{#MyAppVersion}
 OutputDir=installer_output
 SetupIconFile=app.ico
 Compression=lzma2
